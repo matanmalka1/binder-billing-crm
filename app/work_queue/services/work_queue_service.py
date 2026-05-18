@@ -92,7 +92,20 @@ def _search_text(item: WorkQueueItem) -> str:
         metadata.get("period"),
         metadata.get("period_label"),
         metadata.get("tax_year"),
+        metadata.get("status"),
+        metadata.get("priority"),
+        metadata.get("assigned_role"),
     ]
+    for task in item.linked_tasks:
+        values.extend(
+            [
+                task.title,
+                task.status,
+                task.priority,
+                task.assigned_role,
+                task.assigned_user_id,
+            ]
+        )
     return " ".join(str(value).casefold() for value in values if value is not None)
 
 
@@ -387,7 +400,9 @@ class WorkQueueService:
                     if state.client_record_id != client_record_id:
                         continue
                 if state is not None:
-                    standalone.client_record_id = state.client_record_id
+                    self.ctx.attach_client_identity(
+                        standalone, state.client_record_id
+                    )
                     standalone.source_summary = WorkQueueSourceSummary(
                         source_type=source_type.value,
                         source_id=task_source_id,
@@ -487,7 +502,7 @@ class WorkQueueService:
     def _label_linked_task_actions(self, item: WorkQueueItem) -> None:
         title_by_id = {task.id: task.title for task in item.linked_tasks}
         base_labels = {
-            "continue_task": "טפל",
+            "continue_task": "פתח משימה",
             "edit_task": "ערוך משימה",
             "complete_task": "סמן כהושלמה",
             "cancel_task": "בטל משימה",
@@ -518,4 +533,7 @@ class WorkQueueService:
             _TASK_STATUS_SORT.get(str(task_status), 9),
             _PRIORITY_SORT.get(str(priority), 9),
             item.title,
+            item.source_type.value,
+            item.source_id,
+            item.id,
         )

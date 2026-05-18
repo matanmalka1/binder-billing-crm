@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
@@ -75,11 +75,36 @@ class TaskService(BaseService):
         if task.status in _TERMINAL:
             raise ConflictError("לא ניתן לערוך משימה שהושלמה או בוטלה", _CONFLICT)
         updates = data.model_dump(exclude_unset=True)
+        if "source_domain" in updates or "source_id" in updates:
+            updates = self._resolve_source_update(updates)
         with self.transaction():
             for field, value in updates.items():
                 setattr(task, field, value)
             task.updated_at = utcnow()
         return task
+
+    def _resolve_source_update(self, updates: dict[str, Any]) -> dict[str, Any]:
+        has_domain = "source_domain" in updates
+        has_id = "source_id" in updates
+        if has_domain != has_id:
+            raise AppError(
+                "קישור מקור למשימה חייב לכלול סוג מקור ומזהה מקור",
+                _INVALID_SOURCE,
+            )
+
+        new_domain = updates["source_domain"]
+        new_id = updates["source_id"]
+        clearing = new_domain is None and new_id is None
+        if not clearing and (not new_domain or new_id is None):
+            raise AppError(
+                "קישור מקור למשימה חייב לכלול סוג מקור ומזהה מקור",
+                _INVALID_SOURCE,
+            )
+        if not clearing:
+            self._validate_source(new_domain, new_id)
+        updates["source_domain"] = new_domain
+        updates["source_id"] = new_id
+        return updates
 
     def complete(self, task_id: int, completed_by_user_id: Optional[int]) -> Task:
         task = self.get(task_id)

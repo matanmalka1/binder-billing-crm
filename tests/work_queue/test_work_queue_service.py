@@ -648,6 +648,30 @@ def test_linked_task_merges_into_source_row(test_db):
     assert not any(i.source_id == task.id for i in task_rows)
 
 
+def test_search_matches_linked_task_title(test_db):
+    biz = create_business(test_db)
+    charge = Charge(
+        client_record_id=biz.client_id,
+        business_id=biz.id,
+        amount=500,
+        charge_type=ChargeType.OTHER,
+        status=ChargeStatus.ISSUED,
+        issued_at=date.today() - timedelta(days=31),
+    )
+    test_db.add(charge)
+    test_db.flush()
+    _add_task_for_source(
+        test_db,
+        source_domain="charge",
+        source_id=charge.id,
+        title="בדיקת מסמכים",
+    )
+
+    items = WorkQueueService(test_db).list_items(search="בדיקת")
+
+    assert any(item.source_type == WorkQueueSourceType.CHARGE for item in items)
+
+
 def test_multiple_linked_tasks_merge_into_single_source_row(test_db):
     biz = create_business(test_db)
     charge = Charge(
@@ -679,8 +703,8 @@ def test_multiple_linked_tasks_merge_into_single_source_row(test_db):
     assert charge_row.linked_tasks_count == 2
     assert len(charge_row.linked_tasks) == 2
     action_labels = [action.label for action in charge_row.available_actions]
-    assert "טפל: בדיקת מסמכים" in action_labels
-    assert "טפל: שיחה עם הלקוח" in action_labels
+    assert "פתח משימה: בדיקת מסמכים" in action_labels
+    assert "פתח משימה: שיחה עם הלקוח" in action_labels
     assert "ערוך משימה: בדיקת מסמכים" in action_labels
     assert "ערוך משימה: שיחה עם הלקוח" in action_labels
 

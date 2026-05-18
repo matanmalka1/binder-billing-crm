@@ -3,7 +3,7 @@ from datetime import date
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.tasks.repositories.task_repository import TaskRepository
 from app.utils.time_utils import utcnow
-from tests.helpers.task_helpers import create_business
+from tests.helpers.task_helpers import create_business, create_charge
 
 
 # ── Create ────────────────────────────────────────────────────────────────────
@@ -147,16 +147,7 @@ def test_completed_standalone_task_appears_in_work_queue_history_api(
 
 def test_create_task_with_optional_fields(client, test_db, advisor_headers):
     biz = create_business(test_db)
-    charge = Charge(
-        client_record_id=biz.client_id,
-        business_id=biz.id,
-        amount=100,
-        charge_type=ChargeType.OTHER,
-        status=ChargeStatus.ISSUED,
-        issued_at=date.today(),
-    )
-    test_db.add(charge)
-    test_db.commit()
+    charge = create_charge(test_db, biz.client_id, biz.id)
     resp = client.post(
         "/api/v1/tasks",
         headers=advisor_headers,
@@ -455,3 +446,170 @@ def test_update_task_invalid_assigned_role_rejected(client, advisor_headers):
         json={"assigned_role": "manager"},
     )
     assert resp.status_code == 422
+
+
+# ── Source linking via PATCH ──────────────────────────────────────────────────
+
+
+def test_patch_task_links_valid_source(client, test_db, advisor_headers):
+    biz = create_business(test_db)
+    charge = create_charge(test_db, biz.client_id, biz.id)
+
+    created = client.post(
+        "/api/v1/tasks", headers=advisor_headers, json={"title": "Linkable"}
+    ).json()
+
+    resp = client.patch(
+        f"/api/v1/tasks/{created['id']}",
+        headers=advisor_headers,
+        json={"source_domain": "charge", "source_id": charge.id},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["source_domain"] == "charge"
+    assert data["source_id"] == charge.id
+
+
+def test_patch_task_relinks_from_one_valid_source_to_another(
+    client, test_db, advisor_headers
+):
+    biz = create_business(test_db)
+    first_charge = create_charge(test_db, biz.client_id, biz.id)
+    second_charge = create_charge(test_db, biz.client_id, biz.id)
+
+    created = client.post(
+        "/api/v1/tasks",
+        headers=advisor_headers,
+        json={
+            "title": "Relinkable",
+            "source_domain": "charge",
+            "source_id": first_charge.id,
+        },
+    ).json()
+
+    resp = client.patch(
+        f"/api/v1/tasks/{created['id']}",
+        headers=advisor_headers,
+        json={"source_domain": "charge", "source_id": second_charge.id},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["source_domain"] == "charge"
+    assert data["source_id"] == second_charge.id
+
+
+def test_patch_task_partial_source_domain_only_rejected(client, advisor_headers):
+    created = client.post(
+        "/api/v1/tasks", headers=advisor_headers, json={"title": "Partial source"}
+    ).json()
+    resp = client.patch(
+        f"/api/v1/tasks/{created['id']}",
+        headers=advisor_headers,
+        json={"source_domain": "charge"},
+    )
+    assert resp.status_code == 400
+
+
+def test_patch_task_partial_source_id_only_rejected(client, advisor_headers):
+    created = client.post(
+        "/api/v1/tasks", headers=advisor_headers, json={"title": "Partial source"}
+    ).json()
+    resp = client.patch(
+        f"/api/v1/tasks/{created['id']}",
+        headers=advisor_headers,
+        json={"source_id": 1},
+    )
+    assert resp.status_code == 400
+
+
+def test_patch_linked_task_partial_source_update_rejected(
+    client, test_db, advisor_headers
+):
+    biz = create_business(test_db)
+    charge = create_charge(test_db, biz.client_id, biz.id)
+
+    created = client.post(
+        "/api/v1/tasks",
+        headers=advisor_headers,
+        json={
+            "title": "Already linked",
+            "source_domain": "charge",
+            "source_id": charge.id,
+        },
+    ).json()
+
+    resp = client.patch(
+        f"/api/v1/tasks/{created['id']}",
+        headers=advisor_headers,
+        json={"source_domain": "binder"},
+    )
+    assert resp.status_code == 400
+
+
+def test_patch_task_unknown_source_domain_rejected(client, advisor_headers):
+    created = client.post(
+        "/api/v1/tasks", headers=advisor_headers, json={"title": "Bad domain"}
+    ).json()
+    resp = client.patch(
+        f"/api/v1/tasks/{created['id']}",
+        headers=advisor_headers,
+        json={"source_domain": "unknown_domain", "source_id": 1},
+    )
+    assert resp.status_code == 400
+
+
+def test_patch_task_missing_source_record_rejected(client, advisor_headers):
+    created = client.post(
+        "/api/v1/tasks", headers=advisor_headers, json={"title": "Missing source"}
+    ).json()
+    resp = client.patch(
+        f"/api/v1/tasks/{created['id']}",
+        headers=advisor_headers,
+        json={"source_domain": "charge", "source_id": 99999},
+    )
+    assert resp.status_code == 404
+
+
+def test_patch_task_clears_source_with_explicit_null(client, test_db, advisor_headers):
+    biz = create_business(test_db)
+    charge = create_charge(test_db, biz.client_id, biz.id)
+
+    created = client.post(
+        "/api/v1/tasks",
+        headers=advisor_headers,
+        json={"title": "Clearable", "source_domain": "charge", "source_id": charge.id},
+    ).json()
+    assert created["source_domain"] == "charge"
+
+    resp = client.patch(
+        f"/api/v1/tasks/{created['id']}",
+        headers=advisor_headers,
+        json={"source_domain": None, "source_id": None},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["source_domain"] is None
+    assert data["source_id"] is None
+
+
+def test_patch_task_without_source_fields_does_not_clear_existing_source(
+    client, test_db, advisor_headers
+):
+    biz = create_business(test_db)
+    charge = create_charge(test_db, biz.client_id, biz.id)
+
+    created = client.post(
+        "/api/v1/tasks",
+        headers=advisor_headers,
+        json={"title": "Keep source", "source_domain": "charge", "source_id": charge.id},
+    ).json()
+
+    resp = client.patch(
+        f"/api/v1/tasks/{created['id']}",
+        headers=advisor_headers,
+        json={"title": "Updated title only"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["source_domain"] == "charge"
+    assert data["source_id"] == charge.id

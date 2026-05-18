@@ -9,6 +9,12 @@ from app.work_queue.schemas.work_queue import WorkQueueSourceType
 from app.work_queue.services.common import source_route
 
 
+def _disabled(action: ActionDescriptor, reason: str) -> ActionDescriptor:
+    action.disabled = True
+    action.disabled_reason = reason
+    return action
+
+
 def source_link_action(
     source_type: WorkQueueSourceType, source_id: int
 ) -> ActionDescriptor | None:
@@ -52,7 +58,7 @@ def task_actions(
         actions.append(
             _modal(
                 f"continue_task{suffix}",
-                f"טפל{label_suffix}",
+                f"פתח משימה{label_suffix}",
                 task_id=task_id,
                 primary=True,
             )
@@ -80,6 +86,44 @@ def task_actions(
                     confirm_title="ביטול משימה",
                     confirm_message="האם לבטל את המשימה?",
                     variant="danger",
+                ),
+            ]
+        )
+    else:
+        reason = (
+            "המשימה כבר הושלמה"
+            if status == TaskStatus.DONE.value
+            else "המשימה כבר בוטלה"
+        )
+        actions.extend(
+            [
+                _disabled(
+                    _modal(
+                        f"edit_task{suffix}",
+                        f"ערוך משימה{label_suffix}",
+                        task_id=task_id,
+                    ),
+                    reason,
+                ),
+                _disabled(
+                    _mutation(
+                        f"complete_task{suffix}",
+                        f"סמן כהושלמה{label_suffix}",
+                        f"/tasks/{task_id}/complete",
+                        task_id=task_id,
+                        variant="primary",
+                    ),
+                    reason,
+                ),
+                _disabled(
+                    _mutation(
+                        f"cancel_task{suffix}",
+                        f"בטל משימה{label_suffix}",
+                        f"/tasks/{task_id}/cancel",
+                        task_id=task_id,
+                        variant="danger",
+                    ),
+                    reason,
                 ),
             ]
         )

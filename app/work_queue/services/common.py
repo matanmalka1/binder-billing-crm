@@ -191,3 +191,17 @@ class WorkQueueContext:
             ),
             metadata=metadata,
         )
+
+    def attach_client_identity(
+        self, item: WorkQueueItem, client_record_id: Optional[int]
+    ) -> None:
+        """Populate client identity fields on an item whose client was derived later."""
+        item.client_record_id = client_record_id
+        if client_record_id is None:
+            item.client_name = None
+            item.office_client_number = None
+            return
+        self.register_client_id(client_record_id)
+        profile = self._resolve_profiles().get(client_record_id)
+        item.client_name = profile.name if profile else None
+        item.office_client_number = profile.office_number if profile else None

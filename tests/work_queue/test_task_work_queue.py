@@ -7,7 +7,7 @@ from app.tasks.models.task import Task, TaskStatus, TaskPriority
 from app.utils.time_utils import utcnow
 from app.work_queue.schemas.work_queue import WorkQueueSourceType, WorkQueueUrgency
 from app.work_queue.services.work_queue_service import WorkQueueService
-from tests.helpers.task_helpers import create_business
+from tests.helpers.task_helpers import create_business, create_charge
 
 
 def _add_task(
@@ -90,6 +90,12 @@ def test_done_task_appears_in_work_queue_history(test_db):
     )
     task_items = [i for i in items if i.source_type == WorkQueueSourceType.TASK]
     assert any(i.source_id == task.id for i in task_items)
+    task_row = next(i for i in task_items if i.source_id == task.id)
+    actions = {action.key: action for action in task_row.available_actions}
+    assert actions["edit_task"].disabled is True
+    assert actions["complete_task"].disabled is True
+    assert actions["cancel_task"].disabled is True
+    assert actions["complete_task"].disabled_reason == "המשימה כבר הושלמה"
 
 
 def test_done_task_appears_in_work_queue_history_with_many_system_rows(test_db):
@@ -270,3 +276,93 @@ def test_tasks_hidden_when_client_scoped(test_db):
     _add_task(test_db, title="Global Task")
     items = WorkQueueService(test_db).list_items(client_record_id=1)
     assert not any(i.source_type == WorkQueueSourceType.TASK for i in items)
+
+
+# ── Source-linked task enrichment ─────────────────────────────────────────────
+
+
+def test_task_linked_to_charge_exposes_client_info(test_db):
+    biz = create_business(test_db)
+    charge = create_charge(test_db, biz.client_id, biz.id)
+
+    # Task linked to the charge but charge is not in active work-queue window —
+    # task becomes standalone with source enrichment.
+    task = Task(
+        title="Charge Task",
+        status=TaskStatus.OPEN,
+        priority=TaskPriority.NORMAL,
+        source_domain="charge",
+        source_id=charge.id,
+        created_at=utcnow(),
+        updated_at=utcnow(),
+    )
+    test_db.add(task)
+    test_db.commit()
+
+    items = WorkQueueService(test_db).list_items()
+    match = next(
+        (i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id),
+        None,
+    )
+    assert match is not None
+    assert match.client_record_id == biz.client_id
+    assert match.client_name is not None
+    assert match.office_client_number == biz.client_id
+
+
+def test_task_linked_to_charge_appears_in_client_filtered_work_queue(test_db):
+    biz = create_business(test_db)
+    charge = create_charge(test_db, biz.client_id, biz.id)
+
+    task = Task(
+        title="Client Filtered Task",
+        status=TaskStatus.OPEN,
+        priority=TaskPriority.NORMAL,
+        source_domain="charge",
+        source_id=charge.id,
+        created_at=utcnow(),
+        updated_at=utcnow(),
+    )
+    test_db.add(task)
+    test_db.commit()
+
+    items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
+    match = next(
+        (i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id),
+        None,
+    )
+    assert match is not None
+    assert match.client_record_id == biz.client_id
+
+
+def test_task_linked_to_other_client_charge_excluded_from_client_filter(test_db):
+    biz1 = create_business(test_db)
+    biz2 = create_business(test_db)
+    charge = Charge(
+        client_record_id=biz1.client_id,
+        business_id=biz1.id,
+        amount=100,
+        charge_type=ChargeType.OTHER,
+        status=ChargeStatus.ISSUED,
+        issued_at=utcnow().date(),
+    )
+    test_db.add(charge)
+    test_db.flush()
+
+    task = Task(
+        title="Wrong Client Task",
+        status=TaskStatus.OPEN,
+        priority=TaskPriority.NORMAL,
+        source_domain="charge",
+        source_id=charge.id,
+        created_at=utcnow(),
+        updated_at=utcnow(),
+    )
+    test_db.add(task)
+    test_db.commit()
+
+    items = WorkQueueService(test_db).list_items(client_record_id=biz2.client_id)
+    assert not any(
+        i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        for i in items
+    )

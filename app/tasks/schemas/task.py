@@ -30,6 +30,8 @@ class TaskUpdateRequest(BaseModel):
     due_date: Optional[date] = None
     assigned_to_user_id: Optional[int] = Field(None, gt=0)
     assigned_role: Optional[UserRole] = None
+    source_domain: Optional[str] = Field(None, max_length=100)
+    source_id: Optional[int] = Field(None, gt=0)
     action_key: Optional[str] = Field(None, max_length=100)
     action_payload: Optional[dict[str, Any]] = None
 
