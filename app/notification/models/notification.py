@@ -116,6 +116,7 @@ class Notification(Base):
     )
 
     __table_args__ = (
+        Index("idx_notification_status", "status"),
         Index("idx_notification_client_record_status", "client_record_id", "status"),
         Index("idx_notification_business_status", "business_id", "status"),
         Index("idx_notification_created_at", "created_at"),

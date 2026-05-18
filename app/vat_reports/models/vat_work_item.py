@@ -130,6 +130,12 @@ class VatWorkItem(Base):
         ),
         Index("ix_vat_work_items_status", "status"),
         Index("ix_vat_work_items_period", "period"),
+        Index(
+            "idx_vat_work_items_calendar_entry_active",
+            "tax_calendar_entry_id",
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
     )
 
     def __repr__(self) -> str:

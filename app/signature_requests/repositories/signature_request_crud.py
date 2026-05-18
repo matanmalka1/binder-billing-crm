@@ -186,7 +186,7 @@ class SignatureRequestCrudMixin:
                 SignatureRequest.status == SignatureRequestStatus.PENDING_SIGNATURE,
                 SignatureRequest.deleted_at.is_(None),
             )
-            .order_by(SignatureRequest.sent_at.asc())
+            .order_by(SignatureRequest.sent_at.asc().nulls_last())
             .offset(offset)
             .limit(page_size)
         )

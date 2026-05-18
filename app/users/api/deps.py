@@ -5,8 +5,8 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.users.models.user import User, UserRole
-from app.users.repositories.user_repository import UserRepository
+from app.users.models.user import UserRole
+from app.users.repositories.user_repository import AuthSubject, UserRepository
 from app.users.services.auth_service import AuthService
 
 security = HTTPBearer(auto_error=False)
@@ -16,7 +16,7 @@ def get_current_user(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
     db: Annotated[Session, Depends(get_db)],
-) -> User:
+) -> AuthSubject:
     """Extract and validate current user from JWT token."""
     token = credentials.credentials if credentials else None
     if not token:
@@ -46,7 +46,7 @@ def get_current_user(
         ) from exc
 
     user_repo = UserRepository(db)
-    user = user_repo.get_by_id(user_id)
+    user = user_repo.get_auth_subject_by_id(user_id)
 
     if not user or not user.is_active:
         raise HTTPException(
@@ -66,7 +66,7 @@ def get_current_user(
 def require_role(*allowed_roles: UserRole):
     """Dependency factory for role-based access control."""
 
-    def role_checker(current_user: Annotated[User, Depends(get_current_user)]) -> User:
+    def role_checker(current_user: Annotated[AuthSubject, Depends(get_current_user)]) -> AuthSubject:
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -78,5 +78,5 @@ def require_role(*allowed_roles: UserRole):
 
 
 # Common dependencies
-CurrentUser = Annotated[User, Depends(get_current_user)]
+CurrentUser = Annotated[AuthSubject, Depends(get_current_user)]
 DBSession = Annotated[Session, Depends(get_db)]

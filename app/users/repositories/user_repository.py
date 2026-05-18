@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Optional
 
 from sqlalchemy import func, or_, select, update
@@ -8,6 +9,14 @@ from sqlalchemy.orm import Session
 from app.common.repositories.base_repository import BaseRepository
 from app.users.models.user import User, UserRole
 from app.utils.time_utils import utcnow
+
+
+@dataclass(frozen=True)
+class AuthSubject:
+    id: int
+    role: UserRole
+    is_active: bool
+    token_version: int
 
 
 class UserRepository(BaseRepository[User]):
@@ -20,6 +29,25 @@ class UserRepository(BaseRepository[User]):
 
     def get_by_id(self, entity_id: int) -> Optional[User]:
         return self.db.scalars(select(User).where(User.id == entity_id)).first()
+
+    def get_auth_subject_by_id(self, user_id: int) -> Optional[AuthSubject]:
+        """Fetch only the columns needed for per-request JWT validation.
+
+        Returns an immutable DTO — no ORM identity, no lazy loads.
+        """
+        row = self.db.execute(
+            select(User.id, User.role, User.is_active, User.token_version).where(
+                User.id == user_id
+            )
+        ).first()
+        if row is None:
+            return None
+        return AuthSubject(
+            id=row.id,
+            role=row.role,
+            is_active=row.is_active,
+            token_version=row.token_version,
+        )
 
     def get_by_email(self, email: str) -> Optional[User]:
         """Retrieve user by email."""

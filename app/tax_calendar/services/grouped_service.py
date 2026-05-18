@@ -88,9 +88,13 @@ def _build_groups(
         end_year=end_year,
         obligation_type=obligation_type,
     )
-    entry_ids = [entry.id for entry in entries]
     rows_by_entry = _linked_rows_by_entry(
-        repo, entry_ids, client_record_id, client_search
+        repo,
+        start_year=start_year,
+        end_year=end_year,
+        obligation_type=obligation_type,
+        client_record_id=client_record_id,
+        client_search=client_search,
     )
     today = date.today()
 
@@ -148,21 +152,36 @@ def _filter_groups_by_status(
 
 def _linked_rows_by_entry(
     repo: TaxCalendarGroupedRepository,
-    entry_ids: list[int],
+    *,
+    start_year: int | None,
+    end_year: int | None,
+    obligation_type: ObligationType | None,
     client_record_id: int | None,
     client_search: str | None = None,
 ):
     rows = defaultdict(list)
     for row in repo.list_vat_for_entries(
-        entry_ids, client_record_id=client_record_id, client_search=client_search
+        start_year=start_year,
+        end_year=end_year,
+        obligation_type=obligation_type,
+        client_record_id=client_record_id,
+        client_search=client_search,
     ):
         rows[_entry_id(row)].append(row)
     for row in repo.list_advance_for_entries(
-        entry_ids, client_record_id=client_record_id, client_search=client_search
+        start_year=start_year,
+        end_year=end_year,
+        obligation_type=obligation_type,
+        client_record_id=client_record_id,
+        client_search=client_search,
     ):
         rows[_entry_id(row)].append(row)
     for row in repo.list_annual_for_entries(
-        entry_ids, client_record_id=client_record_id, client_search=client_search
+        start_year=start_year,
+        end_year=end_year,
+        obligation_type=obligation_type,
+        client_record_id=client_record_id,
+        client_search=client_search,
     ):
         rows[_entry_id(row)].append(row)
     return rows

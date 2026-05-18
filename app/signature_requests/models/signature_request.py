@@ -30,7 +30,7 @@ import datetime
 from enum import Enum as PyEnum
 from typing import Optional
 
-from sqlalchemy import ForeignKey, Index, Integer, String, Text
+from sqlalchemy import ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -152,6 +152,13 @@ class SignatureRequest(Base):
         Index("idx_sig_request_business", "business_id"),
         Index("idx_sig_request_annual_report", "annual_report_id"),
         Index("idx_sig_request_status", "status"),
+        Index(
+            "idx_sig_request_pending_sent_active",
+            "status",
+            "sent_at",
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
     )
 
     def __repr__(self) -> str:

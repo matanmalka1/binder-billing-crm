@@ -116,6 +116,19 @@ class AnnualReport(Base):
             sqlite_where=text("deleted_at IS NULL"),
         ),
         Index("idx_annual_report_status", "status"),
+        Index(
+            "idx_annual_report_tax_year_status_active",
+            "tax_year",
+            "status",
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
+        Index(
+            "idx_annual_report_calendar_entry_active",
+            "tax_calendar_entry_id",
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
         Index("idx_annual_report_deadline", "filing_deadline"),
         Index("idx_annual_report_assigned", "assigned_to"),
     )

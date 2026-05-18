@@ -117,6 +117,11 @@ class TaxCalendarEntry(Base):
             postgresql_where=text("obligation_type = 'annual_report'"),
             sqlite_where=text("obligation_type = 'annual_report'"),
         ),
+        Index(
+            "idx_tax_calendar_entries_year_obligation",
+            "tax_year",
+            "obligation_type",
+        ),
     )
 
     @validates("period")

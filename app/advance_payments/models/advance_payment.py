@@ -144,6 +144,12 @@ class AdvancePayment(Base):
         Index("idx_advance_payment_client_record_period", "client_record_id", "period"),
         Index("idx_advance_payment_status", "status"),
         Index("idx_advance_payment_due_date", "due_date"),
+        Index(
+            "idx_advance_payment_calendar_entry_active",
+            "tax_calendar_entry_id",
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
     )
 
     def __repr__(self):

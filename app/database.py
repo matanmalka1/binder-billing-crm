@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -10,8 +12,12 @@ if config.APP_ENV == "production" and config.DATABASE_URL.startswith("sqlite"):
 # Create engine
 engine = create_engine(
     config.DATABASE_URL,
-    echo=config.APP_ENV == "development",
+    echo=False,
     pool_pre_ping=True,
+)
+
+logging.getLogger("sqlalchemy.engine").setLevel(
+    logging.INFO if config.APP_ENV == "development" else logging.WARNING
 )
 
 # Session factory
