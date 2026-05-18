@@ -7,7 +7,9 @@ from app.common.enums import VatType
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.core.exceptions import AppError, NotFoundError
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
+)
 from app.vat_reports.services.messages import VAT_CLIENT_EXEMPT, VAT_CLIENT_NOT_FOUND
 from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_type
 

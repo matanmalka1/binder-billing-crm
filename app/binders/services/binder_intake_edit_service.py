@@ -28,7 +28,9 @@ from app.binders.services.messages import (
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.core.exceptions import AppError, NotFoundError
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
+)
 
 
 _PATCHABLE_INTAKE_FIELDS = {"received_at", "received_by", "notes"}

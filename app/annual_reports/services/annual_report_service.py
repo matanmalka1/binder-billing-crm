@@ -12,7 +12,9 @@ from app.advance_payments.repositories.advance_payment_repository import (
 )
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.users.repositories.user_repository import UserRepository
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
+)
 from .create_service import AnnualReportCreateService
 from .query_service import AnnualReportQueryService
 from .season_service import AnnualReportSeasonService

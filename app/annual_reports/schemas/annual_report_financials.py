@@ -47,7 +47,9 @@ class ExpenseLineCreateRequest(BaseModel):
     recognition_rate: Optional[ApiDecimal] = Field(None, ge=0, le=1)
     external_document_reference: Optional[str] = Field(
         None,
-        validation_alias=AliasChoices("external_document_reference", "supporting_document_ref"),
+        validation_alias=AliasChoices(
+            "external_document_reference", "supporting_document_ref"
+        ),
     )
     supporting_document_id: Optional[int] = None
 

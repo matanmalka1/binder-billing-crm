@@ -5,7 +5,9 @@ from typing import Optional
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.users.repositories.user_repository import UserRepository
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
+)
 from app.vat_reports.services.vat_report_queries import (
     count_audit_trail,
     get_audit_trail,

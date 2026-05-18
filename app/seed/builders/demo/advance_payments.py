@@ -41,6 +41,7 @@ def _lookup_vat_turnover(db, client_record_id: int, period: str) -> Decimal | No
             return Decimal(str(row.total_output_net))
     return None
 
+
 _HISTORICAL_YEARS = 3
 
 
@@ -66,7 +67,11 @@ def _apply_payment_fields(
         if db is not None and client_record_id is not None
         else None
     )
-    turnover_amount = vat_turnover if vat_turnover is not None else Decimal(str(round(rng.uniform(10_000, 150_000), 2)))
+    turnover_amount = (
+        vat_turnover
+        if vat_turnover is not None
+        else Decimal(str(round(rng.uniform(10_000, 150_000), 2)))
+    )
     calculated_amount = (turnover_amount * rate / 100).quantize(
         Decimal("0.01"), ROUND_HALF_UP
     )
@@ -106,11 +111,17 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
     mat = TaxCalendarMaterializationService(db)
     payments: list[AdvancePayment] = []
 
-    _crs = [get_seed_client_record(b) for b in businesses if get_seed_client_record(b) is not None]
+    _crs = [
+        get_seed_client_record(b)
+        for b in businesses
+        if get_seed_client_record(b) is not None
+    ]
     _le_ids = list({cr.legal_entity_id for cr in _crs})
     legal_entity_map: dict[int, LegalEntity] = {
         le.id: le
-        for le in db.scalars(select(LegalEntity).where(LegalEntity.id.in_(_le_ids))).all()
+        for le in db.scalars(
+            select(LegalEntity).where(LegalEntity.id.in_(_le_ids))
+        ).all()
     }
 
     seen_clients: set[int] = set()
@@ -157,7 +168,9 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
                 status = _resolve_status(plan.period, current_year)
 
                 if existing:
-                    _apply_payment_fields(rng, existing, status, plan.period, le, db, client_record_id)
+                    _apply_payment_fields(
+                        rng, existing, status, plan.period, le, db, client_record_id
+                    )
                     payments.append(existing)
                     continue
 
@@ -173,7 +186,9 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
                     status=AdvancePaymentStatus.PENDING,
                     tax_calendar_entry_id=entry.id,
                 )
-                _apply_payment_fields(rng, payment, status, plan.period, le, db, client_record_id)
+                _apply_payment_fields(
+                    rng, payment, status, plan.period, le, db, client_record_id
+                )
                 db.add(payment)
                 payments.append(payment)
 

@@ -108,25 +108,37 @@ class SeedIntegrityValidator:
                 )
 
     def _check_advance_payment_amounts(self) -> None:
-        payments = self.db.execute(
-            select(AdvancePayment).where(
-                AdvancePayment.turnover_amount.isnot(None),
-                AdvancePayment.advance_rate.isnot(None),
-                AdvancePayment.deleted_at.is_(None),
+        payments = (
+            self.db.execute(
+                select(AdvancePayment).where(
+                    AdvancePayment.turnover_amount.isnot(None),
+                    AdvancePayment.advance_rate.isnot(None),
+                    AdvancePayment.deleted_at.is_(None),
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         for p in payments:
             expected_calc = (
                 Decimal(str(p.turnover_amount)) * Decimal(str(p.advance_rate)) / 100
             ).quantize(Decimal("0.01"), ROUND_HALF_UP)
-            if p.calculated_amount is None or \
-               Decimal(str(p.calculated_amount)).quantize(Decimal("0.01")) != expected_calc:
-                self._errors.append(f"AdvancePayment {p.id}: calculated_amount mismatch")
+            if (
+                p.calculated_amount is None
+                or Decimal(str(p.calculated_amount)).quantize(Decimal("0.01"))
+                != expected_calc
+            ):
+                self._errors.append(
+                    f"AdvancePayment {p.id}: calculated_amount mismatch"
+                )
             expected_final = (
-                p.override_amount if p.override_amount is not None else p.calculated_amount
+                p.override_amount
+                if p.override_amount is not None
+                else p.calculated_amount
             )
-            if p.expected_amount is None or \
-               Decimal(str(p.expected_amount)) != Decimal(str(expected_final)):
+            if p.expected_amount is None or Decimal(str(p.expected_amount)) != Decimal(
+                str(expected_final)
+            ):
                 self._errors.append(f"AdvancePayment {p.id}: expected_amount mismatch")
 
     def _check_vat_advance_period_sync(self) -> None:

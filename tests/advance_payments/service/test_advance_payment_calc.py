@@ -1,4 +1,5 @@
 """Tests for _compute_amounts, calculation snapshots, prefill, and update recompute."""
+
 from datetime import date
 from decimal import Decimal
 from itertools import count
@@ -41,7 +42,9 @@ def _business(db, advance_rate=None) -> Business:
     return business
 
 
-def _vat_item(db, client_id, period, total_output_net, user_id, status=VatWorkItemStatus.FILED):
+def _vat_item(
+    db, client_id, period, total_output_net, user_id, status=VatWorkItemStatus.FILED
+):
     mat = TaxCalendarMaterializationService(db)
     entry = mat.ensure_periodic_entry("vat", period, 1)
     net = Decimal(str(total_output_net))
@@ -196,12 +199,14 @@ class TestUpdateRecompute:
             turnover_amount=Decimal("40000"),
         )
         svc.update_payment_for_client(
-            business.client_record_id, payment.id,
+            business.client_record_id,
+            payment.id,
             paid_amount=Decimal("1000"),
             status=AdvancePaymentStatus.PAID,
         )
         updated = svc.update_payment_for_client(
-            business.client_record_id, payment.id,
+            business.client_record_id,
+            payment.id,
             turnover_amount=Decimal("80000"),
         )
         assert updated.expected_amount == Decimal("2000.00")

@@ -27,7 +27,9 @@ from app.clients.guards.client_record_guards import assert_client_record_is_acti
 from app.notification.models.notification import NotificationTrigger
 from app.notification.services.notification_service import NotificationService
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
+)
 
 _log = logging.getLogger(__name__)
 

@@ -6,7 +6,9 @@ from typing import Optional
 from app.common.enums import SubmissionMethod
 from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
+)
 from app.vat_reports.services.constants import ACTION_FILED, ACTION_OVERRIDE
 from app.vat_reports.services.data_entry_common import assert_transition_allowed
 from app.vat_reports.services.messages import (

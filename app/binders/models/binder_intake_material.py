@@ -72,7 +72,9 @@ class BinderIntakeMaterial(Base):
 
     period_year = Column(Integer, nullable=False)
     period_month_start = Column(Integer, nullable=False)  # 1–12
-    period_month_end = Column(Integer, nullable=False)  # 1–12; equals period_month_start for monthly
+    period_month_end = Column(
+        Integer, nullable=False
+    )  # 1–12; equals period_month_start for monthly
 
     # Optional free-text note (not the period — use structured fields above for period).
     description = Column(Text, nullable=True)

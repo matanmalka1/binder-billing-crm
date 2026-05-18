@@ -1,4 +1,5 @@
 """API tests for the /prefill-turnover endpoint."""
+
 from datetime import date
 from decimal import Decimal
 from itertools import count
@@ -61,7 +62,9 @@ def _filed_vat(db, client_id, period, net, user_id):
 
 def test_prefill_turnover_returns_filed(client, test_db, advisor_headers, test_user):
     business = _business(test_db)
-    item = _filed_vat(test_db, business.client_record_id, "2026-10", 70000, test_user.id)
+    item = _filed_vat(
+        test_db, business.client_record_id, "2026-10", 70000, test_user.id
+    )
 
     resp = client.get(
         f"/api/v1/clients/{business.client_record_id}/advance-payments/prefill-turnover"

@@ -400,9 +400,7 @@ class WorkQueueService:
                     if state.client_record_id != client_record_id:
                         continue
                 if state is not None:
-                    self.ctx.attach_client_identity(
-                        standalone, state.client_record_id
-                    )
+                    self.ctx.attach_client_identity(standalone, state.client_record_id)
                     standalone.source_summary = WorkQueueSourceSummary(
                         source_type=source_type.value,
                         source_id=task_source_id,

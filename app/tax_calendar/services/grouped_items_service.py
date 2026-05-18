@@ -43,17 +43,9 @@ def get_group_items(
         for source_type, row, client, legal_entity in rows
     ]
     if client_search:
-        items = [
-            item
-            for item in items
-            if _matches_client_search(item, client_search)
-        ]
+        items = [item for item in items if _matches_client_search(item, client_search)]
     if client_record_id is not None:
-        items = [
-            item
-            for item in items
-            if item.client_record_id == client_record_id
-        ]
+        items = [item for item in items if item.client_record_id == client_record_id]
     total = len(items)
     start = (page - 1) * page_size
 
@@ -118,6 +110,8 @@ def _matches_client_search(item: TaxCalendarGroupItem, search: str) -> bool:
     values = [
         item.client_name,
         item.id_number,
-        str(item.office_client_number) if item.office_client_number is not None else None,
+        str(item.office_client_number)
+        if item.office_client_number is not None
+        else None,
     ]
     return any(value and normalized in value.lower() for value in values)

@@ -95,9 +95,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
                 select(
                     AdvancePayment,
                     ClientRecord.office_client_number,
-                    func.coalesce(LegalEntity.official_name, "").label(
-                        "official_name"
-                    ),
+                    func.coalesce(LegalEntity.official_name, "").label("official_name"),
                     LegalEntity.id_number,
                 ),
                 AdvancePayment,

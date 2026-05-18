@@ -89,7 +89,9 @@ def _build_groups(
         obligation_type=obligation_type,
     )
     entry_ids = [entry.id for entry in entries]
-    rows_by_entry = _linked_rows_by_entry(repo, entry_ids, client_record_id, client_search)
+    rows_by_entry = _linked_rows_by_entry(
+        repo, entry_ids, client_record_id, client_search
+    )
     today = date.today()
 
     groups: list[TaxCalendarGroupResponse] = []

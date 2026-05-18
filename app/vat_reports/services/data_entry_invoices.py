@@ -19,7 +19,9 @@ from app.vat_reports.models.vat_enums import (
     VatWorkItemStatus,
 )
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
+)
 from app.vat_reports.services.constants import (
     ACTION_INVOICE_ADDED,
     ACTION_STATUS_CHANGED,

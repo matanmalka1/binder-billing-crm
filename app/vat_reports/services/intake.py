@@ -7,7 +7,9 @@ from app.common.enums import ObligationType, VatType
 from app.clients.enums import ClientStatus
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
+)
 from app.vat_reports.services.client_context_service import VatClientContextService
 from app.vat_reports.services.constants import (
     ACTION_MATERIAL_RECEIVED,

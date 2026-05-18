@@ -601,7 +601,11 @@ def test_patch_task_without_source_fields_does_not_clear_existing_source(
     created = client.post(
         "/api/v1/tasks",
         headers=advisor_headers,
-        json={"title": "Keep source", "source_domain": "charge", "source_id": charge.id},
+        json={
+            "title": "Keep source",
+            "source_domain": "charge",
+            "source_id": charge.id,
+        },
     ).json()
 
     resp = client.patch(

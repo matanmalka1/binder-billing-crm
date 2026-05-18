@@ -2,7 +2,9 @@
 
 from app.core.exceptions import NotFoundError
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
+)
 from app.vat_reports.services.constants import ACTION_INVOICE_DELETED
 from app.vat_reports.services.data_entry_common import (
     audit_invoice_snapshot,

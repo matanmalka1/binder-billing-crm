@@ -13,7 +13,9 @@ from app.businesses.schemas.business_status_card import (
     VatSummaryCard,
 )
 from app.utils.time_utils import utcnow
-from app.vat_reports.repositories.vat_work_item_write_repository import VatWorkItemWriteRepository as VatWorkItemRepository
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
+)
 from app.vat_reports.models.vat_work_item import VatWorkItemStatus
 from app.annual_reports.repositories.annual_report_repository import (
     AnnualReportRepository,

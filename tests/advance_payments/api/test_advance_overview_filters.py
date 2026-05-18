@@ -1,8 +1,11 @@
 """Tests for advance payment overview filters: due_date, period_months_count, client_search."""
+
 from datetime import date
 from itertools import count
 
-from app.advance_payments.repositories.advance_payment_repository import AdvancePaymentRepository
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
 from app.clients.models.client_record import ClientRecord
 from app.common.enums import AdvancePaymentFrequency
 from tests.helpers.identity import seed_client_identity, seed_business
@@ -36,12 +39,20 @@ def test_overview_filter_by_due_date(client, test_db, advisor_headers):
     b = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
     create_linked_advance_payment(
-        test_db, repo=repo, client_record_id=b.client_record_id,
-        period="2026-01", period_months_count=1, due_date=date(2026, 2, 15),
+        test_db,
+        repo=repo,
+        client_record_id=b.client_record_id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
     )
     create_linked_advance_payment(
-        test_db, repo=repo, client_record_id=b.client_record_id,
-        period="2026-02", period_months_count=1, due_date=date(2026, 3, 15),
+        test_db,
+        repo=repo,
+        client_record_id=b.client_record_id,
+        period="2026-02",
+        period_months_count=1,
+        due_date=date(2026, 3, 15),
     )
 
     resp = client.get(
@@ -59,12 +70,20 @@ def test_overview_filter_by_period_months_count(client, test_db, advisor_headers
     b = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
     create_linked_advance_payment(
-        test_db, repo=repo, client_record_id=b.client_record_id,
-        period="2026-01", period_months_count=1, due_date=date(2026, 2, 15),
+        test_db,
+        repo=repo,
+        client_record_id=b.client_record_id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
     )
     create_linked_advance_payment(
-        test_db, repo=repo, client_record_id=b.client_record_id,
-        period="2026-03", period_months_count=2, due_date=date(2026, 4, 15),
+        test_db,
+        repo=repo,
+        client_record_id=b.client_record_id,
+        period="2026-03",
+        period_months_count=2,
+        due_date=date(2026, 4, 15),
     )
 
     resp = client.get(
@@ -82,8 +101,12 @@ def test_overview_client_search_by_official_name(client, test_db, advisor_header
     b = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
     create_linked_advance_payment(
-        test_db, repo=repo, client_record_id=b.client_record_id,
-        period="2026-01", period_months_count=1, due_date=date(2026, 2, 15),
+        test_db,
+        repo=repo,
+        client_record_id=b.client_record_id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
     )
     name_part = b.legal_entity.official_name[:8]
 
@@ -100,8 +123,12 @@ def test_overview_client_search_by_id_number(client, test_db, advisor_headers):
     b = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
     create_linked_advance_payment(
-        test_db, repo=repo, client_record_id=b.client_record_id,
-        period="2026-01", period_months_count=1, due_date=date(2026, 2, 15),
+        test_db,
+        repo=repo,
+        client_record_id=b.client_record_id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
     )
     id_number = b.legal_entity.id_number
 
@@ -114,7 +141,9 @@ def test_overview_client_search_by_id_number(client, test_db, advisor_headers):
     assert resp.json()["total"] == 1
 
 
-def test_overview_client_search_by_office_client_number(client, test_db, advisor_headers):
+def test_overview_client_search_by_office_client_number(
+    client, test_db, advisor_headers
+):
     b = _business(test_db)
     cr = test_db.get(ClientRecord, b.client_record_id)
     cr.office_client_number = 88771
@@ -122,8 +151,12 @@ def test_overview_client_search_by_office_client_number(client, test_db, advisor
 
     repo = AdvancePaymentRepository(test_db)
     create_linked_advance_payment(
-        test_db, repo=repo, client_record_id=b.client_record_id,
-        period="2026-01", period_months_count=1, due_date=date(2026, 2, 15),
+        test_db,
+        repo=repo,
+        client_record_id=b.client_record_id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
     )
 
     resp = client.get(

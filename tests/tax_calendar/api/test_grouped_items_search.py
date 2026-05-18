@@ -1,4 +1,5 @@
 """Tests for /groups/{id}/items client_search and client_record_id filter."""
+
 from sqlalchemy import select
 
 from app.clients.models.client_record import ClientRecord
@@ -65,7 +66,9 @@ def test_items_client_search_by_office_number(client, auth_token, test_db, test_
     assert resp.json()["total"] == 1
 
 
-def test_items_client_search_no_match_returns_empty(client, auth_token, test_db, test_user):
+def test_items_client_search_no_match_returns_empty(
+    client, auth_token, test_db, test_user
+):
     entry = vat_entry(test_db)
     add_vat_item(test_db, entry, test_user.id)
     test_db.commit()
@@ -95,7 +98,9 @@ def test_items_client_record_id_filter(client, auth_token, test_db, test_user):
     assert resp.json()["items"][0]["source_id"] == first.id
 
 
-def test_items_response_includes_id_number_field(client, auth_token, test_db, test_user):
+def test_items_response_includes_id_number_field(
+    client, auth_token, test_db, test_user
+):
     entry = vat_entry(test_db)
     add_vat_item(test_db, entry, test_user.id)
     test_db.commit()

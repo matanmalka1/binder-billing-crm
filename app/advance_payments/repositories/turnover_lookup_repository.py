@@ -104,7 +104,9 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
         client_record_id: int,
         period: str,
         period_months_count: int = 1,  # accepted for API symmetry; VatWorkItem has no period_months_count col
-    ) -> tuple[Optional[Decimal], Optional[int], Literal["vat_filed", "vat_pending", "none"]]:
+    ) -> tuple[
+        Optional[Decimal], Optional[int], Literal["vat_filed", "vat_pending", "none"]
+    ]:
         """Return (total_output_net, vat_work_item_id, source) for prefill.
 
         Checks FILED first, then READY_FOR_REVIEW. Matches by period string only.

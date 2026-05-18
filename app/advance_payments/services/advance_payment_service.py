@@ -219,7 +219,11 @@ class AdvancePaymentService:
             )
             filtered["calculated_amount"] = calculated_amount
             filtered["expected_amount"] = new_expected
-            if "paid_amount" not in filtered and "status" not in filtered and payment.paid_amount is not None:
+            if (
+                "paid_amount" not in filtered
+                and "status" not in filtered
+                and payment.paid_amount is not None
+            ):
                 paid = payment.paid_amount
                 if paid == 0:
                     filtered["status"] = AdvancePaymentStatus.PENDING
@@ -305,7 +309,9 @@ class AdvancePaymentService:
         client_record_id: int,
         period: str,
         period_months_count: int,
-    ) -> tuple[Optional[Decimal], Optional[int], Literal["vat_filed", "vat_pending", "none"]]:
+    ) -> tuple[
+        Optional[Decimal], Optional[int], Literal["vat_filed", "vat_pending", "none"]
+    ]:
         self._get_record_or_raise(client_record_id)
         return TurnoverLookupRepository(self.db).get_prefill_turnover(
             client_record_id, period, period_months_count

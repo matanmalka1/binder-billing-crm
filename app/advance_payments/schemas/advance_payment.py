@@ -123,7 +123,6 @@ class AdvancePaymentUpdateRequest(BaseModel):
         return self
 
 
-
 class AdvancePaymentOverviewRow(BaseModel):
     id: int
     client_record_id: int

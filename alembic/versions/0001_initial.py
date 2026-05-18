@@ -1063,7 +1063,9 @@ def upgrade() -> None:
         ),
         sa.Column("turnover_amount", sa.Numeric(precision=14, scale=2), nullable=True),
         sa.Column("advance_rate", sa.Numeric(precision=5, scale=2), nullable=True),
-        sa.Column("calculated_amount", sa.Numeric(precision=12, scale=2), nullable=True),
+        sa.Column(
+            "calculated_amount", sa.Numeric(precision=12, scale=2), nullable=True
+        ),
         sa.Column("override_amount", sa.Numeric(precision=12, scale=2), nullable=True),
         sa.Column("annual_report_id", sa.Integer(), nullable=True),
         sa.Column("tax_calendar_entry_id", sa.Integer(), nullable=False),
@@ -2294,7 +2296,11 @@ def upgrade() -> None:
     # ### end Alembic commands ###
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
-        op.execute(sa.text("CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START 100001"))
+        op.execute(
+            sa.text(
+                "CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START 100001"
+            )
+        )
 
 
 def downgrade() -> None:

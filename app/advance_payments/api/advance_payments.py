@@ -102,7 +102,6 @@ def create_advance_payment(
     return AdvancePaymentRow.model_validate(payment)
 
 
-
 @router.get(
     "/prefill-turnover",
     response_model=PrefillTurnoverResponse,

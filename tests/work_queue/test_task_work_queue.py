@@ -301,7 +301,11 @@ def test_task_linked_to_charge_exposes_client_info(test_db):
 
     items = WorkQueueService(test_db).list_items()
     match = next(
-        (i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id),
+        (
+            i
+            for i in items
+            if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        ),
         None,
     )
     assert match is not None
@@ -328,7 +332,11 @@ def test_task_linked_to_charge_appears_in_client_filtered_work_queue(test_db):
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
     match = next(
-        (i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id),
+        (
+            i
+            for i in items
+            if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        ),
         None,
     )
     assert match is not None

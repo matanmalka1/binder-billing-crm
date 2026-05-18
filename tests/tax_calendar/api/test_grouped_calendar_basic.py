@@ -53,7 +53,9 @@ def test_obligation_type_filter_works(client, auth_token, test_db):
     )
 
     assert response.status_code == 200
-    assert [row["obligation_type"] for row in response.json()["items"]] == ["annual_report"]
+    assert [row["obligation_type"] for row in response.json()["items"]] == [
+        "annual_report"
+    ]
 
 
 def test_year_range_filter_works(client, auth_token, test_db):
