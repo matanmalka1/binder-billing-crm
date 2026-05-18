@@ -27,6 +27,26 @@ def test_preview_impact_returns_backend_vat_exempt_ceiling(client, advisor_heade
     assert response.json()["vat_exempt_ceiling"] == expected
 
 
+def test_preview_impact_materializes_missing_tax_calendar(client, advisor_headers):
+    response = client.post(
+        "/api/v1/clients/preview-impact",
+        headers=advisor_headers,
+        json={
+            "client": {
+                "entity_type": "osek_murshe",
+                "vat_reporting_frequency": "monthly",
+                "advance_payment_frequency": "monthly",
+            }
+        },
+    )
+
+    assert response.status_code == 200
+    counts = {item["label"]: item["count"] for item in response.json()["items"]}
+    assert counts["קלסר פעיל"] == 1
+    assert counts['דוחות מע"מ'] > 0
+    assert counts["רשומות מקדמות"] > 0
+
+
 def test_preview_impact_matches_actual_future_generation(test_db):
     reference_date = date(2026, 4, 30)
     bootstrap_tax_calendar(test_db, start_year=2026, end_year=2027)

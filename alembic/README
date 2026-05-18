@@ -26,6 +26,13 @@ docker compose up -d postgres
 APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m alembic upgrade head
 ```
 
+3. Tax-calendar bootstrap runs automatically when the development server starts.
+   To run it manually, use:
+
+```bash
+APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 scripts/bootstrap_tax_calendar.py
+```
+
 Default local connection:
 
 ```text
@@ -48,8 +55,8 @@ postgresql+psycopg2://matanmalka@localhost:5432/binder_crm
 - Notes:
   Generated as a fresh initial migration for an empty database/schema.
   Previous incremental migration history was intentionally reset.
-  Follow-up development migrations were folded into this baseline after the
-  development DB reset.
+  Includes creation of `client_office_number_seq` (PostgreSQL sequence used by
+  `ClientRecordRepository.get_next_office_client_number`).
   `down_revision = None`.
 
 ## Required checks after model changes

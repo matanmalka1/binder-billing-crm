@@ -16,7 +16,6 @@ from app.common.obligation_plan import (
     advance_payment_obligation_plan,
     vat_obligation_plan,
 )
-from app.core.exceptions import AppError
 from app.tax_calendar.services.materialization_service import (
     TaxCalendarMaterializationService,
 )
@@ -41,16 +40,11 @@ def compute_creation_impact(
     vat_count = 0
     for year in years:
         for plan in vat_obligation_plan(vat_reporting_frequency, year):
-            entry = tax_calendar.get_periodic_entry(
+            entry = tax_calendar.ensure_periodic_entry(
                 ObligationType.VAT,
                 plan.period,
                 plan.period_months_count,
             )
-            if entry is None:
-                raise AppError(
-                    f"Tax calendar is not bootstrapped for period {plan.period}",
-                    "TAX_CALENDAR.NOT_BOOTSTRAPPED",
-                )
             if entry.due_date >= today:
                 vat_count += 1
     if advance_payment_frequency is not None:
@@ -61,16 +55,11 @@ def compute_creation_impact(
                 year=year,
                 entity_type=entity_type,
             ):
-                entry = tax_calendar.get_periodic_entry(
+                entry = tax_calendar.ensure_periodic_entry(
                     ObligationType.ADVANCE_PAYMENT,
                     plan.period,
                     plan.period_months_count,
                 )
-                if entry is None:
-                    raise AppError(
-                        f"Tax calendar is not bootstrapped for period {plan.period}",
-                        "TAX_CALENDAR.NOT_BOOTSTRAPPED",
-                    )
                 if entry.due_date >= today:
                     advance_count += 1
     else:

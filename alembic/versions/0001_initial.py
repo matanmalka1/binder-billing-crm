@@ -2292,6 +2292,9 @@ def upgrade() -> None:
         unique=False,
     )
     # ### end Alembic commands ###
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute(sa.text("CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START 1"))
 
 
 def downgrade() -> None:
@@ -2627,4 +2630,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_deadline_rules_rule_type"), table_name="deadline_rules")
     op.drop_index("idx_deadline_rule_type_effective", table_name="deadline_rules")
     op.drop_table("deadline_rules")
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute(sa.text("DROP SEQUENCE IF EXISTS client_office_number_seq"))
     # ### end Alembic commands ###

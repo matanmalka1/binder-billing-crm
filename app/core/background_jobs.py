@@ -1,12 +1,15 @@
 import asyncio
+import os
 from typing import Callable
 
 from app.core.logging_config import get_logger
+from app.config import config
 from app.database import SessionLocal
 from app.signature_requests.repositories.signature_request_repository import (
     SignatureRequestRepository,
 )
 from app.signature_requests.services.admin_actions import expire_overdue_requests
+from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 
 logger = get_logger(__name__)
 
@@ -24,6 +27,33 @@ def run_startup_expiry() -> None:
         count = expire_overdue_requests(SignatureRequestRepository(db))
         if count:
             logger.info("Expired %d overdue signature request(s) on startup", count)
+    finally:
+        db.close()
+
+
+def run_development_tax_calendar_bootstrap() -> None:
+    if config.APP_ENV != "development":
+        return
+    if "PYTEST_CURRENT_TEST" in os.environ:
+        return
+
+    db = SessionLocal()
+    try:
+        result = bootstrap_tax_calendar(db)
+        db.commit()
+        logger.info(
+            "Tax calendar bootstrap complete: rules created=%s skipped=%s, entries created=%s skipped=%s",
+            result["rules_created"],
+            result["rules_skipped"],
+            result["entries_created"],
+            result["entries_skipped"],
+        )
+        if result["warnings"]:
+            logger.warning("Tax calendar bootstrap warnings: %s", result["warnings"])
+    except Exception:
+        db.rollback()
+        logger.exception("Tax calendar bootstrap failed")
+        raise
     finally:
         db.close()
 
