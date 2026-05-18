@@ -28,7 +28,7 @@ def test_openapi_uses_string_contract_for_decimal_and_datetime_fields():
     schema = app.openapi()["components"]["schemas"]
 
     expected_amount = schema["AdvancePaymentCreateRequest"]["properties"][
-        "expected_amount"
+        "turnover_amount"
     ]
     created_at = schema["ClientRecordResponse"]["properties"]["created_at"]
 

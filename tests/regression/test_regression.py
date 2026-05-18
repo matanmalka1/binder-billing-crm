@@ -33,7 +33,7 @@ def test_binder_receive_endpoint_creates_in_office_binder(
 
     assert response.status_code == 201
     data = response.json()
-    assert data["binder"]["binder_number"] == "601/1"
+    assert data["binder"]["binder_number"] == "100601/1"
     assert data["binder"]["status"] == "in_office"
 
 

@@ -4,7 +4,7 @@ from app.config import config
 def _login(client, email: str, password: str, remember_me: bool = False) -> dict:
     response = client.post(
         "/api/v1/auth/login",
-        json={"email": email, "password": password, "remember_me": remember_me},
+        json={"email": email, "password": password, "rememberMe": remember_me},
     )
     assert response.status_code == 200
     return {
