@@ -9,7 +9,10 @@ from app.common.enums import ObligationType
 from app.tax_calendar.repositories.grouped_repository import (
     TaxCalendarGroupedRepository,
 )
-from app.tax_calendar.schemas.grouped import TaxCalendarGroupResponse
+from app.tax_calendar.schemas.grouped import (
+    TaxCalendarGroupListResponse,
+    TaxCalendarGroupResponse,
+)
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
 VAT_DONE = {VatWorkItemStatus.FILED}
@@ -36,7 +39,7 @@ def _entry_id(row) -> int:
     return int(value)
 
 
-def list_groups(
+def list_groups_paginated(
     db: Session,
     *,
     start_year: int | None,
@@ -44,6 +47,40 @@ def list_groups(
     obligation_type: ObligationType | None,
     include_empty: bool,
     client_record_id: int | None = None,
+    client_search: str | None = None,
+    status: str = "all",
+    page: int = 1,
+    page_size: int = 25,
+) -> TaxCalendarGroupListResponse:
+    groups = _build_groups(
+        db,
+        start_year=start_year,
+        end_year=end_year,
+        obligation_type=obligation_type,
+        include_empty=include_empty,
+        client_record_id=client_record_id,
+        client_search=client_search,
+    )
+    groups = _filter_groups_by_status(groups, status)
+    total = len(groups)
+    start = (page - 1) * page_size
+    return TaxCalendarGroupListResponse(
+        items=groups[start : start + page_size],
+        page=page,
+        page_size=page_size,
+        total=total,
+    )
+
+
+def _build_groups(
+    db: Session,
+    *,
+    start_year: int | None,
+    end_year: int | None,
+    obligation_type: ObligationType | None,
+    include_empty: bool,
+    client_record_id: int | None = None,
+    client_search: str | None = None,
 ) -> list[TaxCalendarGroupResponse]:
     repo = TaxCalendarGroupedRepository(db)
     entries = repo.list_entries(
@@ -52,7 +89,7 @@ def list_groups(
         obligation_type=obligation_type,
     )
     entry_ids = [entry.id for entry in entries]
-    rows_by_entry = _linked_rows_by_entry(repo, entry_ids, client_record_id)
+    rows_by_entry = _linked_rows_by_entry(repo, entry_ids, client_record_id, client_search)
     today = date.today()
 
     groups: list[TaxCalendarGroupResponse] = []
@@ -89,20 +126,41 @@ def list_groups(
     return groups
 
 
+def _filter_groups_by_status(
+    groups: list[TaxCalendarGroupResponse], status: str
+) -> list[TaxCalendarGroupResponse]:
+    if status == "open":
+        return [group for group in groups if group.open_count > 0]
+    if status == "overdue":
+        return [group for group in groups if group.overdue_count > 0]
+    if status == "done":
+        return [
+            group
+            for group in groups
+            if group.linked_count > 0
+            and group.open_count == 0
+            and group.overdue_count == 0
+        ]
+    return groups
+
+
 def _linked_rows_by_entry(
     repo: TaxCalendarGroupedRepository,
     entry_ids: list[int],
     client_record_id: int | None,
+    client_search: str | None = None,
 ):
     rows = defaultdict(list)
-    for row in repo.list_vat_for_entries(entry_ids, client_record_id=client_record_id):
+    for row in repo.list_vat_for_entries(
+        entry_ids, client_record_id=client_record_id, client_search=client_search
+    ):
         rows[_entry_id(row)].append(row)
     for row in repo.list_advance_for_entries(
-        entry_ids, client_record_id=client_record_id
+        entry_ids, client_record_id=client_record_id, client_search=client_search
     ):
         rows[_entry_id(row)].append(row)
     for row in repo.list_annual_for_entries(
-        entry_ids, client_record_id=client_record_id
+        entry_ids, client_record_id=client_record_id, client_search=client_search
     ):
         rows[_entry_id(row)].append(row)
     return rows

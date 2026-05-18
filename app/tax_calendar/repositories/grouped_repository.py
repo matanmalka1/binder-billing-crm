@@ -1,4 +1,4 @@
-from sqlalchemy import String, case, func, select
+from sqlalchemy import String, case, cast, func, select
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_model import AnnualReport
@@ -74,6 +74,7 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
         entry_ids: list[int],
         *,
         client_record_id: int | None = None,
+        client_search: str | None = None,
     ) -> list[VatWorkItem]:
         if not entry_ids:
             return []
@@ -84,6 +85,7 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
         )
         if client_record_id is not None:
             stmt = stmt.where(VatWorkItem.client_record_id == client_record_id)
+        stmt = self._apply_client_search(stmt, VatWorkItem, client_search)
         return self.db.scalars(stmt).all()
 
     def list_advance_for_entries(
@@ -91,6 +93,7 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
         entry_ids: list[int],
         *,
         client_record_id: int | None = None,
+        client_search: str | None = None,
     ) -> list[AdvancePayment]:
         if not entry_ids:
             return []
@@ -101,6 +104,7 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
         )
         if client_record_id is not None:
             stmt = stmt.where(AdvancePayment.client_record_id == client_record_id)
+        stmt = self._apply_client_search(stmt, AdvancePayment, client_search)
         return self.db.scalars(stmt).all()
 
     def list_annual_for_entries(
@@ -108,6 +112,7 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
         entry_ids: list[int],
         *,
         client_record_id: int | None = None,
+        client_search: str | None = None,
     ) -> list[AnnualReport]:
         if not entry_ids:
             return []
@@ -118,7 +123,23 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
         )
         if client_record_id is not None:
             stmt = stmt.where(AnnualReport.client_record_id == client_record_id)
+        stmt = self._apply_client_search(stmt, AnnualReport, client_search)
         return self.db.scalars(stmt).all()
+
+    @staticmethod
+    def _apply_client_search(stmt, model, client_search: str | None):
+        if not client_search:
+            return stmt
+        like = f"%{client_search.strip()}%"
+        return (
+            stmt.join(ClientRecord, ClientRecord.id == model.client_record_id)
+            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .where(
+                LegalEntity.official_name.ilike(like)
+                | LegalEntity.id_number.ilike(like)
+                | cast(ClientRecord.office_client_number, String).ilike(like)
+            )
+        )
 
     def get_entry(self, entry_id: int) -> TaxCalendarEntry | None:
         return self.db.get(TaxCalendarEntry, entry_id)
@@ -152,4 +173,5 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
             select(model, ClientRecord, LegalEntity)
             .join(ClientRecord, model.client_record_id == ClientRecord.id)
             .join(LegalEntity, ClientRecord.legal_entity_id == LegalEntity.id)
+            .order_by(ClientRecord.office_client_number.asc(), model.id.asc())
         )

@@ -1,5 +1,6 @@
 """Analytics, KPI, and overview service for AdvancePayment domain."""
 
+from datetime import date
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -38,6 +39,9 @@ class AdvancePaymentAnalyticsService:
         statuses: Optional[list[AdvancePaymentStatus]] = None,
         page: int = 1,
         page_size: int = 50,
+        client_search: str | None = None,
+        due_date: date | None = None,
+        period_months_count: int | None = None,
     ):
         if statuses is None:
             statuses = list(AdvancePaymentStatus)
@@ -48,6 +52,9 @@ class AdvancePaymentAnalyticsService:
             statuses=statuses,
             page=page,
             page_size=page_size,
+            client_search=client_search,
+            due_date=due_date,
+            period_months_count=period_months_count,
         )
 
         turnover_repo = TurnoverLookupRepository(self.db)

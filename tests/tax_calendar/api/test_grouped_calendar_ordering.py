@@ -56,7 +56,7 @@ def test_ordering_full_period(client, auth_token, test_db):
     response = client.get(f"{PATH}?include_empty=true", headers=headers(auth_token))
 
     assert response.status_code == 200
-    rows = response.json()
+    rows = response.json()["items"]
     assert len(rows) == 5
     assert [(r["obligation_type"], r["period_months_count"]) for r in rows] == [
         ("vat", 1),
@@ -76,7 +76,7 @@ def test_ordering_monthly_only(client, auth_token, test_db):
     response = client.get(f"{PATH}?include_empty=true", headers=headers(auth_token))
 
     assert response.status_code == 200
-    rows = response.json()
+    rows = response.json()["items"]
     assert len(rows) == 2
     assert [(r["obligation_type"], r["period_months_count"]) for r in rows] == [
         ("vat", 1),

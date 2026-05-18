@@ -1,8 +1,11 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
+from app.advance_payments.repositories.advance_payment_batch_repository import (
+    AdvancePaymentBatchRepository,
+)
 from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentOverviewResponse,
     AdvancePaymentOverviewRow,
@@ -11,9 +14,8 @@ from app.advance_payments.schemas.advance_payment import (
 from app.advance_payments.services.advance_payment_analytics_service import (
     AdvancePaymentAnalyticsService,
 )
-from app.advance_payments.repositories.advance_payment_batch_repository import (
-    AdvancePaymentBatchRepository,
-)
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 overview_router = APIRouter(
     prefix="/advance-payments",
@@ -28,6 +30,9 @@ def list_advance_payments_overview(
     user: CurrentUser,
     year: int = Query(...),
     month: int | None = Query(None, ge=1, le=12),
+    due_date: date | None = Query(None),
+    period_months_count: int | None = Query(None, ge=1, le=2),
+    client_search: str | None = Query(None),
     status: list[AdvancePaymentStatus] | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
@@ -38,6 +43,9 @@ def list_advance_payments_overview(
     rows, total = service.list_overview(
         year=year,
         month=month,
+        due_date=due_date,
+        period_months_count=period_months_count,
+        client_search=client_search,
         statuses=resolved_statuses,
         page=page,
         page_size=page_size,

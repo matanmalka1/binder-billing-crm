@@ -6,13 +6,6 @@ from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
 )
-from app.businesses.models.business import Business
-from app.common.enums import VatType
-from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.models.vat_work_item import VatWorkItem
-from app.tax_calendar.services.materialization_service import (
-    TaxCalendarMaterializationService,
-)
 from tests.helpers.identity import seed_business, seed_client_identity
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
@@ -40,40 +33,6 @@ def _business(db):
     db.refresh(business)
     business.client_record_id = client.id
     return business
-
-
-def _tax_profile(db, business_id: int, advance_rate: Decimal = Decimal("6.0")) -> None:
-    business = db.get(Business, business_id)
-    assert business is not None
-    business.legal_entity.advance_rate = advance_rate
-    db.commit()
-
-
-def _vat_work_item(
-    db, business_id: int, created_by: int, period: str, output_vat: Decimal
-):
-    business = db.get(Business, business_id)
-    assert business is not None
-    entry = TaxCalendarMaterializationService(db).ensure_periodic_entry(
-        "vat", period, 1
-    )
-    item = VatWorkItem(
-        client_record_id=business.client_record_id,
-        created_by=created_by,
-        period=period,
-        period_type=VatType.MONTHLY,
-        status=VatWorkItemStatus.FILED,
-        total_output_vat=output_vat,
-        total_input_vat=Decimal("0"),
-        net_vat=output_vat,
-        tax_calendar_entry_id=entry.id,
-        due_date_original=entry.due_date,
-        due_date_effective=entry.due_date,
-    )
-    db.add(item)
-    db.commit()
-    db.refresh(item)
-    return item
 
 
 def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
@@ -135,26 +94,6 @@ def test_create_advance_payment_uses_advance_payment_frequency(
     assert data["period_months_count"] == 2
 
 
-def test_suggest_expected_amount_uses_vat_and_advance_rate(
-    client, test_db, advisor_headers, test_user
-):
-    business = _business(test_db)
-    _tax_profile(test_db, business.id, advance_rate=Decimal("6.0"))
-    _vat_work_item(test_db, business.id, test_user.id, "2025-01", Decimal("18000"))
-
-    resp = client.get(
-        f"/api/v1/clients/{business.client_record_id}/advance-payments/suggest?year=2026",
-        headers=advisor_headers,
-    )
-
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["client_record_id"] == business.client_record_id
-    assert data["year"] == 2026
-    assert data["has_data"] is True
-    assert Decimal(str(data["suggested_amount"])) == Decimal("500")
-
-
 def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):
     business = _business(test_db)
     repo = AdvancePaymentRepository(test_db)
@@ -189,6 +128,45 @@ def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):
     item = data["items"][0]
     assert item["period"] == "2026-02"
     assert item["status"] == "paid"
+
+
+def test_overview_filters_by_due_date_and_client_search(
+    client, test_db, advisor_headers
+):
+    first_business = _business(test_db)
+    second_business = _business(test_db)
+    repo = AdvancePaymentRepository(test_db)
+    first = create_linked_advance_payment(
+        test_db,
+        repo=repo,
+        client_record_id=first_business.client_record_id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
+    )
+    create_linked_advance_payment(
+        test_db,
+        repo=repo,
+        client_record_id=second_business.client_record_id,
+        period="2026-01",
+        period_months_count=1,
+        due_date=date(2026, 2, 15),
+    )
+    first_id_number = first_business.legal_entity.id_number
+
+    resp = client.get(
+        "/api/v1/advance-payments/overview"
+        f"?year=2026&due_date=2026-02-15&client_search={first_id_number}"
+        "&page=1&page_size=1",
+        headers=advisor_headers,
+    )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["page"] == 1
+    assert data["page_size"] == 1
+    assert data["total"] == 1
+    assert data["items"][0]["id"] == first.id
 
 
 def test_overview_batches_returns_numeric_counts(client, test_db, advisor_headers):

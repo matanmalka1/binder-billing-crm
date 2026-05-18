@@ -50,6 +50,25 @@ def test_secretary_can_fetch_items(client, secretary_token, test_db, test_user):
     assert len(_items(response)) == 1
 
 
+def test_group_items_are_paginated(client, auth_token, test_db, test_user):
+    entry = vat_entry(test_db)
+    first = add_vat_item(test_db, entry, test_user.id)
+    add_vat_item(test_db, entry, test_user.id)
+    test_db.commit()
+
+    response = client.get(
+        f"{_path(entry.id)}?page=1&page_size=1",
+        headers=headers(auth_token),
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["page"] == 1
+    assert payload["page_size"] == 1
+    assert payload["total"] == 2
+    assert [item["source_id"] for item in payload["items"]] == [first.id]
+
+
 def test_vat_linked_item_appears_with_client_and_effective_due_date(
     client, auth_token, test_db, test_user
 ):

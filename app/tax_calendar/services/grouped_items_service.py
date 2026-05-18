@@ -17,6 +17,11 @@ from app.tax_calendar.services.grouped_service import _is_done, _row_due_date
 def get_group_items(
     db: Session,
     tax_calendar_entry_id: int,
+    *,
+    page: int = 1,
+    page_size: int = 50,
+    client_search: str | None = None,
+    client_record_id: int | None = None,
 ) -> TaxCalendarGroupItemsResponse:
     repo = TaxCalendarGroupedRepository(db)
     entry = repo.get_entry(tax_calendar_entry_id)
@@ -32,15 +37,33 @@ def get_group_items(
             row=row,
             client=client,
             client_name=legal_entity.official_name,
+            id_number=legal_entity.id_number,
             today=today,
         )
         for source_type, row, client, legal_entity in rows
     ]
+    if client_search:
+        items = [
+            item
+            for item in items
+            if _matches_client_search(item, client_search)
+        ]
+    if client_record_id is not None:
+        items = [
+            item
+            for item in items
+            if item.client_record_id == client_record_id
+        ]
+    total = len(items)
+    start = (page - 1) * page_size
 
     return TaxCalendarGroupItemsResponse(
         tax_calendar_entry_id=entry.id,
         obligation_type=entry.obligation_type.value,
-        items=items,
+        items=items[start : start + page_size],
+        page=page,
+        page_size=page_size,
+        total=total,
     )
 
 
@@ -61,6 +84,7 @@ def _to_item(
     row,
     client,
     client_name: str | None,
+    id_number: str | None,
     today: date,
 ) -> TaxCalendarGroupItem:
     effective_due_date = _row_due_date(entry.obligation_type, row, entry.due_date)
@@ -71,6 +95,7 @@ def _to_item(
         client_record_id=row.client_record_id,
         office_client_number=client.office_client_number,
         client_name=client_name,
+        id_number=id_number,
         period=getattr(row, "period", None),
         period_months_count=getattr(row, "period_months_count", None),
         tax_year=getattr(row, "tax_year", None),
@@ -84,3 +109,15 @@ def _to_item(
 
 def _status_value(status) -> str:
     return status.value if hasattr(status, "value") else str(status)
+
+
+def _matches_client_search(item: TaxCalendarGroupItem, search: str) -> bool:
+    normalized = search.strip().lower()
+    if not normalized:
+        return True
+    values = [
+        item.client_name,
+        item.id_number,
+        str(item.office_client_number) if item.office_client_number is not None else None,
+    ]
+    return any(value and normalized in value.lower() for value in values)

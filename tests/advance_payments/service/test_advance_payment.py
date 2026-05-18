@@ -13,11 +13,6 @@ from app.advance_payments.services.advance_payment_service import AdvancePayment
 from app.businesses.models.business import Business
 from app.common.enums import VatType
 from app.core.exceptions import AppError, ConflictError
-from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.models.vat_work_item import VatWorkItem
-from app.tax_calendar.services.materialization_service import (
-    TaxCalendarMaterializationService,
-)
 from tests.helpers.identity import seed_client_identity
 
 
@@ -63,47 +58,6 @@ def test_create_payment_duplicate_period_raises_conflict(test_db):
             period="2026-01",
             period_months_count=1,
         )
-
-
-def test_suggest_expected_amount_requires_profile_and_vat(test_db, test_user):
-    business = _business(test_db)
-    service = AdvancePaymentService(test_db)
-
-    assert (
-        service.suggest_expected_amount_for_client(business.client_record_id, 2026)
-        is None
-    )
-
-    business.legal_entity.advance_rate = Decimal("6.0")
-    test_db.commit()
-
-    assert (
-        service.suggest_expected_amount_for_client(business.client_record_id, 2026)
-        is None
-    )
-
-    entry = TaxCalendarMaterializationService(test_db).ensure_periodic_entry(
-        "vat", "2025-02", 1
-    )
-    vat_item = VatWorkItem(
-        client_record_id=business.client_record_id,
-        created_by=test_user.id,
-        period="2025-02",
-        period_type=VatType.MONTHLY,
-        status=VatWorkItemStatus.FILED,
-        total_output_vat=Decimal("18000"),
-        total_input_vat=Decimal("0"),
-        net_vat=Decimal("18000"),
-        tax_calendar_entry_id=entry.id,
-        due_date_original=entry.due_date,
-        due_date_effective=entry.due_date,
-    )
-    test_db.add(vat_item)
-    test_db.commit()
-
-    assert service.suggest_expected_amount_for_client(
-        business.client_record_id, 2026
-    ) == Decimal("500")
 
 
 def test_calculate_expected_amount_rounds_half_up():

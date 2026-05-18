@@ -1,8 +1,9 @@
 """Aggregation and overview queries for AdvancePayment entities."""
 
+from datetime import date
 from typing import Optional
 
-from sqlalchemy import Integer, case, cast, func, select
+from sqlalchemy import Integer, String, case, cast, func, select
 from sqlalchemy.orm import Session
 
 from app.clients.models.client_record import ClientRecord
@@ -54,6 +55,9 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         statuses: list[AdvancePaymentStatus],
         page: int,
         page_size: int,
+        client_search: str | None = None,
+        due_date: date | None = None,
+        period_months_count: int | None = None,
     ) -> tuple[list[tuple[AdvancePayment, int | None, str, str | None]], int]:
         filters = [
             AdvancePayment.period.like(f"{year}-%"),
@@ -61,14 +65,29 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         ]
         if month is not None:
             filters.append(advance_payment_matches_month_expr(month))
+        if due_date is not None:
+            filters.append(AdvancePayment.due_date == due_date)
+        if period_months_count is not None:
+            filters.append(AdvancePayment.period_months_count == period_months_count)
         if statuses:
             filters.append(AdvancePayment.status.in_(statuses))
+        normalized_search = client_search.strip() if client_search else None
+        if normalized_search:
+            like = f"%{normalized_search}%"
+            filters.append(
+                (LegalEntity.official_name.ilike(like))
+                | (LegalEntity.id_number.ilike(like))
+                | (cast(ClientRecord.office_client_number, String).ilike(like))
+            )
 
-        total = self.db.scalar(
+        count_stmt = (
             scope_to_active_clients_stmt(
                 select(func.count(AdvancePayment.id)), AdvancePayment
-            ).where(*filters)
+            )
+            .outerjoin(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .where(*filters)
         )
+        total = self.db.scalar(count_stmt)
 
         offset = (page - 1) * page_size
         stmt = (

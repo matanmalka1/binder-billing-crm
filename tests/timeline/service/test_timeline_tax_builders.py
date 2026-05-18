@@ -2,7 +2,7 @@ from datetime import datetime
 from types import SimpleNamespace
 
 from app.annual_reports.models.annual_report_enums import (
-    AnnualReportForm,
+    PrimaryAnnualReportForm,
     AnnualReportStatus,
 )
 from app.timeline.services.timeline_tax_builders import (
@@ -13,7 +13,7 @@ from app.timeline.services.timeline_tax_builders import (
 def test_annual_report_status_changed_event_includes_form_and_status_hebrew():
     report = SimpleNamespace(
         id=3,
-        form_type=AnnualReportForm.FORM_1301,
+        form_type=PrimaryAnnualReportForm.FORM_1301,
         tax_year=2024,
         status=AnnualReportStatus.COLLECTING_DOCS,
         updated_at=datetime(2026, 1, 1, 12, 0),

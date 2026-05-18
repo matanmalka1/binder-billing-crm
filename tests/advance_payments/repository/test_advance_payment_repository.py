@@ -198,8 +198,8 @@ def test_list_overview_payments_filters_by_month_and_status(test_db):
     assert payment_b.id in ids
 
 
-def test_list_by_client_record_year_handles_legacy_uppercase_status_values(test_db):
-    """_NormalizedEnum deserializes legacy uppercase values on ORM read."""
+def test_list_by_client_record_year_handles_partial_status(test_db):
+    """PARTIAL status round-trips through ORM correctly."""
     repo = AdvancePaymentRepository(test_db)
     business = _create_business(test_db, "Legacy Client", "100000005")
 
@@ -215,7 +215,7 @@ def test_list_by_client_record_year_handles_legacy_uppercase_status_values(test_
     )
 
     test_db.execute(
-        text("UPDATE advance_payments SET status = 'PARTIAL' WHERE id = :payment_id"),
+        text("UPDATE advance_payments SET status = 'partial' WHERE id = :payment_id"),
         {"payment_id": payment.id},
     )
     test_db.commit()

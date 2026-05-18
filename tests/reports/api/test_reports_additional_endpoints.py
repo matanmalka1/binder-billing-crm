@@ -6,9 +6,9 @@ from app.advance_payments.models.advance_payment import (
     AdvancePaymentStatus,
 )
 from app.annual_reports.models.annual_report_enums import (
-    AnnualReportForm,
+    PrimaryAnnualReportForm,
     AnnualReportStatus,
-    ClientTypeForReport,
+    ClientAnnualFilingType,
     FilingDeadlineType,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
@@ -157,8 +157,8 @@ def test_reports_annual_reports_endpoint(client, test_db, advisor_headers, test_
         client_record_id=crm_client.id,
         created_by=test_user.id,
         tax_year=2026,
-        client_type=ClientTypeForReport.CORPORATION,
-        form_type=AnnualReportForm.FORM_1214,
+        client_type=ClientAnnualFilingType.CORPORATION,
+        form_type=PrimaryAnnualReportForm.FORM_1214,
         status=AnnualReportStatus.SUBMITTED,
         deadline_type=FilingDeadlineType.STANDARD,
         filing_deadline=datetime(2027, 4, 30, 0, 0, 0),

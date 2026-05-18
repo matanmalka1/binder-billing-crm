@@ -7,6 +7,7 @@ import pytest
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.clients.enums import ClientStatus
 from app.clients.models.client_record import ClientRecord
+from app.common.enums import AdvancePaymentFrequency
 from app.core.exceptions import NotFoundError, ForbiddenError
 from tests.helpers.identity import seed_client_identity
 
@@ -21,6 +22,7 @@ def _client_record(db, *, status: ClientStatus = ClientStatus.ACTIVE) -> ClientR
         full_name=f"AP Create Client {idx}",
         id_number=f"991199{idx:03d}",
         status=status,
+        advance_payment_frequency=AdvancePaymentFrequency.MONTHLY,
     )
     record = db.get(ClientRecord, client.id)
     assert record is not None

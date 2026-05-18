@@ -15,7 +15,7 @@ from app.tax_calendar.services.link_diagnostics import (
 from app.tax_calendar.services.materialization_service import (
     TaxCalendarMaterializationService,
 )
-from app.tax_calendar.services.grouped_service import list_groups
+from app.tax_calendar.services.grouped_service import list_groups_paginated
 from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
@@ -316,7 +316,7 @@ def test_grouped_tax_calendar_sees_newly_materialized_rows(test_db):
         created_by=1,
     )
 
-    groups = list_groups(
+    result = list_groups_paginated(
         test_db,
         start_year=2026,
         end_year=2026,
@@ -327,7 +327,7 @@ def test_grouped_tax_calendar_sees_newly_materialized_rows(test_db):
     assert any(
         group.tax_calendar_entry_id == item.tax_calendar_entry_id
         and group.linked_count == 1
-        for group in groups
+        for group in result.items
     )
 
 
