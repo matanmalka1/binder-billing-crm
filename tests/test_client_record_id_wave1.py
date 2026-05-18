@@ -54,13 +54,14 @@ def db():
 
 
 def _make_client(db, id_number="C001", vat_type=None):
-    from app.common.enums import VatType
+    from app.common.enums import AdvancePaymentFrequency, VatType
 
     client = LegalEntity(
         official_name="Test Client",
         id_number=id_number,
         id_number_type=IdNumberType.INDIVIDUAL,
         vat_reporting_frequency=vat_type or VatType.MONTHLY,
+        advance_payment_frequency=AdvancePaymentFrequency.MONTHLY,
     )
     db.add(client)
     db.flush()
