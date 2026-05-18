@@ -1,6 +1,8 @@
 """Analytics, KPI, and overview service for AdvancePayment domain."""
 
+from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -17,6 +19,16 @@ from app.advance_payments.repositories.turnover_lookup_repository import (
 )
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
+
+
+@dataclass(slots=True, frozen=True)
+class AdvancePaymentOverviewEnrichedRow:
+    payment: AdvancePayment
+    office_client_number: int | None
+    business_name: str
+    id_number: str | None
+    live_turnover: Decimal | None
+    advance_rate: Decimal | None
 
 
 class AdvancePaymentAnalyticsService:
@@ -42,7 +54,7 @@ class AdvancePaymentAnalyticsService:
         client_search: str | None = None,
         due_date: date | None = None,
         period_months_count: int | None = None,
-    ):
+    ) -> tuple[list[AdvancePaymentOverviewEnrichedRow], int]:
         if statuses is None:
             statuses = list(AdvancePaymentStatus)
 
@@ -58,23 +70,23 @@ class AdvancePaymentAnalyticsService:
         )
 
         turnover_repo = TurnoverLookupRepository(self.db)
-        payments = [row[0] for row in rows]
+        payments = [row.payment for row in rows]
         live_turnover_map = self._build_live_turnover_map(payments, turnover_repo)
 
-        return (
-            [
-                (
-                    p,
-                    office_client_number,
-                    business_name,
-                    id_number,
-                    live_turnover_map.get((p.client_record_id, p.period)),
-                    p.advance_rate,
-                )
-                for p, office_client_number, business_name, id_number in rows
-            ],
-            total,
-        )
+        enriched = [
+            AdvancePaymentOverviewEnrichedRow(
+                payment=row.payment,
+                office_client_number=row.office_client_number,
+                business_name=row.business_name,
+                id_number=row.id_number,
+                live_turnover=live_turnover_map.get(
+                    (row.payment.client_record_id, row.payment.period)
+                ),
+                advance_rate=row.payment.advance_rate,
+            )
+            for row in rows
+        ]
+        return enriched, total
 
     @staticmethod
     def _build_live_turnover_map(
@@ -121,10 +133,20 @@ class AdvancePaymentAnalyticsService:
         year: int,
         month: Optional[int] = None,
         statuses: Optional[list[AdvancePaymentStatus]] = None,
+        due_date: date | None = None,
+        period_months_count: int | None = None,
+        client_search: str | None = None,
     ) -> dict:
         if statuses is None:
             statuses = list(AdvancePaymentStatus)
-        data = self.repo.get_overview_kpis(year, month, statuses)
+        data = self.repo.get_overview_kpis(
+            year,
+            month,
+            statuses,
+            due_date=due_date,
+            period_months_count=period_months_count,
+            client_search=client_search,
+        )
         return {
             **data,
             "collection_rate": self._collection_rate(

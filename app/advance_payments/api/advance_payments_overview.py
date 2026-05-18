@@ -50,32 +50,39 @@ def list_advance_payments_overview(
         page=page,
         page_size=page_size,
     )
-    kpis = service.get_overview_kpis(year=year, month=month, statuses=resolved_statuses)
+    kpis = service.get_overview_kpis(
+        year=year,
+        month=month,
+        statuses=resolved_statuses,
+        due_date=due_date,
+        period_months_count=period_months_count,
+        client_search=client_search,
+    )
 
     items = [
         AdvancePaymentOverviewRow(
-            id=payment.id,
-            client_record_id=payment.client_record_id,
-            office_client_number=office_client_number,
-            business_name=business_name,
-            id_number=id_number,
-            period=payment.period,
-            period_months_count=payment.period_months_count,
-            due_date=payment.due_date,
-            expected_amount=payment.expected_amount,
-            paid_amount=payment.paid_amount,
-            status=payment.status,
-            payment_method=payment.payment_method,
-            turnover_amount=payment.turnover_amount,
-            calculated_amount=payment.calculated_amount,
-            override_amount=payment.override_amount,
-            live_turnover=live_turnover,
+            id=row.payment.id,
+            client_record_id=row.payment.client_record_id,
+            office_client_number=row.office_client_number,
+            business_name=row.business_name,
+            id_number=row.id_number,
+            period=row.payment.period,
+            period_months_count=row.payment.period_months_count,
+            due_date=row.payment.due_date,
+            expected_amount=row.payment.expected_amount,
+            paid_amount=row.payment.paid_amount,
+            status=row.payment.status,
+            payment_method=row.payment.payment_method,
+            turnover_amount=row.payment.turnover_amount,
+            calculated_amount=row.payment.calculated_amount,
+            override_amount=row.payment.override_amount,
+            live_turnover=row.live_turnover,
             missing_turnover=(
-                payment.turnover_amount is None and live_turnover is None
+                row.payment.turnover_amount is None and row.live_turnover is None
             ),
-            advance_rate=advance_rate,
+            advance_rate=row.advance_rate,
         )
-        for payment, office_client_number, business_name, id_number, live_turnover, advance_rate in rows
+        for row in rows
     ]
     return AdvancePaymentOverviewResponse(
         items=items,

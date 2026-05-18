@@ -1,5 +1,6 @@
 """Aggregation and overview queries for AdvancePayment entities."""
 
+from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
@@ -16,6 +17,14 @@ from app.advance_payments.models.advance_payment import (
 )
 
 
+@dataclass(slots=True, frozen=True)
+class AdvancePaymentOverviewRow:
+    payment: AdvancePayment
+    office_client_number: int | None
+    business_name: str
+    id_number: str | None
+
+
 def advance_payment_start_month_expr():
     return cast(func.substr(AdvancePayment.period, 6, 2), Integer)
 
@@ -24,6 +33,37 @@ def advance_payment_matches_month_expr(month: int):
     start_month = advance_payment_start_month_expr()
     end_month = start_month + AdvancePayment.period_months_count - 1
     return (start_month <= month) & (end_month >= month)
+
+
+def _overview_filters(
+    year: int,
+    month: Optional[int],
+    statuses: list[AdvancePaymentStatus],
+    due_date: date | None,
+    period_months_count: int | None,
+    client_search: str | None,
+) -> list:
+    filters = [
+        AdvancePayment.period.like(f"{year}-%"),
+        AdvancePayment.deleted_at.is_(None),
+    ]
+    if month is not None:
+        filters.append(advance_payment_matches_month_expr(month))
+    if due_date is not None:
+        filters.append(AdvancePayment.due_date == due_date)
+    if period_months_count is not None:
+        filters.append(AdvancePayment.period_months_count == period_months_count)
+    if statuses:
+        filters.append(AdvancePayment.status.in_(statuses))
+    normalized_search = client_search.strip() if client_search else None
+    if normalized_search:
+        like = f"%{normalized_search}%"
+        filters.append(
+            func.coalesce(LegalEntity.official_name, "").ilike(like)
+            | func.coalesce(LegalEntity.id_number, "").ilike(like)
+            | cast(ClientRecord.office_client_number, String).ilike(like)
+        )
+    return filters
 
 
 class AdvancePaymentAggregationRepository(BaseRepository):
@@ -58,27 +98,10 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         client_search: str | None = None,
         due_date: date | None = None,
         period_months_count: int | None = None,
-    ) -> tuple[list[tuple[AdvancePayment, int | None, str, str | None]], int]:
-        filters = [
-            AdvancePayment.period.like(f"{year}-%"),
-            AdvancePayment.deleted_at.is_(None),
-        ]
-        if month is not None:
-            filters.append(advance_payment_matches_month_expr(month))
-        if due_date is not None:
-            filters.append(AdvancePayment.due_date == due_date)
-        if period_months_count is not None:
-            filters.append(AdvancePayment.period_months_count == period_months_count)
-        if statuses:
-            filters.append(AdvancePayment.status.in_(statuses))
-        normalized_search = client_search.strip() if client_search else None
-        if normalized_search:
-            like = f"%{normalized_search}%"
-            filters.append(
-                (LegalEntity.official_name.ilike(like))
-                | (LegalEntity.id_number.ilike(like))
-                | (cast(ClientRecord.office_client_number, String).ilike(like))
-            )
+    ) -> tuple[list[AdvancePaymentOverviewRow], int]:
+        filters = _overview_filters(
+            year, month, statuses, due_date, period_months_count, client_search
+        )
 
         count_stmt = (
             scope_to_active_clients_stmt(
@@ -95,7 +118,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
                 select(
                     AdvancePayment,
                     ClientRecord.office_client_number,
-                    func.coalesce(LegalEntity.official_name, "").label("official_name"),
+                    func.coalesce(LegalEntity.official_name, "").label("business_name"),
                     LegalEntity.id_number,
                 ),
                 AdvancePayment,
@@ -109,7 +132,18 @@ class AdvancePaymentAggregationRepository(BaseRepository):
             .offset(offset)
             .limit(page_size)
         )
-        return list(self.db.execute(stmt).tuples().all()), int(total or 0)
+        rows = [
+            AdvancePaymentOverviewRow(
+                payment=payment,
+                office_client_number=office_client_number,
+                business_name=business_name,
+                id_number=id_number,
+            )
+            for payment, office_client_number, business_name, id_number in self.db.execute(
+                stmt
+            ).all()
+        ]
+        return rows, int(total or 0)
 
     def sum_paid_by_client_year(self, client_record_id: int, year: int) -> float:
         result = self.db.scalar(
@@ -203,21 +237,24 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         year: int,
         month: Optional[int],
         statuses: list[AdvancePaymentStatus],
+        due_date: date | None = None,
+        period_months_count: int | None = None,
+        client_search: str | None = None,
     ) -> dict:
-        stmt = scope_to_active_clients_stmt(
-            select(
-                func.coalesce(func.sum(AdvancePayment.expected_amount), 0),
-                func.coalesce(func.sum(AdvancePayment.paid_amount), 0),
-            ),
-            AdvancePayment,
-        ).where(
-            AdvancePayment.period.like(f"{year}-%"),
-            AdvancePayment.deleted_at.is_(None),
+        filters = _overview_filters(
+            year, month, statuses, due_date, period_months_count, client_search
         )
-        if month is not None:
-            stmt = stmt.where(advance_payment_matches_month_expr(month))
-        if statuses:
-            stmt = stmt.where(AdvancePayment.status.in_(statuses))
+        stmt = (
+            scope_to_active_clients_stmt(
+                select(
+                    func.coalesce(func.sum(AdvancePayment.expected_amount), 0),
+                    func.coalesce(func.sum(AdvancePayment.paid_amount), 0),
+                ),
+                AdvancePayment,
+            )
+            .outerjoin(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .where(*filters)
+        )
         total_expected, total_paid = self.db.execute(stmt).one()
         return {
             "total_expected": float(total_expected),
