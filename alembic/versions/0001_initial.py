@@ -1061,10 +1061,10 @@ def upgrade() -> None:
             ),
             nullable=True,
         ),
-        sa.Column(
-            "reported_turnover", sa.Numeric(precision=14, scale=2), nullable=True
-        ),
-        sa.Column("turnover_source_vat_work_item_id", sa.Integer(), nullable=True),
+        sa.Column("turnover_amount", sa.Numeric(precision=14, scale=2), nullable=True),
+        sa.Column("advance_rate", sa.Numeric(precision=5, scale=2), nullable=True),
+        sa.Column("calculated_amount", sa.Numeric(precision=12, scale=2), nullable=True),
+        sa.Column("override_amount", sa.Numeric(precision=12, scale=2), nullable=True),
         sa.Column("annual_report_id", sa.Integer(), nullable=True),
         sa.Column("tax_calendar_entry_id", sa.Integer(), nullable=False),
         sa.Column("notes", sa.String(length=500), nullable=True),
@@ -1086,10 +1086,6 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(
             ["tax_calendar_entry_id"], ["tax_calendar_entries.id"], ondelete="RESTRICT"
-        ),
-        sa.ForeignKeyConstraint(
-            ["turnover_source_vat_work_item_id"],
-            ["vat_work_items.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
     )
@@ -1121,12 +1117,6 @@ def upgrade() -> None:
         op.f("ix_advance_payments_tax_calendar_entry_id"),
         "advance_payments",
         ["tax_calendar_entry_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_advance_payments_turnover_source_vat_work_item_id"),
-        "advance_payments",
-        ["turnover_source_vat_work_item_id"],
         unique=False,
     )
     op.create_index(
@@ -2037,9 +2027,9 @@ def upgrade() -> None:
         ),
         sa.Column("annual_report_id", sa.Integer(), nullable=True),
         sa.Column("vat_report_id", sa.Integer(), nullable=True),
-        sa.Column("period_year", sa.Integer(), nullable=True),
-        sa.Column("period_month_start", sa.Integer(), nullable=True),
-        sa.Column("period_month_end", sa.Integer(), nullable=True),
+        sa.Column("period_year", sa.Integer(), nullable=False),
+        sa.Column("period_month_start", sa.Integer(), nullable=False),
+        sa.Column("period_month_end", sa.Integer(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(
@@ -2467,10 +2457,6 @@ def downgrade() -> None:
         table_name="advance_payments",
         postgresql_where=sa.text("deleted_at IS NULL"),
         sqlite_where=sa.text("deleted_at IS NULL"),
-    )
-    op.drop_index(
-        op.f("ix_advance_payments_turnover_source_vat_work_item_id"),
-        table_name="advance_payments",
     )
     op.drop_index(
         op.f("ix_advance_payments_tax_calendar_entry_id"), table_name="advance_payments"
