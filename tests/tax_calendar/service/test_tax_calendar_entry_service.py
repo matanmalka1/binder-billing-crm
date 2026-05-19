@@ -11,7 +11,6 @@ from app.tax_calendar.services.tax_calendar_entry_service import (
     annual_due_date,
     generate_for_year,
     generate_for_year_range,
-    get_or_create_entry,
     periodic_due_date,
 )
 
@@ -140,71 +139,6 @@ def test_annual_due_date_offsets_into_next_year(test_db):
         offset_months=4,
     )
     assert annual_due_date(rule, 2025) == date(2026, 5, 31)
-
-
-# ── get_or_create_entry idempotency ──────────────────────────────────────────
-
-
-def test_get_or_create_periodic_is_idempotent(test_db):
-    rule = _seed_rule(
-        test_db,
-        rule_type=DeadlineRuleType.VAT_MONTHLY,
-        due_day_of_month=15,
-        offset_months=1,
-    )
-    e1, c1 = get_or_create_entry(
-        test_db,
-        obligation_type=ObligationType.VAT,
-        period="2026-04",
-        period_months_count=1,
-        tax_year=2026,
-        deadline_rule_id=rule.id,
-        due_date=date(2026, 5, 15),
-    )
-    test_db.commit()
-    e2, c2 = get_or_create_entry(
-        test_db,
-        obligation_type=ObligationType.VAT,
-        period="2026-04",
-        period_months_count=1,
-        tax_year=2026,
-        deadline_rule_id=rule.id,
-        due_date=date(2026, 5, 15),
-    )
-    test_db.commit()
-    assert c1 is True and c2 is False
-    assert e1.id == e2.id
-
-
-def test_get_or_create_annual_is_idempotent(test_db):
-    rule = _seed_rule(
-        test_db,
-        rule_type=DeadlineRuleType.ANNUAL_REPORT,
-        due_day_of_month=31,
-        offset_months=4,
-    )
-    e1, c1 = get_or_create_entry(
-        test_db,
-        obligation_type=ObligationType.ANNUAL_REPORT,
-        period=None,
-        period_months_count=None,
-        tax_year=2025,
-        deadline_rule_id=rule.id,
-        due_date=date(2026, 5, 31),
-    )
-    test_db.commit()
-    e2, c2 = get_or_create_entry(
-        test_db,
-        obligation_type=ObligationType.ANNUAL_REPORT,
-        period=None,
-        period_months_count=None,
-        tax_year=2025,
-        deadline_rule_id=rule.id,
-        due_date=date(2026, 5, 31),
-    )
-    test_db.commit()
-    assert c1 is True and c2 is False
-    assert e1.id == e2.id
 
 
 # ── generate_for_year happy path ─────────────────────────────────────────────

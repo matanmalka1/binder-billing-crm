@@ -65,6 +65,14 @@ _PERIODIC_PLAN: list[tuple[ObligationType, DeadlineRuleType, list[int], int]] = 
     ),
 ]
 
+# (obligation_type, tax_year, period, period_months_count)
+EntryKey = tuple[str, int, str | None, int | None]
+_GENERATED_OBLIGATION_VALUES = {
+    ObligationType.VAT.value,
+    ObligationType.ADVANCE_PAYMENT.value,
+    ObligationType.ANNUAL_REPORT.value,
+}
+
 
 def _shift_month(year: int, month: int, offset_months: int) -> tuple[int, int]:
     total = (month - 1) + offset_months
@@ -110,51 +118,88 @@ def _resolve_rule(
     return rule
 
 
-def get_or_create_entry(
+def _entry_key(
+    *,
+    obligation_type: ObligationType | str,
+    tax_year: int,
+    period: str | None,
+    period_months_count: int | None,
+) -> EntryKey:
+    obligation_value = (
+        obligation_type.value if isinstance(obligation_type, ObligationType) else obligation_type
+    )
+    return (obligation_value, tax_year, period, period_months_count)
+
+
+def _load_existing_entry_keys(
     db: Session,
     *,
+    start_year: int,
+    end_year: int,
+) -> set[EntryKey]:
+    stmt = select(
+        TaxCalendarEntry.obligation_type,
+        TaxCalendarEntry.tax_year,
+        TaxCalendarEntry.period,
+        TaxCalendarEntry.period_months_count,
+    ).where(
+        TaxCalendarEntry.tax_year.between(start_year, end_year),
+        TaxCalendarEntry.obligation_type.in_(_GENERATED_OBLIGATION_VALUES),
+    )
+    return {
+        _entry_key(
+            obligation_type=obligation_type,
+            tax_year=tax_year,
+            period=period,
+            period_months_count=period_months_count,
+        )
+        for obligation_type, tax_year, period, period_months_count in db.execute(stmt)
+    }
+
+
+def _create_entry_if_missing(
+    db: Session,
+    *,
+    existing_keys: set[EntryKey],
     obligation_type: ObligationType,
     period: str | None,
     period_months_count: int | None,
     tax_year: int,
     deadline_rule_id: int,
     due_date: date,
-) -> tuple[TaxCalendarEntry, bool]:
-    """Idempotent. Returns (entry, created)."""
-    stmt = select(TaxCalendarEntry).where(
-        TaxCalendarEntry.obligation_type == obligation_type.value,
-        TaxCalendarEntry.tax_year == tax_year,
-    )
-    if obligation_type is not ObligationType.ANNUAL_REPORT:
-        stmt = stmt.where(
-            TaxCalendarEntry.period == period,
-            TaxCalendarEntry.period_months_count == period_months_count,
-        )
-    existing = db.scalars(stmt).one_or_none()
-    if existing is not None:
-        return existing, False
-
-    entry = TaxCalendarEntry(
+) -> bool:
+    key = _entry_key(
         obligation_type=obligation_type,
+        tax_year=tax_year,
         period=period,
         period_months_count=period_months_count,
-        tax_year=tax_year,
-        due_date=due_date,
-        deadline_rule_id=deadline_rule_id,
     )
-    db.add(entry)
-    db.flush()
-    return entry, True
+    if key in existing_keys:
+        return False
+
+    db.add(
+        TaxCalendarEntry(
+            obligation_type=obligation_type,
+            period=period,
+            period_months_count=period_months_count,
+            tax_year=tax_year,
+            due_date=due_date,
+            deadline_rule_id=deadline_rule_id,
+        )
+    )
+    existing_keys.add(key)
+    return True
 
 
 def _generate_periodic(
     db: Session,
     *,
-    obligation_type,
-    rule_type,
-    tax_year,
-    period_starts,
-    period_months_count,
+    obligation_type: ObligationType,
+    rule_type: DeadlineRuleType,
+    tax_year: int,
+    period_starts: list[int],
+    period_months_count: int,
+    existing_keys: set[EntryKey],
 ) -> tuple[int, int]:
     for m in period_starts:
         if (m - 1) % period_months_count != 0:
@@ -167,8 +212,9 @@ def _generate_periodic(
     for start_month in period_starts:
         period = f"{tax_year}-{start_month:02d}"
         due = periodic_due_date(rule, tax_year, start_month)
-        _, was_created = get_or_create_entry(
+        was_created = _create_entry_if_missing(
             db,
+            existing_keys=existing_keys,
             obligation_type=obligation_type,
             period=period,
             period_months_count=period_months_count,
@@ -183,8 +229,12 @@ def _generate_periodic(
     return created, skipped
 
 
-def generate_for_year(db: Session, tax_year: int) -> YearGenerationResult:
-    """Generate every regulatory calendar entry for a tax year. Idempotent."""
+def _generate_for_year(
+    db: Session,
+    *,
+    tax_year: int,
+    existing_keys: set[EntryKey],
+) -> YearGenerationResult:
     total_created = 0
     total_skipped = 0
     for obligation, rule_type, period_starts, months_count in _PERIODIC_PLAN:
@@ -195,6 +245,7 @@ def generate_for_year(db: Session, tax_year: int) -> YearGenerationResult:
             tax_year=tax_year,
             period_starts=period_starts,
             period_months_count=months_count,
+            existing_keys=existing_keys,
         )
         total_created += c
         total_skipped += s
@@ -204,8 +255,9 @@ def generate_for_year(db: Session, tax_year: int) -> YearGenerationResult:
         rule_type=DeadlineRuleType.ANNUAL_REPORT,
         on_date=date(tax_year + 1, 1, 1),
     )
-    _, annual_created = get_or_create_entry(
+    annual_created = _create_entry_if_missing(
         db,
+        existing_keys=existing_keys,
         obligation_type=ObligationType.ANNUAL_REPORT,
         period=None,
         period_months_count=None,
@@ -220,6 +272,14 @@ def generate_for_year(db: Session, tax_year: int) -> YearGenerationResult:
     return YearGenerationResult(created=total_created, skipped=total_skipped)
 
 
+def generate_for_year(db: Session, tax_year: int) -> YearGenerationResult:
+    """Generate every regulatory calendar entry for a tax year. Idempotent."""
+    existing_keys = _load_existing_entry_keys(db, start_year=tax_year, end_year=tax_year)
+    result = _generate_for_year(db, tax_year=tax_year, existing_keys=existing_keys)
+    db.flush()
+    return result
+
+
 def generate_for_year_range(
     db: Session,
     *,
@@ -231,8 +291,10 @@ def generate_for_year_range(
         raise ValueError(f"end_year ({end_year}) must be >= start_year ({start_year}).")
     total_created = 0
     total_skipped = 0
+    existing_keys = _load_existing_entry_keys(db, start_year=start_year, end_year=end_year)
     for y in range(start_year, end_year + 1):
-        yr = generate_for_year(db, y)
+        yr = _generate_for_year(db, tax_year=y, existing_keys=existing_keys)
         total_created += yr.created
         total_skipped += yr.skipped
+    db.flush()
     return YearRangeResult(entries_created=total_created, entries_skipped=total_skipped)

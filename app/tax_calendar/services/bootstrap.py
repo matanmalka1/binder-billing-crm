@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.enums import DeadlineRuleType
@@ -107,11 +108,11 @@ def bootstrap_tax_calendar(
     )
 
     num_years = resolved_end - resolved_start + 1
-    total_in_range = (
-        db.query(TaxCalendarEntry)
-        .filter(TaxCalendarEntry.tax_year.between(resolved_start, resolved_end))
-        .count()
-    )
+    total_in_range = db.execute(
+        select(func.count(TaxCalendarEntry.id)).where(
+            TaxCalendarEntry.tax_year.between(resolved_start, resolved_end)
+        )
+    ).scalar_one()
 
     warnings: list[str] = []
     expected = EXPECTED_ENTRIES_PER_YEAR * num_years
