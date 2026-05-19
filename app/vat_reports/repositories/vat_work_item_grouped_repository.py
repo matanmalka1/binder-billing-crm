@@ -98,7 +98,9 @@ def list_by_due_date_paginated(
     status: VatWorkItemStatus | None = None,
 ) -> tuple[list[VatWorkItem], int]:
     count_stmt = apply_vat_work_item_filters(
-        scope_to_active_clients_stmt(select(func.count(VatWorkItem.id)), VatWorkItem),
+        scope_to_active_clients_stmt(select(func.count(VatWorkItem.id)), VatWorkItem).where(
+            VatWorkItem.deleted_at.is_(None)
+        ),
         client_record_ids=client_record_ids,
     )
     stmt = apply_vat_work_item_filters(

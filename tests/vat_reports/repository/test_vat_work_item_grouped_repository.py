@@ -1,10 +1,12 @@
 """Integration tests for vat_work_item_grouped_repository."""
 
+from datetime import datetime, timezone
 from datetime import timedelta
 
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.repositories.vat_work_item_grouped_repository import (
+    list_by_due_date_paginated,
     list_due_date_groups,
 )
 from tests.helpers.identity import seed_client_identity
@@ -43,3 +45,27 @@ def test_grouped_due_date_uses_due_date_effective_not_online_extension(test_db):
     group = groups[0]
     assert group["due_date"] == item.due_date_effective
     assert group["due_date"] != item.due_date_effective + timedelta(days=4)
+
+
+def test_paginated_due_date_count_excludes_soft_deleted_items(test_db):
+    user = _user(test_db)
+    client = seed_client_identity(
+        test_db,
+        full_name="Grouped Count Client",
+        id_number="GC002",
+    )
+
+    item = create_linked_vat_work_item(
+        test_db,
+        client_record_id=client.id,
+        period="2026-08",
+        created_by=user.id,
+    )
+    due_date = item.due_date_effective
+    item.deleted_at = datetime.now(timezone.utc)
+    test_db.commit()
+
+    items, total = list_by_due_date_paginated(test_db, due_date)
+
+    assert items == []
+    assert total == 0
