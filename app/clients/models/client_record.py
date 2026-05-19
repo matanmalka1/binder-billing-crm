@@ -41,6 +41,12 @@ class ClientRecord(SoftDeletableMixin, Base):
             postgresql_where=column("deleted_at").is_(None),
             sqlite_where=column("deleted_at").is_(None),
         ),
+        Index(
+            "ix_client_records_active_created_desc",
+            created_at.desc(),
+            postgresql_where=column("deleted_at").is_(None),
+            sqlite_where=column("deleted_at").is_(None),
+        ),
     )
 
     def __repr__(self) -> str:
