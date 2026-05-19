@@ -209,6 +209,36 @@ def test_list_work_items_supports_filter_by_client_name_and_id_number(
     assert any(item["id"] == target_item_id for item in payload_name["items"])
 
 
+def test_list_client_work_items_supports_pagination(client, advisor_headers, vat_client):
+    created_ids = [
+        create_work_item(client, advisor_headers, vat_client, f"2026-{month:02d}")
+        for month in range(1, 4)
+    ]
+
+    resp = client.get(
+        f"/api/v1/vat/clients/{vat_client.id}/work-items?page=1&page_size=2",
+        headers=advisor_headers,
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 3
+    assert len(body["items"]) == 2
+    assert [item["id"] for item in body["items"]] == [created_ids[2], created_ids[1]]
+
+
+def test_lookup_work_item_normalizes_bimonthly_period(client, advisor_headers, vat_client):
+    item_id = create_work_item(client, advisor_headers, vat_client, "2026-03")
+
+    resp = client.get(
+        f"/api/v1/vat/work-items/lookup?client_record_id={vat_client.id}&period=2026-03-04",
+        headers=advisor_headers,
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()["id"] == item_id
+
+
 def test_period_options_default_monthly_returns_12_periods(client, advisor_headers, vat_client):
     resp = client.get(
         f"/api/v1/vat/clients/{vat_client.id}/period-options?year=2026",

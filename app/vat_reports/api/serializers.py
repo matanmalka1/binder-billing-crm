@@ -34,6 +34,26 @@ def serialize_enriched_work_item(
     return data
 
 
+def serialize_enriched_work_items(
+    items,
+    *,
+    enriched: dict,
+    user_role: UserRole | str | None = None,
+) -> list[VatWorkItemResponse]:
+    return [
+        serialize_enriched_work_item(
+            item,
+            office_client_number_map=enriched["office_client_number_map"],
+            name_map=enriched["name_map"],
+            id_number_map=enriched["id_number_map"],
+            status_map=enriched["status_map"],
+            user_map=enriched["user_map"],
+            user_role=user_role,
+        )
+        for item in items
+    ]
+
+
 def serialize_work_item(
     service: VatReportService,
     item_id: int,

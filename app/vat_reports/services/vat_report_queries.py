@@ -1,6 +1,5 @@
 from datetime import UTC, datetime
 
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.common.enums import SubmissionMethod, VatType
 from app.core.exceptions import NotFoundError
 from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
@@ -48,90 +47,81 @@ def get_work_item(work_item_repo: VatWorkItemRepository, item_id: int):
     return item
 
 
-def list_client_work_items(work_item_repo: VatWorkItemRepository, client_record_id: int):
-    return work_item_repo.list_by_client_record(client_record_id)
-
-
-def _resolve_client_ids_by_name(
-    db,
-    client_name: str | None,
-) -> list[int] | None:
-    """Resolve client record IDs from a name/id_number search against ClientRecord + LegalEntity."""
-    if not client_name:
-        return None
-    client_records, total = ClientRecordRepository(db).search(
-        query=client_name,
-        page=1,
-        page_size=500,
+def list_client_work_items_paginated(
+    work_item_repo: VatWorkItemRepository,
+    client_record_id: int,
+    page: int = 1,
+    page_size: int = 200,
+):
+    items = work_item_repo.list_by_client_record_paginated(
+        client_record_id,
+        page=page,
+        page_size=page_size,
     )
-    return [record.id for record in client_records]
+    total = work_item_repo.count_by_client_record(client_record_id)
+    return items, total
+
+
+def normalize_lookup_period(period: str) -> str:
+    return period[:7] if len(period) > 7 else period
+
+
+def get_work_item_by_client_period(
+    work_item_repo: VatWorkItemRepository,
+    client_record_id: int,
+    period: str,
+):
+    return work_item_repo.get_by_client_record_period(
+        client_record_id,
+        normalize_lookup_period(period),
+    )
 
 
 def list_work_items_by_status(
     work_item_repo: VatWorkItemRepository,
     status: VatWorkItemStatus,
-    db=None,
     page: int = 1,
     page_size: int = 50,
     period: str | None = None,
     client_name: str | None = None,
     period_type: VatType | None = None,
-    client_repo=None,
 ):
-    search_source = db or getattr(client_repo, "db", None)
-    client_record_ids = (
-        _resolve_client_ids_by_name(search_source, client_name) if search_source else None
-    )
-    if client_record_ids is None and client_name and client_repo is not None:
-        client_record_ids = [record.id for record in client_repo.list(search=client_name)]
-    if client_name and not client_record_ids:
-        return [], 0
     items = work_item_repo.list_by_status(
         status,
         page=page,
         page_size=page_size,
         period=period,
-        client_record_ids=client_record_ids,
         period_type=period_type,
+        client_name=client_name,
     )
     total = work_item_repo.count_by_status(
         status,
         period=period,
-        client_record_ids=client_record_ids,
         period_type=period_type,
+        client_name=client_name,
     )
     return items, total
 
 
 def list_all_work_items(
     work_item_repo: VatWorkItemRepository,
-    db=None,
     page: int = 1,
     page_size: int = 50,
     period: str | None = None,
     client_name: str | None = None,
     period_type: VatType | None = None,
-    client_repo=None,
 ):
-    search_source = db or getattr(client_repo, "db", None)
-    client_record_ids = (
-        _resolve_client_ids_by_name(search_source, client_name) if search_source else None
-    )
-    if client_record_ids is None and client_name and client_repo is not None:
-        client_record_ids = [record.id for record in client_repo.list(search=client_name)]
-    if client_name and not client_record_ids:
-        return [], 0
     items = work_item_repo.list_all(
         page=page,
         page_size=page_size,
         period=period,
-        client_record_ids=client_record_ids,
         period_type=period_type,
+        client_name=client_name,
     )
     total = work_item_repo.count_all(
         period=period,
-        client_record_ids=client_record_ids,
         period_type=period_type,
+        client_name=client_name,
     )
     return items, total
 

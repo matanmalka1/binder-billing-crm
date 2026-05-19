@@ -11,7 +11,7 @@ from app.vat_reports.services.vat_report_queries import (
     get_audit_trail,
     get_work_item,
     list_all_work_items,
-    list_client_work_items,
+    list_client_work_items_paginated,
     list_work_items_by_status,
 )
 
@@ -64,14 +64,22 @@ def get_client_items_enriched(
     work_item_repo: VatWorkItemRepository,
     user_repo: UserRepository,
     client_record_id: int,
+    page: int,
+    page_size: int,
 ) -> dict:
     """Return client work items + enrichment data."""
-    items = list_client_work_items(work_item_repo, client_record_id)
+    items, total = list_client_work_items_paginated(
+        work_item_repo,
+        client_record_id,
+        page=page,
+        page_size=page_size,
+    )
     user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     client_maps = _build_client_maps(work_item_repo.db, [client_record_id])
     return {
         "items": items,
+        "total": total,
         **client_maps,
         "user_map": {u.id: u.full_name for u in users},
     }
@@ -93,7 +101,6 @@ def get_list_enriched(
         items, total = list_work_items_by_status(
             work_item_repo,
             status_filter,
-            db=work_item_repo.db,
             page=page,
             page_size=page_size,
             period=period,
@@ -103,7 +110,6 @@ def get_list_enriched(
     else:
         items, total = list_all_work_items(
             work_item_repo,
-            work_item_repo.db,
             page=page,
             page_size=page_size,
             period=period,

@@ -39,13 +39,21 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
         period: str | None = None,
         client_record_ids: list[int] | None = None,
         period_type: VatType | None = None,
+        client_name: str | None = None,
     ):
-        return apply_vat_work_item_filters(
+        stmt = apply_vat_work_item_filters(
             self._query(status),
             period=period,
             client_record_ids=client_record_ids,
             period_type=period_type,
         )
+        if client_name:
+            term = f"%{client_name.strip()}%"
+            stmt = stmt.join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id).where(
+                LegalEntity.official_name.ilike(term)
+                | func.coalesce(LegalEntity.id_number, "").ilike(term)
+            )
+        return stmt
 
     def get_by_client_record_period(self, client_record_id: int, period: str) -> VatWorkItem | None:
         return self.db.scalars(
@@ -66,6 +74,30 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
             .order_by(VatWorkItem.period.desc())
             .limit(limit)
         ).all()
+
+    def list_by_client_record_paginated(
+        self,
+        client_record_id: int,
+        page: int = 1,
+        page_size: int = 200,
+    ) -> list[VatWorkItem]:
+        stmt = (
+            select(VatWorkItem)
+            .where(
+                VatWorkItem.client_record_id == client_record_id,
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .order_by(VatWorkItem.period.desc())
+        )
+        return list(self.db.scalars(self.apply_pagination(stmt, page, page_size)).all())
+
+    def count_by_client_record(self, client_record_id: int) -> int:
+        return self.db.scalar(
+            select(func.count(VatWorkItem.id)).where(
+                VatWorkItem.client_record_id == client_record_id,
+                VatWorkItem.deleted_at.is_(None),
+            )
+        )
 
     def list_by_business_activity(
         self, business_activity_id: int, limit: int = 200
@@ -92,8 +124,9 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
         period: str | None = None,
         client_record_ids: list[int] | None = None,
         period_type: VatType | None = None,
+        client_name: str | None = None,
     ) -> list[VatWorkItem]:
-        stmt = self._filtered_query(status, period, client_record_ids, period_type)
+        stmt = self._filtered_query(status, period, client_record_ids, period_type, client_name)
         stmt = self.apply_pagination(stmt.order_by(VatWorkItem.period.desc()), page, page_size)
         return list(self.db.scalars(stmt).all())
 
@@ -103,8 +136,9 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
         period: str | None = None,
         client_record_ids: list[int] | None = None,
         period_type: VatType | None = None,
+        client_name: str | None = None,
     ) -> int:
-        stmt = self._filtered_query(status, period, client_record_ids, period_type)
+        stmt = self._filtered_query(status, period, client_record_ids, period_type, client_name)
         count_stmt = select(func.count()).select_from(stmt.subquery())
         return self.db.scalar(count_stmt)
 
@@ -130,7 +164,8 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
         if client_name:
             term = f"%{client_name.strip()}%"
             stmt = stmt.where(
-                LegalEntity.official_name.ilike(term) | LegalEntity.id_number.ilike(term)
+                LegalEntity.official_name.ilike(term)
+                | func.coalesce(LegalEntity.id_number, "").ilike(term)
             )
         rows = self.db.execute(stmt.group_by(VatWorkItem.status)).all()
         return {status: int(count) for status, count in rows}
@@ -142,8 +177,9 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
         period: str | None = None,
         client_record_ids: list[int] | None = None,
         period_type: VatType | None = None,
+        client_name: str | None = None,
     ) -> list[VatWorkItem]:
-        stmt = self._filtered_query(None, period, client_record_ids, period_type)
+        stmt = self._filtered_query(None, period, client_record_ids, period_type, client_name)
         stmt = self.apply_pagination(stmt.order_by(VatWorkItem.period.desc()), page, page_size)
         return list(self.db.scalars(stmt).all())
 
@@ -152,8 +188,9 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
         period: str | None = None,
         client_record_ids: list[int] | None = None,
         period_type: VatType | None = None,
+        client_name: str | None = None,
     ) -> int:
-        stmt = self._filtered_query(None, period, client_record_ids, period_type)
+        stmt = self._filtered_query(None, period, client_record_ids, period_type, client_name)
         count_stmt = select(func.count()).select_from(stmt.subquery())
         return self.db.scalar(count_stmt)
 

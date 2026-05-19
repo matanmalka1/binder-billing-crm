@@ -33,6 +33,21 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
     def list_by_client_record(self, client_record_id: int, limit: int = 200) -> list[VatWorkItem]:
         return self._query.list_by_client_record(client_record_id, limit=limit)
 
+    def list_by_client_record_paginated(
+        self,
+        client_record_id: int,
+        page: int = 1,
+        page_size: int = 200,
+    ) -> list[VatWorkItem]:
+        return self._query.list_by_client_record_paginated(
+            client_record_id,
+            page=page,
+            page_size=page_size,
+        )
+
+    def count_by_client_record(self, client_record_id: int) -> int:
+        return self._query.count_by_client_record(client_record_id)
+
     def list_by_business_activity(
         self, business_activity_id: int, limit: int = 200
     ) -> list[VatWorkItem]:

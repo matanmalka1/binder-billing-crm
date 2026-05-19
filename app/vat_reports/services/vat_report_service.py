@@ -84,16 +84,14 @@ class VatReportService:
     def get_work_item(self, item_id: int):
         return vat_report_queries.get_work_item(self.work_item_repo, item_id)
 
-    def list_client_work_items(self, client_record_id: int):
-        return vat_report_queries.list_client_work_items(self.work_item_repo, client_record_id)
+    def list_client_work_items_paginated(self, **kwargs):
+        return vat_report_queries.list_client_work_items_paginated(self.work_item_repo, **kwargs)
 
     def list_work_items_by_status(self, **kwargs):
-        return vat_report_queries.list_work_items_by_status(
-            self.work_item_repo, db=self.db, **kwargs
-        )
+        return vat_report_queries.list_work_items_by_status(self.work_item_repo, **kwargs)
 
     def list_all_work_items(self, **kwargs):
-        return vat_report_queries.list_all_work_items(self.work_item_repo, self.db, **kwargs)
+        return vat_report_queries.list_all_work_items(self.work_item_repo, **kwargs)
 
     def get_status_summary(self, **kwargs):
         return vat_report_queries.get_status_summary(self.work_item_repo, **kwargs)
@@ -102,7 +100,11 @@ class VatReportService:
         return vat_report_queries.list_invoices(self.invoice_repo, **kwargs)
 
     def get_work_item_by_client_period(self, client_record_id: int, period: str):
-        return self.work_item_repo.get_by_client_record_period(client_record_id, period)
+        return vat_report_queries.get_work_item_by_client_period(
+            self.work_item_repo,
+            client_record_id,
+            period,
+        )
 
     def get_audit_trail(self, item_id: int, limit: int, offset: int):
         return vat_report_queries.get_audit_trail(self.work_item_repo, item_id, limit, offset)
@@ -112,9 +114,15 @@ class VatReportService:
             self.work_item_repo, self.user_repo, item_id
         )
 
-    def get_client_items_enriched(self, client_record_id: int) -> dict:
+    def get_client_items_enriched(
+        self, client_record_id: int, page: int = 1, page_size: int = 200
+    ) -> dict:
         return vat_report_enrichment.get_client_items_enriched(
-            self.work_item_repo, self.user_repo, client_record_id
+            self.work_item_repo,
+            self.user_repo,
+            client_record_id,
+            page=page,
+            page_size=page_size,
         )
 
     def get_list_enriched(self, **kwargs) -> dict:

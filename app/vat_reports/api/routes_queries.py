@@ -7,7 +7,10 @@ from fastapi import APIRouter, Depends, Query
 from app.common.enums import VatType
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.vat_reports.api.serializers import serialize_enriched_work_item
+from app.vat_reports.api.serializers import (
+    serialize_enriched_work_item,
+    serialize_enriched_work_items,
+)
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.schemas.vat_audit import VatAuditLogResponse, VatAuditTrailResponse
 from app.vat_reports.schemas.vat_report import (
@@ -29,14 +32,11 @@ router = APIRouter(prefix="/vat", tags=["vat-reports"])
 )
 def lookup_work_item(
     db: DBSession,
-    current_user: CurrentUser,
     client_record_id: int = Query(...),
     period: str = Query(...),
 ):
-    # Bimonthly periods arrive as "YYYY-MM-MM" (e.g. "2026-03-04") — normalize to start month
-    normalized_period = period[:7] if len(period) > 7 else period
     service = VatReportService(db)
-    item = service.get_work_item_by_client_period(client_record_id, normalized_period)
+    item = service.get_work_item_by_client_period(client_record_id, period)
     if not item:
         return None
     return VatWorkItemLookupResponse.model_validate(item)
@@ -50,7 +50,6 @@ def lookup_work_item(
 def get_period_options(
     client_record_id: int,
     db: DBSession,
-    current_user: CurrentUser,
     year: int | None = Query(default=None, ge=2000, le=2100),
 ):
     service = VatReportService(db)
@@ -100,22 +99,25 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     response_model=VatWorkItemListResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-def list_client_work_items(client_record_id: int, db: DBSession, current_user: CurrentUser):
+def list_client_work_items(
+    client_record_id: int,
+    db: DBSession,
+    current_user: CurrentUser,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=200, ge=1, le=200),
+):
     service = VatReportService(db)
-    enriched = service.get_client_items_enriched(client_record_id)
-    items = [
-        serialize_enriched_work_item(
-            i,
-            office_client_number_map=enriched["office_client_number_map"],
-            name_map=enriched["name_map"],
-            id_number_map=enriched["id_number_map"],
-            status_map=enriched["status_map"],
-            user_map=enriched["user_map"],
-            user_role=current_user.role,
-        )
-        for i in enriched["items"]
-    ]
-    return VatWorkItemListResponse(items=items, total=len(items))
+    enriched = service.get_client_items_enriched(
+        client_record_id,
+        page=page,
+        page_size=page_size,
+    )
+    items = serialize_enriched_work_items(
+        enriched["items"],
+        enriched=enriched,
+        user_role=current_user.role,
+    )
+    return VatWorkItemListResponse(items=items, total=enriched["total"])
 
 
 @router.get(
@@ -142,18 +144,11 @@ def list_work_items(
         period_type=period_type,
         client_name=client_name,
     )
-    items = [
-        serialize_enriched_work_item(
-            i,
-            office_client_number_map=enriched["office_client_number_map"],
-            name_map=enriched["name_map"],
-            id_number_map=enriched["id_number_map"],
-            status_map=enriched["status_map"],
-            user_map=enriched["user_map"],
-            user_role=current_user.role,
-        )
-        for i in enriched["items"]
-    ]
+    items = serialize_enriched_work_items(
+        enriched["items"],
+        enriched=enriched,
+        user_role=current_user.role,
+    )
     return VatWorkItemListResponse(items=items, total=enriched["total"])
 
 
@@ -165,7 +160,6 @@ def list_work_items(
 def get_audit_trail(
     item_id: int,
     db: DBSession,
-    current_user: CurrentUser,
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
