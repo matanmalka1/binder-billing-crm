@@ -110,39 +110,43 @@ class RecentActivityService:
     def _client_names(
         self, audit_rows: list[EntityAuditLog], binder_rows: list[BinderStatusLog]
     ) -> dict[int | str, str]:
-        activity_client_ids = {
-            row.id: client_id
-            for row in audit_rows
-            if (client_id := self._client_record_id(row)) is not None
+        charge_ids = {
+            row.entity_id for row in audit_rows if row.entity_type == ENTITY_CHARGE
         }
-        activity_client_ids.update(
-            {
-                f"binder:{row.id}": client_id
-                for row in binder_rows
-                if (client_id := self._binder_client_record_id(row)) is not None
-            }
-        )
-        records = get_full_records_bulk(self.db, list(activity_client_ids.values()))
+        report_ids = {
+            row.entity_id for row in audit_rows if row.entity_type == ENTITY_ANNUAL_REPORT
+        }
+        binder_ids = {row.binder_id for row in binder_rows}
+
+        charges_by_id = self.charge_repo.get_by_ids(charge_ids)
+        reports_by_id = self.report_repo.get_by_ids(report_ids)
+        binders_by_id = self.binder_repo.get_by_ids(binder_ids)
+
+        activity_client_ids: dict[int | str, int] = {}
+        for row in audit_rows:
+            if row.entity_type == ENTITY_CLIENT:
+                activity_client_ids[row.id] = row.entity_id
+            elif row.entity_type == ENTITY_CHARGE:
+                charge = charges_by_id.get(row.entity_id)
+                if charge:
+                    activity_client_ids[row.id] = charge.client_record_id
+            elif row.entity_type == ENTITY_ANNUAL_REPORT:
+                report = reports_by_id.get(row.entity_id)
+                if report:
+                    activity_client_ids[row.id] = report.client_record_id
+
+        for row in binder_rows:
+            binder = binders_by_id.get(row.binder_id)
+            if binder:
+                activity_client_ids[f"binder:{row.id}"] = binder.client_record_id
+
+        # The same client can appear in multiple audit rows; keep the bulk lookup compact.
+        records = get_full_records_bulk(self.db, list(set(activity_client_ids.values())))
         return {
             activity_id: records[client_id]["full_name"]
             for activity_id, client_id in activity_client_ids.items()
             if client_id in records
         }
-
-    def _client_record_id(self, row: EntityAuditLog) -> int | None:
-        if row.entity_type == ENTITY_CLIENT:
-            return row.entity_id
-        if row.entity_type == ENTITY_CHARGE:
-            charge = self.charge_repo.get_by_id(row.entity_id)
-            return charge.client_record_id if charge else None
-        if row.entity_type == ENTITY_ANNUAL_REPORT:
-            report = self.report_repo.get_by_id(row.entity_id)
-            return report.client_record_id if report else None
-        return None
-
-    def _binder_client_record_id(self, row: BinderStatusLog) -> int | None:
-        binder = self.binder_repo.get_by_id(row.binder_id)
-        return binder.client_record_id if binder else None
 
     def _serialize_binder(self, row: BinderStatusLog, client_name: str) -> dict:
         return {

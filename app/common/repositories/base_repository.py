@@ -48,6 +48,13 @@ class BaseRepository(Generic[ModelType]):
     def get_by_id(self, entity_id: int, /) -> ModelType | None:
         return self.get(entity_id)
 
+    def get_by_ids(self, entity_ids: set[int] | list[int], /) -> dict[int, ModelType]:
+        ids = set(entity_ids)
+        if not ids:
+            return {}
+        rows = self.db.scalars(self.select_base().where(self.model.id.in_(ids))).all()
+        return {row.id: row for row in rows}
+
     def get_by_id_for_update(self, entity_id: int, /) -> ModelType | None:
         stmt = self.select_base().where(self.model.id == entity_id).with_for_update()
         return self.db.scalars(stmt).first()
