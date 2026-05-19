@@ -15,6 +15,8 @@ Israeli context:
   These are snapshotted at filing time and must not change post-submission.
 """
 
+from importlib import import_module
+
 from sqlalchemy import (
     Boolean,
     Column,
@@ -138,6 +140,4 @@ class VatWorkItem(Base):
         )
 
 
-from app.vat_reports.models import (
-    due_date_snapshot_events,  # noqa: E402,F401  # pylint: disable=unused-import
-)
+import_module("app.vat_reports.models.due_date_snapshot_events")

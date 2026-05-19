@@ -86,7 +86,7 @@ class ExpenseLineResponse(BaseModel):
             object.__setattr__(instance, "supporting_document_filename", key.split("/")[-1])
         return instance
 
-    def model_post_init(self, __context: object) -> None:
+    def model_post_init(self, _context: object) -> None:
         object.__setattr__(
             self,
             "recognized_amount",

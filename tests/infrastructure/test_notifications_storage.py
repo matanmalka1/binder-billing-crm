@@ -15,7 +15,7 @@ class _Resp:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc, tb):
+    def __exit__(self, *_exc_info):
         return False
 
 
@@ -48,7 +48,7 @@ def test_email_channel_disabled_missing_config_and_success(monkeypatch):
     assert ok is False
     assert "EMAIL_FROM_ADDRESS" in msg
 
-    def _urlopen_ok(req, timeout=10):
+    def _urlopen_ok(_req, **_kwargs):
         return _Resp(202)
 
     monkeypatch.setattr("urllib.request.urlopen", _urlopen_ok)
@@ -69,10 +69,10 @@ def test_whatsapp_channel_paths(monkeypatch):
 
     enabled = WhatsAppChannel(api_key="k", api_url="https://wa", from_number="123")
 
-    monkeypatch.setattr("urllib.request.urlopen", lambda req, timeout=10: _Resp(201))
+    monkeypatch.setattr("urllib.request.urlopen", lambda _req, **_kwargs: _Resp(201))
     assert enabled.send("050", "x") == (True, None)
 
-    monkeypatch.setattr("urllib.request.urlopen", lambda req, timeout=10: _Resp(500))
+    monkeypatch.setattr("urllib.request.urlopen", lambda _req, **_kwargs: _Resp(500))
     ok, msg = enabled.send("050", "x")
     assert ok is False
     assert "Unexpected WhatsApp status" in msg
@@ -147,7 +147,7 @@ def test_s3_provider_upload_delete_and_presigned(monkeypatch):
         def delete_object(self, Bucket, Key):
             self.deleted = (Bucket, Key)
 
-        def generate_presigned_url(self, op, Params=None, ExpiresIn=3600):
+        def generate_presigned_url(self, _op, Params=None, ExpiresIn=3600):
             return f"https://example/{Params['Bucket']}/{Params['Key']}?exp={ExpiresIn}"
 
     class _Provider(storage_mod.S3StorageProvider):
@@ -172,7 +172,7 @@ def test_notification_helpers_html_and_channel_exceptions(monkeypatch):
     assert "<p>line1</p>" in html
     assert "<br>" in html
 
-    def _raise_urlopen(req, timeout=10):
+    def _raise_urlopen(_req, **_kwargs):
         raise RuntimeError("net-down")
 
     monkeypatch.setattr("urllib.request.urlopen", _raise_urlopen)

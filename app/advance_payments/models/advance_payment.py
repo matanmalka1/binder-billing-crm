@@ -33,6 +33,7 @@ Design notes:
 """
 
 from enum import Enum as PyEnum
+from importlib import import_module
 
 from sqlalchemy import (
     Column,
@@ -151,6 +152,4 @@ class AdvancePayment(SoftDeletableMixin, Base):
         )
 
 
-from app.advance_payments.models import (
-    due_date_snapshot_events,  # noqa: E402,F401  # pylint: disable=unused-import
-)
+import_module("app.advance_payments.models.due_date_snapshot_events")
