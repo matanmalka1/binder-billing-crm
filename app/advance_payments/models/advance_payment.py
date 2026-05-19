@@ -135,6 +135,12 @@ class AdvancePayment(SoftDeletableMixin, Base):
             sqlite_where=text("deleted_at IS NULL"),
         ),
         Index("idx_advance_payment_client_record_period", "client_record_id", "period"),
+        Index(
+            "idx_advance_payment_period_active",
+            "period",
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
         Index("idx_advance_payment_status", "status"),
         Index("idx_advance_payment_due_date", "due_date"),
         Index(

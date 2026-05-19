@@ -9,6 +9,9 @@ from app.advance_payments.models.advance_payment import (
     AdvancePayment,
     AdvancePaymentStatus,
 )
+from app.advance_payments.repositories.advance_payment_aggregation_repository import (
+    advance_payment_year_range_filter,
+)
 from app.common.repositories.base_repository import BaseRepository
 
 
@@ -76,7 +79,7 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
     ) -> tuple[list[AdvancePayment], int]:
         base_where = [
             AdvancePayment.client_record_id == client_record_id,
-            AdvancePayment.period.like(f"{year}-%"),
+            advance_payment_year_range_filter(year),
             AdvancePayment.deleted_at.is_(None),
         ]
         if status:

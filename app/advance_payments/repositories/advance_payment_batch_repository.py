@@ -7,6 +7,7 @@ from app.advance_payments.models.advance_payment import (
 )
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
     advance_payment_start_month_expr,
+    advance_payment_year_range_filter,
 )
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
@@ -78,7 +79,7 @@ class AdvancePaymentBatchRepository(BaseRepository):
                 AdvancePayment,
             )
             .where(
-                *([AdvancePayment.period.like(f"{year}-%")] if year is not None else []),
+                *([advance_payment_year_range_filter(year)] if year is not None else []),
                 AdvancePayment.deleted_at.is_(None),
             )
             .group_by(period_year, start_month, AdvancePayment.period_months_count)

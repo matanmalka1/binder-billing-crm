@@ -28,6 +28,12 @@ def advance_payment_start_month_expr():
     return cast(func.substr(AdvancePayment.period, 6, 2), Integer)
 
 
+def advance_payment_year_range_filter(year: int):
+    return (AdvancePayment.period >= f"{year}-01") & (
+        AdvancePayment.period < f"{year + 1}-01"
+    )
+
+
 def advance_payment_matches_month_expr(month: int):
     start_month = advance_payment_start_month_expr()
     end_month = start_month + AdvancePayment.period_months_count - 1
@@ -43,7 +49,7 @@ def _overview_filters(
     client_search: str | None,
 ) -> list:
     filters = [
-        AdvancePayment.period.like(f"{year}-%"),
+        advance_payment_year_range_filter(year),
         AdvancePayment.deleted_at.is_(None),
     ]
     if month is not None:
@@ -76,7 +82,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         statuses: list[AdvancePaymentStatus],
     ) -> list[AdvancePayment]:
         stmt = scope_to_active_clients_stmt(select(AdvancePayment), AdvancePayment).where(
-            AdvancePayment.period.like(f"{year}-%"),
+            advance_payment_year_range_filter(year),
             AdvancePayment.deleted_at.is_(None),
         )
         if month is not None:
@@ -144,7 +150,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         result = self.db.scalar(
             select(func.coalesce(func.sum(AdvancePayment.paid_amount), 0)).where(
                 AdvancePayment.client_record_id == client_record_id,
-                AdvancePayment.period.like(f"{year}-%"),
+                advance_payment_year_range_filter(year),
                 AdvancePayment.status == AdvancePaymentStatus.PAID,
                 AdvancePayment.deleted_at.is_(None),
             )
@@ -175,7 +181,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
             ),
             AdvancePayment,
         ).where(
-            AdvancePayment.period.like(f"{year}-%"),
+            advance_payment_year_range_filter(year),
             AdvancePayment.deleted_at.is_(None),
         )
         if month is not None:
@@ -208,7 +214,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
                 ).label("on_time_count"),
             ).where(
                 AdvancePayment.client_record_id == client_record_id,
-                AdvancePayment.period.like(f"{year}-%"),
+                advance_payment_year_range_filter(year),
                 AdvancePayment.deleted_at.is_(None),
             )
         ).one()
