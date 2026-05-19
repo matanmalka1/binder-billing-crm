@@ -1,8 +1,11 @@
+from decimal import Decimal
+
 import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.services.client_lifecycle_service import ClientLifecycleService
 from app.clients.services.client_query_service import ClientQueryService
@@ -16,6 +19,7 @@ from app.clients.services.create_client_service import (
 from app.common.enums import EntityType, IdNumberType
 from app.core.exceptions import ConflictError, NotFoundError
 from app.utils.time_utils import utcnow
+from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 from tests.helpers.identity import seed_client_identity
 
 
@@ -229,6 +233,50 @@ def test_list_clients_and_conflict_info(test_db):
     info_deleted = query_service.get_conflict_info("670000017")
     assert len(info_deleted.active_clients) == 0
     assert len(info_deleted.deleted_clients) == 1
+
+
+def test_list_clients_enriches_annual_turnover_with_batch_lookup(test_db, monkeypatch):
+    creation_service = CreateClientService(test_db)
+    reported = _svc_create(
+        creation_service,
+        full_name="Reported Turnover",
+        id_number="670000041",
+    )
+    manual = _svc_create(
+        creation_service,
+        full_name="Manual Turnover",
+        id_number="670000050",
+    )
+    manual_entity = test_db.get(LegalEntity, manual.legal_entity_id)
+    manual_entity.annual_revenue = Decimal("900.00")
+    test_db.flush()
+
+    calls = []
+
+    def fake_batch(self, client_record_ids, year):
+        calls.append((client_record_ids, year))
+        return {reported.id: Decimal("1200.00")}
+
+    def fail_scalar(self, client_record_id, year):
+        raise AssertionError("list enrichment must use batch turnover lookup")
+
+    monkeypatch.setattr(
+        VatClientSummaryRepository,
+        "get_annual_turnover_by_client_ids",
+        fake_batch,
+    )
+    monkeypatch.setattr(VatClientSummaryRepository, "get_annual_turnover", fail_scalar)
+
+    result = ClientQueryService(test_db).list_full_clients(page=1, page_size=10, tax_year=2026)
+    by_id = {item.id: item for item in result.items}
+
+    assert len(calls) == 1
+    assert set(calls[0][0]) == {reported.id, manual.id}
+    assert calls[0][1] == 2026
+    assert by_id[reported.id].annual_turnover.amount == Decimal("1200.00")
+    assert by_id[reported.id].annual_turnover.source == "reported"
+    assert by_id[manual.id].annual_turnover.amount == Decimal("900.00")
+    assert by_id[manual.id].annual_turnover.source == "manual"
 
 
 def test_create_client_does_not_reuse_deleted_office_client_number(test_db):

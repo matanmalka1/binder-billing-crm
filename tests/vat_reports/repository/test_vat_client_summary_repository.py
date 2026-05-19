@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from itertools import count
 
 from app.businesses.models.business import Business
@@ -12,6 +13,7 @@ from app.vat_reports.repositories.vat_client_summary_repository import (
     VatClientSummaryRepository,
 )
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.utils.time_utils import utcnow
 from tests.helpers.tax_calendar_links import create_linked_vat_work_item
 
 _seq = count(1)
@@ -112,6 +114,92 @@ def test_vat_client_summary_repository_periods_and_annual_aggregates(test_db):
     assert float(annual[0]["net_vat"]) == 225.0
     assert annual[0]["periods_count"] == 2
     assert annual[0]["filed_count"] == 1
+
+
+def test_get_annual_turnover_by_client_ids_groups_clients_and_bounds_year(test_db):
+    user = _user(test_db)
+    _, first_client_id = _business(test_db)
+    _, second_client_id = _business(test_db)
+    _, unused_client_id = _business(test_db)
+    work_repo = VatWorkItemRepository(test_db)
+    summary_repo = VatClientSummaryRepository(test_db)
+
+    first_jan = create_linked_vat_work_item(
+        test_db,
+        repo=work_repo,
+        client_record_id=first_client_id,
+        period="2026-01",
+        created_by=user.id,
+        status=VatWorkItemStatus.FILED,
+    )
+    first_dec = create_linked_vat_work_item(
+        test_db,
+        repo=work_repo,
+        client_record_id=first_client_id,
+        period="2026-12",
+        created_by=user.id,
+        status=VatWorkItemStatus.FILED,
+    )
+    ignored_previous_year = create_linked_vat_work_item(
+        test_db,
+        repo=work_repo,
+        client_record_id=first_client_id,
+        period="2025-12",
+        created_by=user.id,
+        status=VatWorkItemStatus.FILED,
+    )
+    ignored_unfiled = create_linked_vat_work_item(
+        test_db,
+        repo=work_repo,
+        client_record_id=first_client_id,
+        period="2026-02",
+        created_by=user.id,
+        status=VatWorkItemStatus.MATERIAL_RECEIVED,
+    )
+    ignored_deleted = create_linked_vat_work_item(
+        test_db,
+        repo=work_repo,
+        client_record_id=second_client_id,
+        period="2026-03",
+        created_by=user.id,
+        status=VatWorkItemStatus.FILED,
+    )
+    second = create_linked_vat_work_item(
+        test_db,
+        repo=work_repo,
+        client_record_id=second_client_id,
+        period="2026-04",
+        created_by=user.id,
+        status=VatWorkItemStatus.FILED,
+    )
+
+    for item, amount in (
+        (first_jan, Decimal("100.00")),
+        (first_dec, Decimal("200.00")),
+        (ignored_previous_year, Decimal("300.00")),
+        (ignored_unfiled, Decimal("400.00")),
+        (ignored_deleted, Decimal("500.00")),
+        (second, Decimal("600.00")),
+    ):
+        work_repo.update_vat_totals(
+            item.id,
+            total_output_vat=amount,
+            total_input_vat=Decimal("0.00"),
+            total_output_net=amount,
+            total_input_net=Decimal("0.00"),
+        )
+    ignored_deleted.deleted_at = utcnow()
+    test_db.flush()
+
+    result = summary_repo.get_annual_turnover_by_client_ids(
+        [first_client_id, second_client_id, unused_client_id],
+        2026,
+    )
+
+    assert result == {
+        first_client_id: Decimal("300.00"),
+        second_client_id: Decimal("600.00"),
+    }
 
 
 def test_vat_work_item_repository_list_by_business(test_db):

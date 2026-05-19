@@ -5,7 +5,7 @@
 - All schema changes must go through Alembic.
 - Never use `Base.metadata.create_all()` for application schema management.
 - Migration files live in `alembic/versions/`.
-- Current head is `9a111db38eba` (add idempotency_keys table).
+- Current head is `0003_add_vat_turnover_lookup_index` (add vat turnover lookup index).
 - The migration history was reset on 2026-05-17; `0001_initial` is the fresh baseline and `0002` adds overview-query indexes on top of it.
 - Production startup must run migrations before the server command:
   `alembic upgrade head && ...`
@@ -40,6 +40,19 @@ postgresql+psycopg2://matanmalka@localhost:5432/binder_crm
 ```
 
 ## Current migration
+
+### 0003_add_vat_turnover_lookup_index — add vat turnover lookup index
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Adds partial index `ix_vat_work_items_turnover_lookup` on
+  `vat_work_items (client_record_id, status, period)` for active rows only
+  (`deleted_at IS NULL`). This supports the clients list annual turnover batch
+  lookup:
+  `client_record_id IN (...)`, filed status, and bounded yearly period range.
+- Notes:
+  `down_revision = "9a111db38eba"`.
 
 ### 9a111db38eba — add idempotency_keys table
 

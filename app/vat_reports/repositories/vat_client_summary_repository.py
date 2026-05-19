@@ -1,5 +1,7 @@
 """Repository for client-level VAT summary queries."""
 
+from decimal import Decimal
+
 from sqlalchemy import Integer, case, cast, func, select
 from sqlalchemy.orm import Session
 
@@ -81,6 +83,30 @@ class VatClientSummaryRepository(BaseRepository[VatWorkItem]):
                 VatWorkItem.deleted_at.is_(None),
             )
         )
+
+    def get_annual_turnover_by_client_ids(
+        self,
+        client_record_ids: list[int],
+        year: int,
+    ) -> dict[int, Decimal]:
+        if not client_record_ids:
+            return {}
+
+        rows = self.db.execute(
+            select(
+                VatWorkItem.client_record_id,
+                func.sum(VatWorkItem.total_output_net),
+            )
+            .where(
+                VatWorkItem.client_record_id.in_(client_record_ids),
+                VatWorkItem.period >= f"{year}-01",
+                VatWorkItem.period <= f"{year}-12",
+                VatWorkItem.status == VatWorkItemStatus.FILED,
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .group_by(VatWorkItem.client_record_id)
+        ).all()
+        return dict(rows)
 
     def get_annual_aggregates(self, client_record_id: int) -> list[dict[str, object]]:
         year_expr = cast(func.substr(VatWorkItem.period, 1, 4), Integer).label("year")

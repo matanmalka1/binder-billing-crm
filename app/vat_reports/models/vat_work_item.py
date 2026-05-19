@@ -131,6 +131,14 @@ class VatWorkItem(Base):
             postgresql_where=text("deleted_at IS NULL"),
             sqlite_where=text("deleted_at IS NULL"),
         ),
+        Index(
+            "ix_vat_work_items_turnover_lookup",
+            "client_record_id",
+            "status",
+            "period",
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
     )
 
     def __repr__(self) -> str:
