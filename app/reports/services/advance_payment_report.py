@@ -1,4 +1,3 @@
-
 from sqlalchemy.orm import Session
 
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (

@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, Query
 
 from app.binders.models.binder import BinderStatus

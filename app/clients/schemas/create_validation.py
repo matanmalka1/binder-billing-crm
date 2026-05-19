@@ -1,4 +1,3 @@
-
 from app.clients.constants import (
     ADVANCE_PAYMENT_FREQUENCY_REQUIRED_ERROR,
     COMPANY_EXEMPT_VAT_ERROR,

@@ -132,4 +132,3 @@ def test_client_excel_export_and_template_generate_files(test_db):
     assert template_ws.cell(row=2, column=2).value == "יוסי כהן ייעוץ"
     assert template_ws.cell(row=1, column=6).value == "Entity Type (optional)"
     assert template_ws.cell(row=2, column=6).value == "osek_murshe"
-

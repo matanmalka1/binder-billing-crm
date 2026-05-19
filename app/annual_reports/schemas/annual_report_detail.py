@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, Field
 
 from app.core.api_types import ApiDateTime, ApiDecimal

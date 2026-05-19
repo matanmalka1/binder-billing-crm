@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, Query
 
 from app.permanent_documents.schemas.permanent_document import (

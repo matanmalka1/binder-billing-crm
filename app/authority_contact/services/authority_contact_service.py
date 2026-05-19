@@ -1,4 +1,3 @@
-
 from sqlalchemy.orm import Session
 
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
@@ -66,9 +65,7 @@ class AuthorityContactService:
         page_size: int = 20,
     ) -> tuple[list[AuthorityContact], int]:
         """List contacts for client with pagination."""
-        contact_type_enum: ContactType | None = (
-            ContactType(contact_type) if contact_type else None
-        )
+        contact_type_enum: ContactType | None = ContactType(contact_type) if contact_type else None
         if not ClientRecordRepository(self.db).get_by_id(client_record_id):
             raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
 

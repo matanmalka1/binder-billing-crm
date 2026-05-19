@@ -1,4 +1,3 @@
-
 from sqlalchemy.orm import Session
 
 from app.businesses.repositories.business_repository import BusinessRepository

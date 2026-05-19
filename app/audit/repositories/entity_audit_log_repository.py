@@ -1,6 +1,5 @@
 """Repository for EntityAuditLog entities."""
 
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 

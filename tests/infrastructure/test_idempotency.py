@@ -56,9 +56,7 @@ def test_idempotency_missing_header_returns_400(client, advisor_headers, test_db
     assert response.json()["detail"] == "מפתח אידמפוטנטיות חובה"
 
 
-def test_idempotency_duplicate_request_returns_cached_response(
-    client, advisor_headers, test_db
-):
+def test_idempotency_duplicate_request_returns_cached_response(client, advisor_headers, test_db):
     payload = _import_payload()
     headers = {**advisor_headers, "X-Idempotency-Key": "idem-dup-1"}
 
@@ -71,9 +69,7 @@ def test_idempotency_duplicate_request_returns_cached_response(
     assert second.json() == first_body
 
 
-def test_idempotency_different_body_same_key_returns_409(
-    client, advisor_headers, test_db
-):
+def test_idempotency_different_body_same_key_returns_409(client, advisor_headers, test_db):
     headers = {**advisor_headers, "X-Idempotency-Key": "idem-conflict-1"}
 
     first_payload = _workbook_bytes(
@@ -89,14 +85,10 @@ def test_idempotency_different_body_same_key_returns_409(
         ]
     )
 
-    first = client.post(
-        IMPORT_PATH, headers=headers, files=_upload_file(first_payload)
-    )
+    first = client.post(IMPORT_PATH, headers=headers, files=_upload_file(first_payload))
     assert first.status_code == 200
 
-    second = client.post(
-        IMPORT_PATH, headers=headers, files=_upload_file(second_payload)
-    )
+    second = client.post(IMPORT_PATH, headers=headers, files=_upload_file(second_payload))
     assert second.status_code == 409
     assert second.json()["detail"] == "מפתח אידמפוטנטיות כבר נוצל עם בקשה אחרת"
 
@@ -127,9 +119,7 @@ def test_guard_in_progress_row_blocks_fn_execution(test_db, test_user):
         calls.append(1)
         return {"ok": True}
 
-    guard = IdempotencyGuard(
-        key="K-blocked", route="/fake", user_id=test_user.id, db=test_db
-    )
+    guard = IdempotencyGuard(key="K-blocked", route="/fake", user_id=test_user.id, db=test_db)
     with pytest.raises(HTTPException) as exc:
         guard.execute(payload=payload, fn=fn)
     assert exc.value.status_code == 409
@@ -148,9 +138,7 @@ def test_guard_concurrent_reservation_runs_fn_once(test_db, test_user):
     # We emulate the "B arrives mid-flight" by reserving for A, NOT completing,
     # then invoking B's execute. With a real PG concurrent flow the PK conflict
     # path is identical to the IN_PROGRESS branch tested here.
-    guard_a = IdempotencyGuard(
-        key="K-race", route="/fake", user_id=test_user.id, db=test_db
-    )
+    guard_a = IdempotencyGuard(key="K-race", route="/fake", user_id=test_user.id, db=test_db)
 
     # Reserve for A by calling execute with a fn that holds via a flag.
     call_count = {"n": 0}
@@ -182,9 +170,7 @@ def test_guard_concurrent_reservation_runs_fn_once(test_db, test_user):
         call_count["n"] += 1
         return {"ok": "B"}
 
-    guard_b = IdempotencyGuard(
-        key="K-race", route="/fake", user_id=test_user.id, db=db_b
-    )
+    guard_b = IdempotencyGuard(key="K-race", route="/fake", user_id=test_user.id, db=db_b)
     with pytest.raises(HTTPException) as exc:
         guard_b.execute(payload=payload, fn=fn_b)
     assert exc.value.status_code == 409

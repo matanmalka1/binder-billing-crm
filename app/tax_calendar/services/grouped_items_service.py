@@ -71,9 +71,7 @@ def _rows_for_entry(
     if entry.obligation_type == ObligationType.VAT:
         return [("vat_work_item", *row) for row in repo.list_vat_items(entry.id, **kwargs)]
     if entry.obligation_type == ObligationType.ADVANCE_PAYMENT:
-        return [
-            ("advance_payment", *row) for row in repo.list_advance_items(entry.id, **kwargs)
-        ]
+        return [("advance_payment", *row) for row in repo.list_advance_items(entry.id, **kwargs)]
     if entry.obligation_type == ObligationType.ANNUAL_REPORT:
         return [("annual_report", *row) for row in repo.list_annual_items(entry.id, **kwargs)]
     return []
@@ -111,5 +109,3 @@ def _to_item(
 
 def _status_value(status) -> str:
     return status.value if hasattr(status, "value") else str(status)
-
-

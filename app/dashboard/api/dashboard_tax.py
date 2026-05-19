@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, Query
 
 from app.dashboard.schemas.dashboard_tax import TaxSubmissionWidgetResponse

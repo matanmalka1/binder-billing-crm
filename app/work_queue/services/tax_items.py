@@ -30,9 +30,7 @@ def _vat_due_date(item) -> date:
     return due_date_effective.date() if hasattr(due_date_effective, "date") else due_date_effective
 
 
-def vat_work_item_items(
-    ctx: WorkQueueContext, client_record_id: int | None
-) -> list[WorkQueueItem]:
+def vat_work_item_items(ctx: WorkQueueContext, client_record_id: int | None) -> list[WorkQueueItem]:
     """Return work-queue items for unfiled VAT periods.
 
     get_overdue_unfiled returns full VatWorkItem objects — no per-row query.
@@ -64,9 +62,7 @@ def vat_work_item_items(
     return items
 
 
-def annual_report_items(
-    ctx: WorkQueueContext, client_record_id: int | None
-) -> list[WorkQueueItem]:
+def annual_report_items(ctx: WorkQueueContext, client_record_id: int | None) -> list[WorkQueueItem]:
     cutoff = ctx.today + timedelta(days=UPCOMING_WINDOW_DAYS)
     annual_report = annual_report_models.AnnualReport
     stmt = scope_to_active_clients_stmt(select(annual_report), annual_report).where(

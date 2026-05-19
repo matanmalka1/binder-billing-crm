@@ -172,9 +172,7 @@ def test_bootstrap_creates_entries(client, advisor_headers, test_db):
     assert data["total_entries_for_range"] == 37
 
 
-def test_bootstrap_without_idempotency_key_still_succeeds(
-    client, advisor_headers, test_db
-):
+def test_bootstrap_without_idempotency_key_still_succeeds(client, advisor_headers, test_db):
     response = client.post(
         BOOTSTRAP_PATH,
         json={"start_year": 2026, "end_year": 2026},

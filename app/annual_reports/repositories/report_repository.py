@@ -1,6 +1,5 @@
 """Repository operations for the AnnualReport entity."""
 
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 

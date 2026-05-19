@@ -1,6 +1,5 @@
 """Service mixin for annex (schedule) data lines."""
 
-
 from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.schemas.annex_schemas import SCHEDULE_VALIDATORS
@@ -104,9 +103,7 @@ class AnnualReportAnnexService(AnnualReportBaseService):  # pylint: disable=no-m
         )
         return AnnexDataLineResponse.model_validate(row)
 
-    def delete_annex_line(
-        self, report_id: int, line_id: int, actor_id: int | None = None
-    ) -> None:
+    def delete_annex_line(self, report_id: int, line_id: int, actor_id: int | None = None) -> None:
         self._get_or_raise(report_id)
         existing = self.annex_repo.get_by_id(line_id)  # type: ignore[attr-defined]
         if not existing or existing.annual_report_id != report_id:

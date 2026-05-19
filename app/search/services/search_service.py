@@ -1,4 +1,3 @@
-
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import BinderStatus

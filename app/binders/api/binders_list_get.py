@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.binders.schemas.binder import BinderListResponse, BinderResponse

@@ -1,6 +1,5 @@
 """Notification center HTTP endpoints."""
 
-
 from fastapi import APIRouter, Depends, Query
 
 from app.notification.models.notification import (

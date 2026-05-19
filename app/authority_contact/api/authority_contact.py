@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, Query, status
 
 from app.authority_contact.models.authority_contact import ContactType

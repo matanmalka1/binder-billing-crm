@@ -1,6 +1,5 @@
 """Routes: grouped VAT work items by due date."""
 
-
 from fastapi import APIRouter, Depends, Query
 
 from app.common.enums import VatType

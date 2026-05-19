@@ -34,6 +34,4 @@ class IdempotencyKey(Base):
     created_at = Column(DateTime, nullable=False, default=utcnow)
     completed_at = Column(DateTime, nullable=True)
 
-    __table_args__ = (
-        PrimaryKeyConstraint("key", "route", "user_id", name="pk_idempotency_keys"),
-    )
+    __table_args__ = (PrimaryKeyConstraint("key", "route", "user_id", name="pk_idempotency_keys"),)

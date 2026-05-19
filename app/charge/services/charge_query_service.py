@@ -1,4 +1,3 @@
-
 from sqlalchemy.orm import Session
 
 from app.actions.charge_actions import get_charge_actions

@@ -27,9 +27,7 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
 
     # ── Read delegation ───────────────────────────────────────────────────────
 
-    def get_by_client_record_period(
-        self, client_record_id: int, period: str
-    ) -> VatWorkItem | None:
+    def get_by_client_record_period(self, client_record_id: int, period: str) -> VatWorkItem | None:
         return self._query.get_by_client_record_period(client_record_id, period)
 
     def list_by_client_record(self, client_record_id: int, limit: int = 200) -> list[VatWorkItem]:

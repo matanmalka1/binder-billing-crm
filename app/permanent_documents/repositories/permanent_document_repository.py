@@ -1,4 +1,3 @@
-
 from sqlalchemy import String, cast, func, select
 from sqlalchemy.orm import Session
 

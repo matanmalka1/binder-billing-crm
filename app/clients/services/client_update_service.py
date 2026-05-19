@@ -33,9 +33,7 @@ class ClientUpdateService:
         self.record_repo = ClientRecordRepository(db)
         self._audit = EntityAuditWriter(db)
 
-    def update_client(
-        self, client_id: int, actor_id: int | None = None, actor_role=None, **fields
-    ):
+    def update_client(self, client_id: int, actor_id: int | None = None, actor_role=None, **fields):
         existing = get_full_record(self.db, client_id)
         if not existing:
             raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")

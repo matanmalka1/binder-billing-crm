@@ -42,9 +42,7 @@ class AnnualReportClientReminderService:
             report_id, NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER
         )
         if last:
-            days_since = (
-                _dt.datetime.now(_dt.UTC) - last.created_at.replace(tzinfo=_dt.UTC)
-            ).days
+            days_since = (_dt.datetime.now(_dt.UTC) - last.created_at.replace(tzinfo=_dt.UTC)).days
             if days_since < ANNUAL_REMINDER_COOLDOWN_DAYS:
                 raise AppError(
                     f"תזכורת נשלחה לפני {days_since} ימים. ניתן לשלוח שוב לאחר {ANNUAL_REMINDER_COOLDOWN_DAYS} ימים.",

@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.core.api_types import ApiDateTime, PaginatedResponse

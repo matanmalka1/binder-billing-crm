@@ -1,4 +1,3 @@
-
 from app.common.enums import VatType
 from app.vat_reports.models.vat_work_item import VatWorkItem
 

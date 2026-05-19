@@ -1,4 +1,3 @@
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -39,9 +38,7 @@ class AuthorityContactRepository(BaseRepository[AuthorityContact]):
         self.db.flush()
         return contact
 
-    def _base_where(
-        self, client_record_id: int, contact_type: ContactType | None = None
-    ) -> list:
+    def _base_where(self, client_record_id: int, contact_type: ContactType | None = None) -> list:
         conditions = [
             AuthorityContact.client_record_id == client_record_id,
             AuthorityContact.deleted_at.is_(None),

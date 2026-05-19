@@ -1,4 +1,3 @@
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -45,9 +44,7 @@ class LegalEntityRepository(BaseRepository[LegalEntity]):
             return []
         return self.db.scalars(select(LegalEntity).where(LegalEntity.id.in_(ids))).all()
 
-    def get_by_id_number(
-        self, id_number_type: IdNumberType, id_number: str
-    ) -> LegalEntity | None:
+    def get_by_id_number(self, id_number_type: IdNumberType, id_number: str) -> LegalEntity | None:
         return self.db.scalars(
             select(LegalEntity).where(
                 LegalEntity.id_number_type == id_number_type,

@@ -115,11 +115,7 @@ class SignerViewResponse(BaseModel):
         if self.expires_at is None:
             return False
         now = datetime.now(UTC)
-        exp = (
-            self.expires_at
-            if self.expires_at.tzinfo
-            else self.expires_at.replace(tzinfo=UTC)
-        )
+        exp = self.expires_at if self.expires_at.tzinfo else self.expires_at.replace(tzinfo=UTC)
         return exp < now
 
 

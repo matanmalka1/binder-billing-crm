@@ -1,4 +1,3 @@
-
 from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.models.annual_report_schedule_entry import AnnualReportSchedule

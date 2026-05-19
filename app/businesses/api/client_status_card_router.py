@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, Query
 
 from app.businesses.schemas.business_status_card import ClientStatusCardResponse

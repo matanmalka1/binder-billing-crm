@@ -37,9 +37,7 @@ class BinderPickupReminderService:
             binder_id, NotificationTrigger.PICKUP_REMINDER
         )
         if last:
-            days_since = (
-                _dt.datetime.now(_dt.UTC) - last.created_at.replace(tzinfo=_dt.UTC)
-            ).days
+            days_since = (_dt.datetime.now(_dt.UTC) - last.created_at.replace(tzinfo=_dt.UTC)).days
             if days_since < PICKUP_REMINDER_COOLDOWN_DAYS:
                 raise AppError(
                     f"תזכורת נשלחה לפני {days_since} ימים. ניתן לשלוח שוב לאחר {PICKUP_REMINDER_COOLDOWN_DAYS} ימים.",

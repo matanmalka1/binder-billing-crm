@@ -1,6 +1,5 @@
 """Read-only queries for VatWorkItem entities."""
 
-
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -47,9 +46,7 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
             period_type=period_type,
         )
 
-    def get_by_client_record_period(
-        self, client_record_id: int, period: str
-    ) -> VatWorkItem | None:
+    def get_by_client_record_period(self, client_record_id: int, period: str) -> VatWorkItem | None:
         return self.db.scalars(
             select(VatWorkItem).where(
                 VatWorkItem.client_record_id == client_record_id,

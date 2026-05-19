@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, status
 
 from app.binders.repositories.binder_handover_repository import BinderHandoverRepository

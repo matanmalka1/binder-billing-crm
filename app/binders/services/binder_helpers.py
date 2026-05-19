@@ -33,5 +33,3 @@ def validate_revert_ready_transition(binder: Binder) -> None:
             f"לא ניתן לבטל סטטוס מוכן מסטטוס {binder.status}",
             "BINDER.INVALID_STATUS",
         )
-
-

@@ -1,6 +1,5 @@
 """Pydantic schemas for VAT audit trail."""
 
-
 from pydantic import BaseModel
 
 from app.core.api_types import ApiDateTime

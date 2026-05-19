@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, Query, status
 
 from app.users.api.deps import CurrentUser, DBSession, require_role

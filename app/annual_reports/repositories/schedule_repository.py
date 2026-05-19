@@ -1,6 +1,5 @@
 """Repository operations for annual report schedules."""
 
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 

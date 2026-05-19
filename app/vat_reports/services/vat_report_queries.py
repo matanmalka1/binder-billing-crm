@@ -11,9 +11,7 @@ from app.vat_reports.repositories.vat_work_item_write_repository import (
 from app.vat_reports.services.messages import VAT_ITEM_NOT_FOUND
 
 
-def deadline_fields_from_snapshot(
-    item, submission_method: SubmissionMethod | None = None
-) -> dict:
+def deadline_fields_from_snapshot(item, submission_method: SubmissionMethod | None = None) -> dict:
     """Compute deadline fields from stored due_date_effective (preferred path for linked items).
 
     due_date_effective already incorporates any calendar-level extension (e.g. exception
