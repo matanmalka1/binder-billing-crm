@@ -1,5 +1,7 @@
 from datetime import date, timedelta
 
+from sqlalchemy import func, select
+
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_status_log import BinderStatusLog
 from app.clients.models.client_record import ClientRecord
@@ -50,10 +52,12 @@ def test_readonly_get_endpoints_keep_db_state_intact(
     test_db.commit()
 
     baseline = {
-        "binders": test_db.query(Binder).count(),
-        "logs": test_db.query(BinderStatusLog).count(),
-        "clients": test_db.query(ClientRecord).count(),
-        "statuses": {b.id: b.status.value for b in test_db.query(Binder).all()},
+        "binders": test_db.scalar(select(func.count(Binder.id))),
+        "logs": test_db.scalar(select(func.count(BinderStatusLog.id))),
+        "clients": test_db.scalar(select(func.count(ClientRecord.id))),
+        "statuses": {
+            b.id: b.status.value for b in test_db.scalars(select(Binder)).all()
+        },
     }
 
     r_client_binders = client.get(
@@ -73,9 +77,11 @@ def test_readonly_get_endpoints_keep_db_state_intact(
     assert "is_empty" in r_overview.json()
     assert "open_charges_count" in r_overview.json()
 
-    assert test_db.query(Binder).count() == baseline["binders"]
-    assert test_db.query(BinderStatusLog).count() == baseline["logs"]
-    assert test_db.query(ClientRecord).count() == baseline["clients"]
-    assert {b.id: b.status.value for b in test_db.query(Binder).all()} == baseline[
+    assert test_db.scalar(select(func.count(Binder.id))) == baseline["binders"]
+    assert test_db.scalar(select(func.count(BinderStatusLog.id))) == baseline["logs"]
+    assert test_db.scalar(select(func.count(ClientRecord.id))) == baseline["clients"]
+    assert {
+        b.id: b.status.value for b in test_db.scalars(select(Binder)).all()
+    } == baseline[
         "statuses"
     ]

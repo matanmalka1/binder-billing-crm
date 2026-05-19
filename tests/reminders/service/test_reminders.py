@@ -169,7 +169,11 @@ def test_cancel_only_scheduled_reminders(test_db):
         service.cancel_reminder(reminder.id)
 
 
-def test_cancel_failed_reminder_rejected(test_db):
+@pytest.mark.parametrize(
+    "terminal_status",
+    [ReminderStatus.FAILED, ReminderStatus.FIRED],
+)
+def test_cancel_terminal_reminder_rejected(test_db, terminal_status):
     service = ReminderService(test_db)
     reminder = service.create_from_request(
         ReminderCreateRequest(
@@ -178,22 +182,7 @@ def test_cancel_failed_reminder_rejected(test_db):
         ),
         created_by_user_id=1,
     )
-    service.reminder_repo.update_status(reminder.id, ReminderStatus.FAILED)
-
-    with pytest.raises(AppError):
-        service.cancel_reminder(reminder.id)
-
-
-def test_cancel_fired_reminder_rejected(test_db):
-    service = ReminderService(test_db)
-    reminder = service.create_from_request(
-        ReminderCreateRequest(
-            fire_at=utcnow(),
-            action_type=ReminderActionType.SEND_NOTIFICATION,
-        ),
-        created_by_user_id=1,
-    )
-    service.reminder_repo.update_status(reminder.id, ReminderStatus.FIRED)
+    service.reminder_repo.update_status(reminder.id, terminal_status)
 
     with pytest.raises(AppError):
         service.cancel_reminder(reminder.id)

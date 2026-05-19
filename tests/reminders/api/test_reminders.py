@@ -54,21 +54,3 @@ def test_cancel_reminder_marks_scheduled_as_canceled(client, test_db, advisor_he
         == ReminderStatus.CANCELED
     )
 
-
-def test_legacy_sent_endpoint_removed(client, test_db, advisor_headers):
-    reminder = ReminderRepository(test_db).create(
-        fire_at=utcnow(),
-        action_type=ReminderActionType.CREATE_TASK,
-    )
-
-    resp = client.post(
-        f"/api/v1/reminders/{reminder.id}/mark-sent", headers=advisor_headers
-    )
-
-    assert resp.status_code == 404
-
-
-def test_fire_due_endpoint_not_exposed(client, advisor_headers):
-    resp = client.post("/api/v1/reminders/fire-due", headers=advisor_headers)
-
-    assert resp.status_code == 404

@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import text
+from sqlalchemy import func, select
 
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.annual_reports.models.annual_report_model import AnnualReport
@@ -31,20 +31,24 @@ def _create_vat_client(test_db, id_number: str):
 
 def test_onboarding_creates_vat_work_items_and_advance_payments(test_db):
     client_record = _create_vat_client(test_db, "123456780")
-    vat_items = (
-        test_db.query(VatWorkItem)
-        .filter(VatWorkItem.client_record_id == client_record.id)
-        .all()
+    vat_items = list(
+        test_db.scalars(
+            select(VatWorkItem).where(VatWorkItem.client_record_id == client_record.id)
+        )
     )
-    payments = (
-        test_db.query(AdvancePayment)
-        .filter(AdvancePayment.client_record_id == client_record.id)
-        .all()
+    payments = list(
+        test_db.scalars(
+            select(AdvancePayment).where(
+                AdvancePayment.client_record_id == client_record.id
+            )
+        )
     )
-    reports = (
-        test_db.query(AnnualReport)
-        .filter(AnnualReport.client_record_id == client_record.id)
-        .all()
+    reports = list(
+        test_db.scalars(
+            select(AnnualReport).where(
+                AnnualReport.client_record_id == client_record.id
+            )
+        )
     )
 
     assert len(vat_items) == 9
@@ -61,10 +65,12 @@ def test_onboarding_advance_payments_link_tax_calendar_entries(test_db):
     bootstrap_tax_calendar(test_db, start_year=2026, end_year=2026)
     client_record = _create_vat_client(test_db, "123456786")
 
-    payments = (
-        test_db.query(AdvancePayment)
-        .filter(AdvancePayment.client_record_id == client_record.id)
-        .all()
+    payments = list(
+        test_db.scalars(
+            select(AdvancePayment).where(
+                AdvancePayment.client_record_id == client_record.id
+            )
+        )
     )
 
     assert payments
@@ -82,16 +88,16 @@ def test_onboarding_retry_does_not_duplicate_vat_work_items(test_db):
         reference_date=date(2026, 4, 30),
     )
 
-    count = (
-        test_db.query(VatWorkItem)
-        .filter(VatWorkItem.client_record_id == client_record.id)
-        .count()
+    count = test_db.scalar(
+        select(func.count(VatWorkItem.id)).where(
+            VatWorkItem.client_record_id == client_record.id
+        )
     )
     assert count == 9
-    payment_count = (
-        test_db.query(AdvancePayment)
-        .filter(AdvancePayment.client_record_id == client_record.id)
-        .count()
+    payment_count = test_db.scalar(
+        select(func.count(AdvancePayment.id)).where(
+            AdvancePayment.client_record_id == client_record.id
+        )
     )
     assert payment_count == 9
 
@@ -99,13 +105,13 @@ def test_onboarding_retry_does_not_duplicate_vat_work_items(test_db):
 def test_onboarding_does_not_create_empty_setup_placeholders(test_db):
     _create_vat_client(test_db, "123456782")
 
-    assert (
-        test_db.execute(text("select count(*) from authority_contacts")).scalar() == 0
-    )
-    assert (
-        test_db.execute(text("select count(*) from permanent_documents")).scalar() == 0
-    )
-    assert test_db.execute(text("select count(*) from entity_notes")).scalar() == 0
+    from app.authority_contact.models.authority_contact import AuthorityContact
+    from app.notes.models.entity_note import EntityNote
+    from app.permanent_documents.models.permanent_document import PermanentDocument
+
+    assert test_db.scalar(select(func.count(AuthorityContact.id))) == 0
+    assert test_db.scalar(select(func.count(PermanentDocument.id))) == 0
+    assert test_db.scalar(select(func.count(EntityNote.id))) == 0
 
 
 def test_onboarding_exempt_client_creates_no_vat_items(test_db):
@@ -126,9 +132,11 @@ def test_onboarding_exempt_client_creates_no_vat_items(test_db):
     )
 
     assert (
-        test_db.query(VatWorkItem)
-        .filter(VatWorkItem.client_record_id == seeded.id)
-        .count()
+        test_db.scalar(
+            select(func.count(VatWorkItem.id)).where(
+                VatWorkItem.client_record_id == seeded.id
+            )
+        )
         == 0
     )
 
@@ -147,10 +155,12 @@ def test_vat_bimonthly_advance_monthly_creates_12_advance_payments(test_db):
         reference_date=date(2025, 12, 31),
     )
 
-    payments = (
-        test_db.query(AdvancePayment)
-        .filter(AdvancePayment.client_record_id == client_record.id)
-        .all()
+    payments = list(
+        test_db.scalars(
+            select(AdvancePayment).where(
+                AdvancePayment.client_record_id == client_record.id
+            )
+        )
     )
     # reference_date=2025-12-31 → years [2025, 2026]; 2025 yields 1 (2025-12), 2026 yields 12
     assert len(payments) == 13, (

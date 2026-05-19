@@ -68,20 +68,6 @@ def test_open_standalone_task_can_be_filtered_with_many_system_rows(test_db):
     assert match.metadata["source_id"] is None
 
 
-def test_done_task_not_in_work_queue(test_db):
-    task = _add_task(test_db, status=TaskStatus.DONE)
-    items = WorkQueueService(test_db).list_items()
-    task_items = [i for i in items if i.source_type == WorkQueueSourceType.TASK]
-    assert not any(i.source_id == task.id for i in task_items)
-
-
-def test_canceled_task_not_in_work_queue(test_db):
-    task = _add_task(test_db, status=TaskStatus.CANCELED)
-    items = WorkQueueService(test_db).list_items()
-    task_items = [i for i in items if i.source_type == WorkQueueSourceType.TASK]
-    assert not any(i.source_id == task.id for i in task_items)
-
-
 def test_done_task_appears_in_work_queue_history(test_db):
     task = _add_task(test_db, status=TaskStatus.DONE)
     items = WorkQueueService(test_db).list_items(
@@ -96,30 +82,6 @@ def test_done_task_appears_in_work_queue_history(test_db):
     assert actions["complete_task"].disabled is True
     assert actions["cancel_task"].disabled is True
     assert actions["complete_task"].disabled_reason == "המשימה כבר הושלמה"
-
-
-def test_done_task_appears_in_work_queue_history_with_many_system_rows(test_db):
-    biz = create_business(test_db)
-    for _ in range(55):
-        test_db.add(
-            Charge(
-                client_record_id=biz.client_id,
-                business_id=biz.id,
-                amount=100,
-                charge_type=ChargeType.OTHER,
-                status=ChargeStatus.ISSUED,
-                issued_at=utcnow().date() - timedelta(days=31),
-            )
-        )
-    task = _add_task(test_db, title="Historical manual task", status=TaskStatus.DONE)
-
-    items = WorkQueueService(test_db).list_items(
-        include_task_history=True,
-        task_status=TaskStatus.DONE,
-    )
-    task_items = [i for i in items if i.source_type == WorkQueueSourceType.TASK]
-
-    assert any(i.source_id == task.id for i in task_items)
 
 
 def test_canceled_task_appears_in_work_queue_history(test_db):

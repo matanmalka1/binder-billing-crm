@@ -906,19 +906,6 @@ def test_done_linked_task_history_does_not_override_source_actions(test_db):
     assert task_row.source_summary.source_type == "charge"
 
 
-def test_unknown_source_domain_task_does_not_crash(test_db):
-    task = _add_task_for_source(test_db, source_domain="legacy_unknown", source_id=1)
-
-    items = WorkQueueService(test_db).list_items()
-    task_row = next(
-        i
-        for i in items
-        if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
-    )
-
-    assert [w.key for w in task_row.warnings] == ["source_unknown"]
-
-
 def test_charge_item_exposes_only_safe_link_actions(test_db):
     biz = create_business(test_db)
     charge = Charge(

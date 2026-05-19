@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 from openpyxl import Workbook
+from sqlalchemy import func, select
 from starlette.datastructures import UploadFile
 
 from app.clients.api import clients_excel as clients_excel_api
@@ -144,7 +145,7 @@ def test_import_clients_excel_returns_row_errors(client, advisor_headers, monkey
     assert {err["row"] for err in body["errors"]} == {4}
 
 
-def test_import_clients_excel_creates_client_from_legacy_template(
+def test_import_clients_excel_creates_client_from_template_headers(
     client, test_db, advisor_headers
 ):
     payload = _workbook_bytes(
@@ -180,7 +181,7 @@ def test_import_clients_excel_creates_client_from_legacy_template(
 
     assert response.status_code == 200
     assert response.json()["created"] == 1
-    assert test_db.query(ClientRecord).count() == 1
+    assert test_db.scalar(select(func.count(ClientRecord.id))) == 1
 
 
 def test_import_clients_excel_rejects_large_content_length(client, advisor_headers):

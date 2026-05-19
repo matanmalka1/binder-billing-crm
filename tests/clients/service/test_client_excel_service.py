@@ -2,6 +2,7 @@ import builtins
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
+from sqlalchemy import func, select
 
 from app.clients.models.client_record import ClientRecord
 from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
@@ -52,7 +53,7 @@ def test_client_excel_import_collects_required_field_errors(test_db):
     assert {err["row"] for err in errors} == {2, 3, 4}
 
 
-def test_client_excel_import_uses_tax_defaults_for_legacy_template(test_db):
+def test_client_excel_import_uses_tax_defaults_when_optional_columns_are_blank(test_db):
     service = ClientExcelService(test_db)
     wb = Workbook()
     ws = wb.active
@@ -94,7 +95,7 @@ def test_client_excel_import_rolls_back_failed_create_client_row(test_db):
 
     assert created == 0
     assert len(errors) == 1
-    assert test_db.query(ClientRecord).count() == 0
+    assert test_db.scalar(select(func.count(ClientRecord.id))) == 0
 
 
 def test_client_excel_export_and_template_generate_files(test_db):

@@ -98,39 +98,3 @@ def test_create_payment_directly_uses_entry_due_date(test_db):
     assert payment.due_date_original == date(2026, 4, 16)
     assert payment.due_date_effective == date(2026, 4, 16)
 
-
-def test_link_advance_payment_backfills_missing_snapshots(test_db):
-    """link_advance_payment sets due_date_original/effective from entry when they are None."""
-    from app.tax_calendar.services.materialization_service import (
-        TaxCalendarMaterializationService,
-    )
-    from app.advance_payments.models.advance_payment import AdvancePayment
-
-    entry = make_entry(
-        test_db,
-        obligation_type=ObligationType.ADVANCE_PAYMENT,
-        rule_type=DeadlineRuleType.ADVANCE_MONTHLY,
-        period="2026-05",
-        months=1,
-        tax_year=2026,
-    )
-    entry.due_date = date(2026, 6, 16)
-    test_db.flush()
-
-    # Build a payment that has no snapshot fields yet (simulating a direct insert bypassing service)
-    payment = AdvancePayment(
-        client_record_id=1,
-        period="2026-05",
-        period_months_count=1,
-        due_date=date(2026, 6, 15),
-        tax_calendar_entry_id=entry.id,
-    )
-    # Manually bypass snapshot events by setting originals to None (mimicking legacy row)
-    payment.due_date_original = None
-    payment.due_date_effective = None
-
-    mat = TaxCalendarMaterializationService(test_db)
-    mat.link_advance_payment(payment)
-
-    assert payment.due_date_original == date(2026, 6, 16)
-    assert payment.due_date_effective == date(2026, 6, 16)

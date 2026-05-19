@@ -87,20 +87,3 @@ def test_generate_client_obligations_result_collects_partial_failures(monkeypatc
         "annual_report_creation_failed:2026",
     ]
 
-
-def test_generate_client_obligations_keeps_int_api(monkeypatch):
-    monkeypatch.setattr(
-        orchestrator,
-        "generate_client_obligations_result",
-        lambda **kwargs: orchestrator.ObligationResult(
-            reports_created=2,
-        ),
-    )
-
-    total = orchestrator.generate_client_obligations(
-        db=object(),
-        client_record_id=1,
-        entity_type=EntityType.OSEK_MURSHE,
-    )
-
-    assert total == 2

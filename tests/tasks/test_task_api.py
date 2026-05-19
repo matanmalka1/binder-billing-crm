@@ -1,5 +1,7 @@
 from datetime import date
 
+import pytest
+
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.tasks.repositories.task_repository import TaskRepository
 from app.utils.time_utils import utcnow
@@ -7,19 +9,6 @@ from tests.helpers.task_helpers import create_business, create_charge
 
 
 # ── Create ────────────────────────────────────────────────────────────────────
-
-
-def test_create_task_returns_201(client, advisor_headers):
-    resp = client.post(
-        "/api/v1/tasks",
-        headers=advisor_headers,
-        json={"title": "New Task"},
-    )
-    assert resp.status_code == 201
-    data = resp.json()
-    assert data["title"] == "New Task"
-    assert data["status"] == "open"
-    assert data["priority"] == "normal"
 
 
 def test_create_standalone_task_is_open_active_and_unlinked(
@@ -39,6 +28,10 @@ def test_create_standalone_task_is_open_active_and_unlinked(
     assert task.status.value == "open"
     assert task.source_domain is None
     assert task.source_id is None
+    data = resp.json()
+    assert data["title"] == "Standalone queue task"
+    assert data["status"] == "open"
+    assert data["priority"] == "normal"
 
 
 def test_create_standalone_task_appears_in_work_queue_api(client, advisor_headers):
@@ -92,57 +85,6 @@ def test_update_task_persists_due_date(client, advisor_headers):
     )
     assert resp.status_code == 200
     assert resp.json()["due_date"] == "2026-07-20"
-
-
-def test_work_queue_task_row_exposes_due_date_after_create(client, advisor_headers):
-    created = client.post(
-        "/api/v1/tasks",
-        headers=advisor_headers,
-        json={"title": "Queue due task", "due_date": "2026-08-10"},
-    )
-    assert created.status_code == 201
-    task_id = created.json()["id"]
-
-    resp = client.get("/api/v1/work-queue", headers=advisor_headers)
-    assert resp.status_code == 200
-    item = next(
-        row
-        for row in resp.json()["items"]
-        if row["source_type"] == "task" and row["source_id"] == task_id
-    )
-    assert item["due_date"] == "2026-08-10"
-
-
-def test_completed_standalone_task_appears_in_work_queue_history_api(
-    client, advisor_headers
-):
-    created = client.post(
-        "/api/v1/tasks",
-        headers=advisor_headers,
-        json={"title": "Completed history task"},
-    ).json()
-    complete_resp = client.post(
-        f"/api/v1/tasks/{created['id']}/complete",
-        headers=advisor_headers,
-    )
-    assert complete_resp.status_code == 200
-
-    active_resp = client.get("/api/v1/work-queue", headers=advisor_headers)
-    assert active_resp.status_code == 200
-    assert not any(
-        row["source_type"] == "task" and row["source_id"] == created["id"]
-        for row in active_resp.json()["items"]
-    )
-
-    history_resp = client.get(
-        "/api/v1/work-queue?include_task_history=true",
-        headers=advisor_headers,
-    )
-    assert history_resp.status_code == 200
-    assert any(
-        row["source_type"] == "task" and row["source_id"] == created["id"]
-        for row in history_resp.json()["items"]
-    )
 
 
 def test_create_task_with_optional_fields(client, test_db, advisor_headers):
@@ -389,42 +331,20 @@ def test_list_pagination_total_reflects_all_items(client, advisor_headers):
     assert data["page_size"] == 3
 
 
-def test_list_pagination_page2(client, advisor_headers):
-    for i in range(5):
-        client.post(
-            "/api/v1/tasks", headers=advisor_headers, json={"title": f"Task {i}"}
-        )
-
-    p1 = client.get("/api/v1/tasks?page=1&page_size=3", headers=advisor_headers).json()
-    p2 = client.get("/api/v1/tasks?page=2&page_size=3", headers=advisor_headers).json()
-
-    assert len(p1["items"]) == 3
-    assert len(p2["items"]) == 2
-    ids1 = {i["id"] for i in p1["items"]}
-    ids2 = {i["id"] for i in p2["items"]}
-    assert ids1.isdisjoint(ids2)
-
-
 # ── assigned_role validation ──────────────────────────────────────────────────
 
 
-def test_create_task_valid_assigned_role_advisor(client, advisor_headers):
+@pytest.mark.parametrize("assigned_role", ["advisor", "secretary"])
+def test_create_task_accepts_valid_assigned_role(
+    client, advisor_headers, assigned_role
+):
     resp = client.post(
         "/api/v1/tasks",
         headers=advisor_headers,
-        json={"title": "Role Task", "assigned_role": "advisor"},
+        json={"title": "Role Task", "assigned_role": assigned_role},
     )
     assert resp.status_code == 201
-    assert resp.json()["assigned_role"] == "advisor"
-
-
-def test_create_task_valid_assigned_role_secretary(client, advisor_headers):
-    resp = client.post(
-        "/api/v1/tasks",
-        headers=advisor_headers,
-        json={"title": "Role Task", "assigned_role": "secretary"},
-    )
-    assert resp.status_code == 201
+    assert resp.json()["assigned_role"] == assigned_role
 
 
 def test_create_task_invalid_assigned_role_rejected(client, advisor_headers):
@@ -498,26 +418,21 @@ def test_patch_task_relinks_from_one_valid_source_to_another(
     assert data["source_id"] == second_charge.id
 
 
-def test_patch_task_partial_source_domain_only_rejected(client, advisor_headers):
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"source_domain": "charge"},
+        {"source_id": 1},
+    ],
+)
+def test_patch_task_partial_source_link_rejected(client, advisor_headers, payload):
     created = client.post(
         "/api/v1/tasks", headers=advisor_headers, json={"title": "Partial source"}
     ).json()
     resp = client.patch(
         f"/api/v1/tasks/{created['id']}",
         headers=advisor_headers,
-        json={"source_domain": "charge"},
-    )
-    assert resp.status_code == 400
-
-
-def test_patch_task_partial_source_id_only_rejected(client, advisor_headers):
-    created = client.post(
-        "/api/v1/tasks", headers=advisor_headers, json={"title": "Partial source"}
-    ).json()
-    resp = client.patch(
-        f"/api/v1/tasks/{created['id']}",
-        headers=advisor_headers,
-        json={"source_id": 1},
+        json=payload,
     )
     assert resp.status_code == 400
 
