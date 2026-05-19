@@ -175,17 +175,20 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
 
     @staticmethod
     def _scope_to_active_clients(stmt, model):
-        return stmt.join(
-            ClientRecord,
-            ClientRecord.id == model.client_record_id,
-        ).where(ClientRecord.deleted_at.is_(None))
+        # Joins ClientRecord + LegalEntity so client_search can add WHERE
+        # predicates against either without re-joining.
+        return (
+            stmt.join(ClientRecord, ClientRecord.id == model.client_record_id)
+            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .where(ClientRecord.deleted_at.is_(None))
+        )
 
     @staticmethod
     def _apply_client_search(stmt, model, client_search: str | None):
         if not client_search:
             return stmt
         like = f"%{client_search.strip()}%"
-        return stmt.join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id).where(
+        return stmt.where(
             LegalEntity.official_name.ilike(like)
             | LegalEntity.id_number.ilike(like)
             | cast(ClientRecord.office_client_number, String).ilike(like)
