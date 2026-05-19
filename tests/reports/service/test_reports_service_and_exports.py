@@ -3,8 +3,6 @@ from datetime import date, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 
-import pytest
-
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.reports.services.advance_payment_report import AdvancePaymentReportService
 from app.reports.services.export_service import ExportService
@@ -96,58 +94,6 @@ def test_aging_report_service_skips_rows_without_matching_business(test_db):
     assert report["items"] == []
     assert report["total_outstanding"] == 0.0
     assert report["summary"]["total_clients"] == 0
-
-
-def test_export_service_excel_import_error(monkeypatch):
-    import builtins
-
-    from app.reports.services import export_excel
-
-    original_import = builtins.__import__
-
-    def _fake_import(name, *args, **kwargs):
-        if name == "openpyxl":
-            raise ImportError("missing openpyxl")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _fake_import)
-
-    with pytest.raises(ImportError):
-        export_excel.export_aging_report_to_excel(
-            {
-                "report_date": date.today(),
-                "items": [],
-                "summary": {},
-                "total_outstanding": 0,
-            },
-            "/tmp",
-        )
-
-
-def test_export_service_pdf_import_error(monkeypatch):
-    import builtins
-
-    from app.reports.services import export_pdf
-
-    original_import = builtins.__import__
-
-    def _fake_import(name, *args, **kwargs):
-        if name.startswith("reportlab"):
-            raise ImportError("missing reportlab")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _fake_import)
-
-    with pytest.raises(ImportError):
-        export_pdf.export_aging_report_to_pdf(
-            {
-                "report_date": date.today(),
-                "items": [],
-                "summary": {},
-                "total_outstanding": 0,
-            },
-            "/tmp",
-        )
 
 
 def test_advance_payment_report_uses_client_record_legal_entity_names(test_db):

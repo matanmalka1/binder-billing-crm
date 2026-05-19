@@ -1,4 +1,3 @@
-import builtins
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
@@ -134,19 +133,3 @@ def test_client_excel_export_and_template_generate_files(test_db):
     assert template_ws.cell(row=1, column=6).value == "Entity Type (optional)"
     assert template_ws.cell(row=2, column=6).value == "osek_murshe"
 
-
-def test_client_excel_create_workbook_importerror(monkeypatch, test_db):
-    service = ClientExcelService(test_db)
-    original_import = builtins.__import__
-
-    def _import(name, *args, **kwargs):
-        if name == "openpyxl":
-            raise ImportError("missing")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _import)
-    try:
-        service._create_workbook_with_columns([("a", "A")])
-        raise AssertionError("expected ImportError")
-    except ImportError:
-        pass

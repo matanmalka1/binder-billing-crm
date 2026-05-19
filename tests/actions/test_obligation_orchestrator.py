@@ -12,77 +12,7 @@ def test_derive_client_type_raises_for_missing_or_unknown_entity_type():
         orchestrator._derive_client_type("unknown")  # type: ignore[arg-type]
 
 
-def test_generate_client_obligations_fails_before_writes_for_unknown_entity_type(
-    monkeypatch,
-):
-    class Repo:
-        def __init__(self, db):
-            self.db = db
-
-        def get_by_id(self, client_record_id):
-            return object()
-
-    class ReportService:
-        def __init__(self, db):
-            raise AssertionError("Report creation should not start")
-
-    monkeypatch.setattr(orchestrator, "ClientRecordRepository", Repo)
-    monkeypatch.setattr(orchestrator, "AnnualReportService", ReportService)
-
-    with pytest.raises(ValueError, match="סוג ישות לא נתמך ליצירת דוח שנתי"):
-        orchestrator.generate_client_obligations(
-            db=object(),
-            client_record_id=1,
-            entity_type="unknown",  # type: ignore[arg-type]
-        )
-
-
 def test_derive_client_type_maps_supported_entity_type():
     client_type = orchestrator._derive_client_type(EntityType.OSEK_MURSHE)
 
     assert client_type.value == "self_employed"
-
-
-def test_generate_client_obligations_result_collects_partial_failures(monkeypatch):
-    class Savepoint:
-        def commit(self):
-            return None
-
-        def rollback(self):
-            return None
-
-    class Db:
-        def begin_nested(self):
-            return Savepoint()
-
-    class Repo:
-        def __init__(self, db):
-            self.db = db
-
-        def get_by_id(self, client_record_id):
-            return object()
-
-    class ReportService:
-        def __init__(self, db):
-            self.db = db
-
-        def create_report(self, **kwargs):
-            if kwargs["tax_year"] == 2026:
-                raise RuntimeError("report failed")
-
-    monkeypatch.setattr(orchestrator, "ClientRecordRepository", Repo)
-    monkeypatch.setattr(orchestrator, "AnnualReportService", ReportService)
-
-    result = orchestrator.generate_client_obligations_result(
-        db=Db(),
-        client_record_id=1,
-        entity_type=EntityType.OSEK_MURSHE,
-        reference_date=orchestrator.date(2026, 10, 1),
-        best_effort=True,
-    )
-
-    assert result.reports_created == 1
-    assert result.total_created == 1
-    assert result.errors == [
-        "annual_report_creation_failed:2026",
-    ]

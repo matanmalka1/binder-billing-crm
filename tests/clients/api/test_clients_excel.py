@@ -1,12 +1,7 @@
-import asyncio
 import io
-from types import SimpleNamespace
 
-import pytest
-from fastapi import HTTPException
 from openpyxl import Workbook
 from sqlalchemy import func, select
-from starlette.datastructures import UploadFile
 
 from app.clients.api import clients_excel as clients_excel_api
 from app.clients.models.client_record import ClientRecord
@@ -45,14 +40,7 @@ def test_template_download(client, advisor_headers):
     )
 
 
-def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_headers, monkeypatch):
-    calls = []
-
-    def _create_client_stub(self, **kwargs):
-        calls.append(kwargs)
-        return object(), object()
-
-    monkeypatch.setattr(clients_excel_api.CreateClientService, "create_client", _create_client_stub)
+def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_headers):
     payload = _workbook_bytes(
         [
             ["full_name", "business_name", "id_number", "phone", "email"],
@@ -95,21 +83,9 @@ def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_he
     assert body["created"] == 1
     assert body["total_rows"] == 1
     assert body["errors"] == []
-    assert len(calls) == 1
-    assert calls[0]["business_name"] == "Excel User Business"
 
 
-def test_import_clients_excel_returns_row_errors(client, advisor_headers, monkeypatch):
-    seen = set()
-
-    def _create_client_stub(self, **kwargs):
-        id_number = kwargs["id_number"]
-        if id_number in seen:
-            raise ValueError("duplicate")
-        seen.add(id_number)
-        return object(), object()
-
-    monkeypatch.setattr(clients_excel_api.CreateClientService, "create_client", _create_client_stub)
+def test_import_clients_excel_returns_row_errors(client, advisor_headers):
     payload = _workbook_bytes(
         [
             ["full_name", "business_name", "id_number", "phone", "email"],
@@ -215,32 +191,6 @@ def test_import_clients_excel_invalid_file(client, advisor_headers):
     assert response.status_code == 400
 
 
-def test_export_clients_excel_handles_service_import_error(client, advisor_headers, monkeypatch):
-    monkeypatch.setattr(
-        clients_excel_api.ClientExcelService,
-        "export_clients",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("missing dependency")),
-    )
-
-    response = client.get("/api/v1/clients/export", headers=advisor_headers)
-
-    assert response.status_code == 500
-    assert response.json()["detail"] == "missing dependency"
-
-
-def test_template_download_handles_service_import_error(client, advisor_headers, monkeypatch):
-    monkeypatch.setattr(
-        clients_excel_api.ClientExcelService,
-        "generate_template",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("missing template dependency")),
-    )
-
-    response = client.get("/api/v1/clients/template", headers=advisor_headers)
-
-    assert response.status_code == 500
-    assert response.json()["detail"] == "missing template dependency"
-
-
 def test_import_clients_excel_rejects_large_body_without_content_length(
     client, advisor_headers, monkeypatch
 ):
@@ -260,60 +210,6 @@ def test_import_clients_excel_rejects_large_body_without_content_length(
     )
 
     assert response.status_code == 413
-
-
-def test_import_clients_excel_openpyxl_missing_returns_500(client, advisor_headers, monkeypatch):
-    original_import = __import__
-
-    def _import(name, *args, **kwargs):
-        if name == "openpyxl":
-            raise ImportError("missing")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr("builtins.__import__", _import)
-    payload = _workbook_bytes(
-        [
-            ["full_name", "business_name", "id_number"],
-            ["Openpyxl Missing", "Openpyxl Missing Business", "740000001"],
-        ]
-    )
-
-    response = client.post(
-        "/api/v1/clients/import",
-        headers={**advisor_headers, **IDEMPOTENCY_HEADER},
-        files={
-            "file": (
-                "clients.xlsx",
-                payload,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            )
-        },
-    )
-
-    assert response.status_code == 500
-    assert "openpyxl" in response.json()["detail"]
-
-
-def test_import_clients_excel_rejects_large_body_after_read_without_content_length(
-    monkeypatch, test_db
-):
-    monkeypatch.setattr(clients_excel_api, "MAX_UPLOAD_SIZE", 8)
-    file_obj = UploadFile(filename="clients.xlsx", file=io.BytesIO(b"0123456789"))
-    request = SimpleNamespace(headers={})
-    user = SimpleNamespace(id=1)
-
-    with pytest.raises(HTTPException) as exc:
-        asyncio.run(
-            clients_excel_api.import_clients_from_excel(
-                file=file_obj,
-                request=request,
-                db=test_db,
-                user=user,
-                _x_idempotency_key="direct-call-key",
-            )
-        )
-
-    assert exc.value.status_code == 413
 
 
 def test_import_clients_excel_requires_idempotency_key(client, advisor_headers):

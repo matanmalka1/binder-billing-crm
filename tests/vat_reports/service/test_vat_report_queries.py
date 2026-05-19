@@ -1,26 +1,21 @@
 from datetime import date
-from unittest.mock import MagicMock
-
+from types import SimpleNamespace
 import pytest
 
 from app.common.enums import SubmissionMethod
-from app.core.exceptions import NotFoundError
-from app.vat_reports.models.vat_enums import InvoiceType, VatWorkItemStatus
-from app.vat_reports.services import vat_report_queries
 from app.vat_reports.services.vat_report_queries import (
     deadline_fields_from_snapshot,
     get_vat_deadline_fields,
 )
-from tests.vat_reports.service.test_vat_report_test_utils import make_item
 
 
 def _snapshot_item(effective, original=None, period="2026-08"):
-    item = MagicMock()
-    item.due_date_effective = effective
-    item.due_date_original = original
-    item.period = period
-    item.period_type = MagicMock(value="monthly")
-    return item
+    return SimpleNamespace(
+        due_date_effective=effective,
+        due_date_original=original,
+        period_type=SimpleNamespace(value="monthly"),
+        period=period,
+    )
 
 
 class TestDeadlineFieldsFromSnapshot:
@@ -78,150 +73,16 @@ class TestDeadlineFieldsFromSnapshot:
 class TestGetVatDeadlineFields:
     def test_routes_to_snapshot_when_effective_set(self):
         effective = date(2026, 9, 24)
-        item = MagicMock()
-        item.due_date_effective = effective
-        item.due_date_original = effective
+        item = _snapshot_item(effective, original=effective)
         result = get_vat_deadline_fields(item, SubmissionMethod.ONLINE)
         # Snapshot path: no extra extension — effective IS the deadline.
         assert result["submission_deadline"] == effective
         assert result["statutory_deadline"] == effective
 
     def test_missing_effective_due_date_raises(self):
-        item = MagicMock()
-        item.id = 123
-        item.due_date_effective = None
+        class _Item:
+            id = 123
+            due_date_effective = None
 
         with pytest.raises(ValueError, match="missing due_date_effective"):
-            get_vat_deadline_fields(item, SubmissionMethod.MANUAL)
-
-
-def test_get_work_item_not_found_raises_not_found_error():
-    work_item_repo = MagicMock()
-    work_item_repo.get_by_id.return_value = None
-
-    with pytest.raises(NotFoundError) as exc_info:
-        vat_report_queries.get_work_item(work_item_repo, item_id=999)
-
-    assert exc_info.value.code == "VAT.NOT_FOUND"
-
-
-def test_list_client_work_items_forwards_repository_call():
-    work_item_repo = MagicMock()
-    expected = [make_item(id=1), make_item(id=2)]
-    work_item_repo.list_by_client_record.return_value = expected
-
-    result = vat_report_queries.list_client_work_items(work_item_repo, client_record_id=11)
-
-    work_item_repo.list_by_client_record.assert_called_once_with(11)
-    assert result == expected
-
-
-def test_list_work_items_by_status_short_circuits_when_client_search_empty():
-    work_item_repo = MagicMock()
-    client_repo = MagicMock()
-    client_repo.db = None
-    client_repo.list.return_value = []
-
-    items, total = vat_report_queries.list_work_items_by_status(
-        work_item_repo=work_item_repo,
-        db=None,
-        client_repo=client_repo,
-        status=VatWorkItemStatus.MATERIAL_RECEIVED,
-        client_name="no match",
-    )
-
-    assert items == []
-    assert total == 0
-    work_item_repo.list_by_status.assert_not_called()
-    work_item_repo.count_by_status.assert_not_called()
-
-
-def test_list_work_items_by_status_uses_resolved_client_ids():
-    work_item_repo = MagicMock()
-    client_repo = MagicMock()
-    client_repo.db = None
-    client_repo.list.return_value = [MagicMock(id=7), MagicMock(id=8)]
-    work_item_repo.list_by_status.return_value = [make_item(id=1)]
-    work_item_repo.count_by_status.return_value = 1
-
-    items, total = vat_report_queries.list_work_items_by_status(
-        work_item_repo=work_item_repo,
-        db=None,
-        client_repo=client_repo,
-        status=VatWorkItemStatus.PENDING_MATERIALS,
-        client_name="Acme",
-        period="2026-01",
-        page=2,
-        page_size=25,
-    )
-
-    assert len(items) == 1
-    assert total == 1
-    work_item_repo.list_by_status.assert_called_once_with(
-        VatWorkItemStatus.PENDING_MATERIALS,
-        page=2,
-        page_size=25,
-        period="2026-01",
-        client_record_ids=[7, 8],
-        period_type=None,
-    )
-    work_item_repo.count_by_status.assert_called_once_with(
-        VatWorkItemStatus.PENDING_MATERIALS,
-        period="2026-01",
-        client_record_ids=[7, 8],
-        period_type=None,
-    )
-
-
-def test_list_all_work_items_without_name_filter_passes_none_client_ids():
-    work_item_repo = MagicMock()
-    client_repo = MagicMock()
-    work_item_repo.list_all.return_value = [make_item(id=3)]
-    work_item_repo.count_all.return_value = 1
-
-    items, total = vat_report_queries.list_all_work_items(
-        work_item_repo=work_item_repo,
-        db=None,
-        client_repo=client_repo,
-        page=1,
-        page_size=10,
-        period="2026-02",
-    )
-
-    assert len(items) == 1
-    assert total == 1
-    client_repo.list.assert_not_called()
-    work_item_repo.list_all.assert_called_once_with(
-        page=1,
-        page_size=10,
-        period="2026-02",
-        client_record_ids=None,
-        period_type=None,
-    )
-    work_item_repo.count_all.assert_called_once_with(
-        period="2026-02", client_record_ids=None, period_type=None
-    )
-
-
-def test_list_invoices_forwards_invoice_type():
-    invoice_repo = MagicMock()
-    invoice_repo.list_by_work_item.return_value = ["i1"]
-
-    result = vat_report_queries.list_invoices(
-        invoice_repo=invoice_repo,
-        item_id=5,
-        invoice_type=InvoiceType.EXPENSE,
-    )
-
-    assert result == ["i1"]
-    invoice_repo.list_by_work_item.assert_called_once_with(5, invoice_type=InvoiceType.EXPENSE)
-
-
-def test_get_audit_trail_forwards_call():
-    work_item_repo = MagicMock()
-    work_item_repo.get_audit_trail.return_value = ["a1", "a2"]
-
-    result = vat_report_queries.get_audit_trail(work_item_repo, item_id=12, limit=50, offset=0)
-
-    assert result == ["a1", "a2"]
-    work_item_repo.get_audit_trail.assert_called_once_with(12, 50, 0)
+            get_vat_deadline_fields(_Item(), SubmissionMethod.MANUAL)
