@@ -110,9 +110,7 @@ class RecentActivityService:
     def _client_names(
         self, audit_rows: list[EntityAuditLog], binder_rows: list[BinderStatusLog]
     ) -> dict[int | str, str]:
-        charge_ids = {
-            row.entity_id for row in audit_rows if row.entity_type == ENTITY_CHARGE
-        }
+        charge_ids = {row.entity_id for row in audit_rows if row.entity_type == ENTITY_CHARGE}
         report_ids = {
             row.entity_id for row in audit_rows if row.entity_type == ENTITY_ANNUAL_REPORT
         }

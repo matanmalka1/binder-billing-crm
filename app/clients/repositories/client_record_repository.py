@@ -255,9 +255,7 @@ class ClientRecordRepository:
                 | LegalEntity.id_number.ilike(term)
             )
         sort_col = (
-            ClientRecord.office_client_number
-            if sort_by == "office_client_number"
-            else full_name
+            ClientRecord.office_client_number if sort_by == "office_client_number" else full_name
         )
         stmt = stmt.order_by(desc(sort_col) if sort_order == "desc" else asc(sort_col))
         offset = (page - 1) * page_size
@@ -355,4 +353,3 @@ class ClientRecordRepository:
         )
         rows = self.db.execute(stmt).all()
         return {status: count for status, count in rows}
-

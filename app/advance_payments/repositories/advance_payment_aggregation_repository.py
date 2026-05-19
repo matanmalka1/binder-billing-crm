@@ -29,9 +29,7 @@ def advance_payment_start_month_expr():
 
 
 def advance_payment_year_range_filter(year: int):
-    return (AdvancePayment.period >= f"{year}-01") & (
-        AdvancePayment.period < f"{year + 1}-01"
-    )
+    return (AdvancePayment.period >= f"{year}-01") & (AdvancePayment.period < f"{year + 1}-01")
 
 
 def advance_payment_matches_month_expr(month: int):

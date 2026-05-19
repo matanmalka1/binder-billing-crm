@@ -62,4 +62,3 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
                 log_request_summary(logger)
                 clear_request_log_stats()
                 clear_request_id()
-

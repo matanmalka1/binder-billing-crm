@@ -48,7 +48,9 @@ class ClientEnrichmentService:
                 client.active_binder_number = active_binders[client.id].binder_number
             reported = reported_turnover.get(client.id)
             if reported is not None:
-                client.annual_turnover = AnnualTurnover(amount=reported, source="reported", year=year)
+                client.annual_turnover = AnnualTurnover(
+                    amount=reported, source="reported", year=year
+                )
             elif client.annual_revenue is not None:
                 client.annual_turnover = AnnualTurnover(
                     amount=client.annual_revenue,

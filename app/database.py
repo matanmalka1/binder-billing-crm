@@ -40,6 +40,7 @@ def _record_query_end(conn, cursor, statement, parameters, context, executemany)
 
     record_sql_query(statement, (perf_counter() - start_time) * 1000)
 
+
 logging.getLogger("sqlalchemy.engine").setLevel(
     logging.INFO if config.APP_ENV == "development" else logging.WARNING
 )
