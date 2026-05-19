@@ -94,7 +94,7 @@ def test_work_queue_api_limit_max_enforced(client, advisor_headers):
     assert response.status_code == 422
 
 
-def test_work_queue_summary_endpoint_not_page_based(client, test_db, advisor_headers):
+def test_work_queue_list_summary_not_page_based(client, test_db, advisor_headers):
     test_db.add_all(
         [
             Task(
@@ -113,19 +113,26 @@ def test_work_queue_summary_endpoint_not_page_based(client, test_db, advisor_hea
     )
     test_db.commit()
 
-    active = client.get("/api/v1/work-queue/summary?limit=1", headers=advisor_headers)
+    active = client.get("/api/v1/work-queue?limit=1", headers=advisor_headers)
     history = client.get(
-        "/api/v1/work-queue/summary?include_task_history=true",
+        "/api/v1/work-queue?include_task_history=true&limit=1",
         headers=advisor_headers,
     )
 
     assert active.status_code == 200
     assert active.json()["total"] == 1
-    assert active.json()["manual_tasks"] == 1
-    assert active.json()["by_task_status"]["open"] == 1
+    assert active.json()["summary"]["total"] == 1
+    assert active.json()["summary"]["manual_tasks"] == 1
+    assert active.json()["summary"]["by_task_status"]["open"] == 1
     assert history.status_code == 200
     assert history.json()["total"] == 1
-    assert history.json()["by_task_status"]["done"] == 1
+    assert history.json()["summary"]["total"] == 1
+    assert history.json()["summary"]["by_task_status"]["done"] == 1
+
+
+def test_work_queue_summary_endpoint_removed(client, advisor_headers):
+    response = client.get("/api/v1/work-queue/summary", headers=advisor_headers)
+    assert response.status_code == 404
 
 
 def test_annual_report_work_queue_route_targets_existing_detail_api(

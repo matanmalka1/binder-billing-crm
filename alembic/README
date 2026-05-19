@@ -5,7 +5,7 @@
 - All schema changes must go through Alembic.
 - Never use `Base.metadata.create_all()` for application schema management.
 - Migration files live in `alembic/versions/`.
-- Current head is `0004_add_client_records_active_created_index` (add client records active created index).
+- Current head is `0005_reorder_vat_turnover_lookup_index` (reorder vat turnover lookup index).
 - The migration history was reset on 2026-05-17; `0001_initial` is the fresh baseline and `0002` adds overview-query indexes on top of it.
 - Production startup must run migrations before the server command:
   `alembic upgrade head && ...`
@@ -40,6 +40,18 @@ postgresql+psycopg2://matanmalka@localhost:5432/binder_crm
 ```
 
 ## Current migration
+
+### 0005_reorder_vat_turnover_lookup_index — reorder vat turnover lookup index
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Replaces partial index `ix_vat_work_items_turnover_lookup` with column order
+  `vat_work_items (client_record_id, period, status)` for active rows only
+  (`deleted_at IS NULL`). This matches the advance-payment live turnover lookup:
+  client id set, period set, filed status, then grouped by client/period.
+- Notes:
+  `down_revision = "0004_add_client_records_active_created_index"`.
 
 ### 0004_add_client_records_active_created_index — add client records active created index
 

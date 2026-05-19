@@ -592,11 +592,11 @@ def test_summary_is_computed_before_pagination_and_respects_filters(test_db):
     )
 
     service = WorkQueueService(test_db)
-    summary = service.summary()
-    page = service.list_items(limit=1)
-    searched = service.summary(search="summary")
+    page_response = service.list_items_with_total(limit=1)
+    summary = page_response.summary
+    searched = service.list_items_with_total(search="summary").summary
 
-    assert len(page) == 1
+    assert len(page_response.items) == 1
     assert summary.total == 3
     assert summary.manual_tasks == 1
     assert summary.linked == 1
@@ -610,38 +610,13 @@ def test_summary_is_computed_before_pagination_and_respects_filters(test_db):
     assert manual.id is not None
 
 
-def test_summary_without_search_skips_client_display_loading(test_db, monkeypatch):
-    biz = create_business(test_db)
-    _add_overdue_charge(test_db, biz)
-
-    def fail_client_display_load(*args, **kwargs):
-        raise AssertionError("summary should not load client display without search")
-
-    monkeypatch.setattr(
-        "app.work_queue.services.common.load_client_profiles",
-        fail_client_display_load,
-    )
-
-    summary = WorkQueueService(test_db).summary(
-        exclude_source_types=[
-            WorkQueueSourceType.VAT_WORK_ITEM,
-            WorkQueueSourceType.ANNUAL_REPORT,
-            WorkQueueSourceType.ADVANCE_PAYMENT,
-            WorkQueueSourceType.BINDER,
-        ]
-    )
-
-    assert summary.total == 1
-    assert summary.by_source_type[WorkQueueSourceType.CHARGE] == 1
-
-
 def test_summary_respects_history_mode(test_db):
     _add_task_for_source(test_db, source_domain=None, source_id=None, status=TaskStatus.OPEN)
     _add_task_for_source(test_db, source_domain=None, source_id=None, status=TaskStatus.DONE)
     _add_task_for_source(test_db, source_domain=None, source_id=None, status=TaskStatus.CANCELED)
 
-    active = WorkQueueService(test_db).summary()
-    history = WorkQueueService(test_db).summary(include_task_history=True)
+    active = WorkQueueService(test_db).list_items_with_total().summary
+    history = WorkQueueService(test_db).list_items_with_total(include_task_history=True).summary
 
     assert active.total == 1
     assert active.by_task_status[TaskStatus.OPEN.value] == 1

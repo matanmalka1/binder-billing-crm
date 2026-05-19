@@ -10,7 +10,6 @@ from app.work_queue.schemas.work_queue import (
     WorkQueueListResponse,
     WorkQueueScope,
     WorkQueueSourceType,
-    WorkQueueSummary,
     WorkQueueUrgency,
 )
 from app.work_queue.services.work_queue_service import WorkQueueService
@@ -45,29 +44,6 @@ class WorkQueueFilterParams:
         self.task_status = task_status
         self.linked = linked
         self.scope = scope
-
-
-@router.get(
-    "/summary",
-    response_model=WorkQueueSummary,
-    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
-)
-def work_queue_summary(
-    db: DBSession,
-    filters: WorkQueueFilterParams = Depends(),
-):
-    return WorkQueueService(db).summary(
-        client_record_id=filters.client_record_id,
-        business_id=filters.business_id,
-        exclude_source_types=filters.exclude_source_types,
-        include_task_history=filters.include_task_history,
-        search=filters.search,
-        source_type=filters.source_type,
-        urgency=filters.urgency,
-        task_status=filters.task_status,
-        linked=filters.linked,
-        scope=filters.scope,
-    )
 
 
 @router.get(

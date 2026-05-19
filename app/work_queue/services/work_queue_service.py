@@ -246,37 +246,8 @@ class WorkQueueService:
         return WorkQueueListResponse(
             items=all_items[offset : offset + limit],
             total=len(all_items),
-        )
-
-    def summary(
-        self,
-        client_record_id: int | None = None,
-        business_id: int | None = None,
-        exclude_source_types: list[WorkQueueSourceType] | None = None,
-        include_task_history: bool = False,
-        search: str | None = None,
-        source_type: WorkQueueSourceType | None = None,
-        urgency: WorkQueueUrgency | None = None,
-        task_status: TaskStatus | None = None,
-        linked: WorkQueueLinkedFilter | None = None,
-        scope: WorkQueueScope | None = None,
-    ) -> WorkQueueSummary:
-        filters = WorkQueueFilters(
-            search=search,
-            source_type=source_type,
-            urgency=urgency,
-            task_status=task_status,
-            linked=linked,
-            scope=scope,
-        )
-        return build_work_queue_summary(
-            self._summary_items(
-                client_record_id=client_record_id,
-                business_id=business_id,
-                exclude_source_types=exclude_source_types,
-                include_task_history=include_task_history,
-                filters=filters,
-            )
+            # Summary intentionally reflects the full filtered set before pagination.
+            summary=build_work_queue_summary(all_items),
         )
 
     def _filtered_items(
@@ -289,26 +260,6 @@ class WorkQueueService:
         include_task_history: bool,
         filters: WorkQueueFilters,
     ) -> list[WorkQueueItem]:
-        items = self._build_items(
-            ctx,
-            client_record_id=client_record_id,
-            business_id=business_id,
-            exclude_source_types=exclude_source_types,
-            include_task_history=include_task_history,
-        )
-        items = self._apply_mode(items, include_task_history=include_task_history)
-        return apply_work_queue_filters(items, filters)
-
-    def _summary_items(
-        self,
-        *,
-        client_record_id: int | None,
-        business_id: int | None,
-        exclude_source_types: list[WorkQueueSourceType] | None,
-        include_task_history: bool,
-        filters: WorkQueueFilters,
-    ) -> list[WorkQueueItem]:
-        ctx = self._context(resolve_client_identity=bool(filters.search))
         items = self._build_items(
             ctx,
             client_record_id=client_record_id,

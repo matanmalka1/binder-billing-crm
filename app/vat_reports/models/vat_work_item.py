@@ -134,8 +134,8 @@ class VatWorkItem(Base):
         Index(
             "ix_vat_work_items_turnover_lookup",
             "client_record_id",
-            "status",
             "period",
+            "status",
             postgresql_where=text("deleted_at IS NULL"),
             sqlite_where=text("deleted_at IS NULL"),
         ),

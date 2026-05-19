@@ -88,3 +88,4 @@ class WorkQueueSummary(BaseModel):
 class WorkQueueListResponse(BaseModel):
     items: list[WorkQueueItem]
     total: int
+    summary: WorkQueueSummary
