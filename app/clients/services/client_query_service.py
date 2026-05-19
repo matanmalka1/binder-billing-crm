@@ -16,6 +16,8 @@ from app.clients.schemas.client_record_response import (
     ClientRecordListResponse,
     ClientRecordListStats,
     ClientRecordResponse,
+    ClientSidebarItemResponse,
+    ClientSidebarListResponse,
 )
 from app.clients.services.client_enrichment_service import ClientEnrichmentService
 from app.common.enums import EntityType
@@ -125,4 +127,27 @@ class ClientQueryService:
             page_size=page_size,
             total=total,
             stats=stats,
+        )
+
+    def list_sidebar_clients(
+        self,
+        search: str | None = None,
+        sort_by: str = "full_name",
+        sort_order: str = "asc",
+        page: int = 1,
+        page_size: int = 100,
+    ) -> ClientSidebarListResponse:
+        rows = self.record_repo.list_sidebar(
+            search=search,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            page=page,
+            page_size=page_size,
+        )
+        total = self.record_repo.count_sidebar(search=search)
+        return ClientSidebarListResponse(
+            items=[ClientSidebarItemResponse(**dict(row)) for row in rows],
+            page=page,
+            page_size=page_size,
+            total=total,
         )

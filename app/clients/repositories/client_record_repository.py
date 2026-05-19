@@ -7,6 +7,11 @@ from sqlalchemy.orm import Session
 from app.clients.enums import ClientStatus
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
+from app.clients.models.person import Person
+from app.clients.models.person_legal_entity_link import (
+    PersonLegalEntityLink,
+    PersonLegalEntityRole,
+)
 from app.common.enums import EntityType
 from app.core.exceptions import NotFoundError
 from app.utils.time_utils import utcnow
@@ -216,6 +221,50 @@ class ClientRecordRepository:
         offset = (page - 1) * page_size
         return list(self.db.scalars(stmt.offset(offset).limit(page_size)).all())
 
+    def list_sidebar(
+        self,
+        search: str | None = None,
+        sort_by: str = "full_name",
+        sort_order: str = "asc",
+        page: int = 1,
+        page_size: int = 100,
+    ):
+        full_name = func.coalesce(Person.full_name, LegalEntity.official_name).label("full_name")
+        stmt = (
+            select(
+                ClientRecord.id,
+                full_name,
+                ClientRecord.office_client_number,
+                Person.phone,
+                Person.email,
+                LegalEntity.entity_type,
+                LegalEntity.vat_reporting_frequency,
+            )
+            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .outerjoin(
+                PersonLegalEntityLink,
+                (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
+                & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
+            )
+            .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
+            .where(ClientRecord.deleted_at.is_(None))
+        )
+        if search:
+            term = f"%{search.strip()}%"
+            stmt = stmt.where(
+                full_name.ilike(term)
+                | LegalEntity.official_name.ilike(term)
+                | LegalEntity.id_number.ilike(term)
+            )
+        sort_col = (
+            ClientRecord.office_client_number
+            if sort_by == "office_client_number"
+            else full_name
+        )
+        stmt = stmt.order_by(desc(sort_col) if sort_order == "desc" else asc(sort_col))
+        offset = (page - 1) * page_size
+        return self.db.execute(stmt.offset(offset).limit(page_size)).mappings().all()
+
     def count(
         self,
         search: str | None = None,
@@ -233,6 +282,28 @@ class ClientRecordRepository:
             entity_type,
         )
         return self.db.scalar(count_stmt)
+
+    def count_sidebar(self, search: str | None = None) -> int:
+        full_name = func.coalesce(Person.full_name, LegalEntity.official_name)
+        stmt = (
+            select(func.count(ClientRecord.id))
+            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .outerjoin(
+                PersonLegalEntityLink,
+                (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
+                & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
+            )
+            .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
+            .where(ClientRecord.deleted_at.is_(None))
+        )
+        if search:
+            term = f"%{search.strip()}%"
+            stmt = stmt.where(
+                full_name.ilike(term)
+                | LegalEntity.official_name.ilike(term)
+                | LegalEntity.id_number.ilike(term)
+            )
+        return self.db.scalar(stmt)
 
     def search(
         self,

@@ -11,6 +11,7 @@ from app.clients.schemas.client import (
 from app.clients.schemas.client_record_response import (
     ClientRecordListResponse,
     ClientRecordResponse,
+    ClientSidebarListResponse,
     CreateClientRecordResponse,
 )
 from app.clients.schemas.impact import ClientCreationImpactResponse
@@ -120,6 +121,25 @@ def list_clients(
         page_size=page_size,
     )
     return result
+
+
+@router.get("/sidebar", response_model=ClientSidebarListResponse)
+def list_sidebar_clients(
+    db: DBSession,
+    search: str | None = Query(None),
+    sort_by: str = Query("full_name", pattern="^(full_name|office_client_number)$"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(100, ge=1, le=100),
+):
+    service = ClientQueryService(db)
+    return service.list_sidebar_clients(
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get("/{client_id}", response_model=ClientRecordResponse)

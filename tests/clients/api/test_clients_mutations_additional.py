@@ -344,3 +344,40 @@ def test_list_clients_respects_search_and_pagination(client, advisor_headers):
     assert data["total"] == 1
     assert len(data["items"]) == 1
     assert data["items"][0]["full_name"] == "Alpha Client"
+
+
+def test_list_sidebar_clients_returns_lightweight_payload(client, advisor_headers):
+    create_client_via_api(
+        client,
+        advisor_headers,
+        full_name="Sidebar Alpha",
+        id_number="700000086",
+        phone="0501111111",
+        email="sidebar@example.com",
+    )
+    create_client_via_api(client, advisor_headers, full_name="Sidebar Beta", id_number="700000094")
+
+    response = client.get(
+        "/api/v1/clients/sidebar?search=Alpha&page=1&page_size=10",
+        headers=advisor_headers,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    assert data["page"] == 1
+    assert data["page_size"] == 10
+    assert len(data["items"]) == 1
+    item = data["items"][0]
+    assert item == {
+        "id": item["id"],
+        "full_name": "Sidebar Alpha",
+        "office_client_number": item["office_client_number"],
+        "phone": "0501111111",
+        "email": "sidebar@example.com",
+        "entity_type": "company_ltd",
+        "vat_reporting_frequency": "monthly",
+    }
+    assert "annual_turnover" not in item
+    assert "active_binder_number" not in item
+    assert "stats" not in data

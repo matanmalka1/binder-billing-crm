@@ -68,6 +68,23 @@ class ClientRecordListResponse(BaseModel):
     stats: ClientRecordListStats
 
 
+class ClientSidebarItemResponse(BaseModel):
+    id: int
+    full_name: str
+    office_client_number: int | None = None
+    phone: str | None = None
+    email: str | None = None
+    entity_type: EntityType | None = None
+    vat_reporting_frequency: VatType | None = None
+
+
+class ClientSidebarListResponse(BaseModel):
+    items: list[ClientSidebarItemResponse]
+    page: int
+    page_size: int
+    total: int
+
+
 class CreateClientRecordResponse(BaseModel):
     client_record_id: int
     client: ClientRecordResponse
