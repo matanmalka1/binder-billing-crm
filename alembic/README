@@ -5,7 +5,7 @@
 - All schema changes must go through Alembic.
 - Never use `Base.metadata.create_all()` for application schema management.
 - Migration files live in `alembic/versions/`.
-- Current head is `8fa413605e29` (tighten financial models).
+- Current head is `9a111db38eba` (add idempotency_keys table).
 - The migration history was reset on 2026-05-17; `0001_initial` is the fresh baseline and `0002` adds overview-query indexes on top of it.
 - Production startup must run migrations before the server command:
   `alembic upgrade head && ...`
@@ -40,6 +40,29 @@ postgresql+psycopg2://matanmalka@localhost:5432/binder_crm
 ```
 
 ## Current migration
+
+### 9a111db38eba — add idempotency_keys table
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  Creates the `idempotency_keys` table for the shared `require_idempotency_key`
+  FastAPI dependency in `app/infrastructure/idempotency/`. Composite primary key
+  `(key, route, user_id)` scopes idempotency to a single user + endpoint.
+  Stores `request_hash`, `status` (`in_progress` | `completed`),
+  `response_status`, `response_body` (`sa.JSON` w/ `JSONB` variant on
+  PostgreSQL — portable to SQLite for tests). Reservation flow inserts an
+  `in_progress` row before running the handler so two concurrent requests
+  with the same key collide on the PK; the loser sees the existing row and
+  either replays a cached `completed` response, returns 409 on hash mismatch,
+  or returns 409 while the original request is still `in_progress`.
+- Wired into:
+  `POST /api/v1/clients/import` (Excel bulk import) and
+  `POST /api/v1/charges/bulk-action`.
+  `POST /api/v1/settings/tax-calendar/bootstrap` intentionally dropped the
+  header (single-row settings update — idempotency adds no value).
+- Notes:
+  `down_revision = "8fa413605e29"`.
 
 ### 8fa413605e29 — tighten financial models
 

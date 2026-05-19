@@ -1,7 +1,6 @@
 from fastapi import (
     APIRouter,
     Depends,
-    Header,
     HTTPException,
     Request,
     UploadFile,
@@ -17,6 +16,7 @@ from app.clients.services.client_excel_service import (
 )
 from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.create_client_service import CreateClientService
+from app.infrastructure.idempotency import IdempotencyGuard, require_idempotency_key
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 
@@ -77,7 +77,7 @@ async def import_clients_from_excel(
     request: Request,
     db: DBSession,
     user: CurrentUser,
-    _x_idempotency_key: str = Header(..., alias="X-Idempotency-Key"),
+    idem: IdempotencyGuard = Depends(require_idempotency_key),
 ):
     """Create clients in bulk from an Excel file (advisor-only)."""
     content_length = request.headers.get("Content-Length")
@@ -86,16 +86,19 @@ async def import_clients_from_excel(
     create_client_service = CreateClientService(db)
     excel_service = ClientExcelService(db)
 
-    try:
-        return excel_service.import_clients_from_upload(
-            contents,
-            create_client_service,
-            actor_id=user.id,
-            content_length=parsed_content_length,
-            max_upload_size=MAX_UPLOAD_SIZE,
-        )
-    except ClientExcelImportError as exc:
-        raise HTTPException(
-            status_code=exc.status_code,
-            detail=str(exc),
-        ) from exc
+    def _run():
+        try:
+            return excel_service.import_clients_from_upload(
+                contents,
+                create_client_service,
+                actor_id=user.id,
+                content_length=parsed_content_length,
+                max_upload_size=MAX_UPLOAD_SIZE,
+            )
+        except ClientExcelImportError as exc:
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail=str(exc),
+            ) from exc
+
+    return idem.execute(payload=contents, fn=_run)

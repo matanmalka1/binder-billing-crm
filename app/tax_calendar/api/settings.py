@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.tax_calendar.schemas.settings import (
     DeadlineRuleResponse,
@@ -67,7 +67,6 @@ def get_tax_calendar_summary(
 def bootstrap_tax_calendar_settings(
     request: TaxCalendarBootstrapRequest,
     db: DBSession,
-    _x_idempotency_key: str = Header(..., alias="X-Idempotency-Key"),
 ) -> TaxCalendarBootstrapResponse:
     _check_year_range(request.start_year, request.end_year)
     return settings_calendar_service.bootstrap_calendar(

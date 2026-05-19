@@ -1,8 +1,8 @@
 """Enrichment helpers for VAT work item query results."""
 
 
-from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.users.repositories.user_repository import UserRepository
 from app.vat_reports.repositories.vat_work_item_write_repository import (
     VatWorkItemWriteRepository as VatWorkItemRepository,
@@ -22,14 +22,10 @@ def _build_client_maps(db, client_record_ids: list[int]) -> dict[str, dict]:
         ClientRecordRepository(db).list_by_ids(client_record_ids) if client_record_ids else []
     )
     legal_entity_ids = list({record.legal_entity_id for record in client_records})
-    legal_entity_by_id = (
-        {
-            entity.id: entity
-            for entity in db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
-        }
-        if legal_entity_ids
-        else {}
-    )
+    legal_entity_by_id = {
+        entity.id: entity
+        for entity in LegalEntityRepository(db).list_by_ids(legal_entity_ids)
+    }
     return {
         "office_client_number_map": {
             record.id: record.office_client_number for record in client_records

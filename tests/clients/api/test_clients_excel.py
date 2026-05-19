@@ -232,4 +232,5 @@ def test_import_clients_excel_requires_idempotency_key(client, advisor_headers):
         },
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 400
+    assert response.json()["detail"] == "מפתח אידמפוטנטיות חובה"

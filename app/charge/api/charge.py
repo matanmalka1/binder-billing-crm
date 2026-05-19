@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Body, Depends, Header, Query, Response, status
+from fastapi import APIRouter, Body, Depends, Query, Response, status
 
 from app.charge.schemas.charge import (
     BulkChargeActionRequest,
@@ -14,6 +14,7 @@ from app.charge.services.billing_service import BillingService
 from app.charge.services.bulk_billing_service import BulkBillingService
 from app.charge.services.charge_query_service import ChargeQueryService
 from app.charge.services.charge_response_builder import ChargeResponseBuilder
+from app.infrastructure.idempotency import IdempotencyGuard, require_idempotency_key
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 
@@ -132,17 +133,21 @@ def bulk_charge_action(
     request: BulkChargeActionRequest,
     db: DBSession,
     user: CurrentUser,
-    _x_idempotency_key: str = Header(..., alias="X-Idempotency-Key"),
+    idem: IdempotencyGuard = Depends(require_idempotency_key),
 ):
     """Apply action to multiple charges in bulk (ADVISOR only)."""
     service = BulkBillingService(db)
-    succeeded, failed = service.bulk_action(
-        charge_ids=request.charge_ids,
-        action=request.action,
-        actor_id=user.id,
-        cancellation_reason=request.cancellation_reason,
-    )
-    return BulkChargeActionResponse(succeeded=succeeded, failed=failed)
+
+    def _run():
+        succeeded, failed = service.bulk_action(
+            charge_ids=request.charge_ids,
+            action=request.action,
+            actor_id=user.id,
+            cancellation_reason=request.cancellation_reason,
+        )
+        return BulkChargeActionResponse(succeeded=succeeded, failed=failed)
+
+    return idem.execute(payload=request.model_dump_json().encode(), fn=_run)
 
 
 @router.delete(
