@@ -14,6 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
+from app.common.soft_delete import SoftDeletableMixin
 from app.database import Base
 from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
@@ -25,7 +26,7 @@ class BusinessStatus(str, PyEnum):
     CLOSED = "closed"
 
 
-class Business(Base):
+class Business(SoftDeletableMixin, Base):
     """
     A specific business under a client.
 
@@ -70,12 +71,6 @@ class Business(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
-
-    # Soft delete
-    deleted_at = Column(DateTime, nullable=True)
-    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    restored_at = Column(DateTime, nullable=True)
-    restored_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # ── Computed properties ───────────────────────────────────────────────────
 

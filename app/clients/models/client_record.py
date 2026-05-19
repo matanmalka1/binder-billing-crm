@@ -1,12 +1,13 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Text, column
 
 from app.clients.enums import ClientStatus
+from app.common.soft_delete import SoftDeletableMixin
 from app.database import Base
 from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
 
-class ClientRecord(Base):
+class ClientRecord(SoftDeletableMixin, Base):
     """Office CRM record and workflow anchor — one active record per legal entity."""
 
     __tablename__ = "client_records"
@@ -23,11 +24,6 @@ class ClientRecord(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
-
-    deleted_at = Column(DateTime, nullable=True)
-    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    restored_at = Column(DateTime, nullable=True)
-    restored_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
         # One active ClientRecord per LegalEntity (soft-delete aware)

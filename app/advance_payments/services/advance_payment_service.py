@@ -77,20 +77,18 @@ class AdvancePaymentService:
         advance_rate,
         override_amount,
         fallback_expected=None,
-    ) -> tuple[Decimal | None, Decimal | None]:
+    ) -> tuple[Decimal, Decimal]:
+        calculated = Decimal("0.00")
         if turnover_amount is not None and advance_rate is not None:
             calculated = (
                 Decimal(str(turnover_amount)) * Decimal(str(advance_rate)) / 100
             ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if override_amount is not None:
+            expected = Decimal(str(override_amount))
+        elif fallback_expected is not None and calculated == 0:
+            expected = Decimal(str(fallback_expected))
         else:
-            calculated = None
-        expected = (
-            override_amount
-            if override_amount is not None
-            else calculated
-            if calculated is not None
-            else fallback_expected
-        )
+            expected = calculated
         return calculated, expected
 
     # ─── List ─────────────────────────────────────────────────────────────────
@@ -210,15 +208,11 @@ class AdvancePaymentService:
             )
             filtered["calculated_amount"] = calculated_amount
             filtered["expected_amount"] = new_expected
-            if (
-                "paid_amount" not in filtered
-                and "status" not in filtered
-                and payment.paid_amount is not None
-            ):
+            if "paid_amount" not in filtered and "status" not in filtered:
                 paid = payment.paid_amount
                 if paid == 0:
                     filtered["status"] = AdvancePaymentStatus.PENDING
-                elif new_expected is None or paid >= new_expected:
+                elif paid >= new_expected:
                     filtered["status"] = AdvancePaymentStatus.PAID
                 else:
                     filtered["status"] = AdvancePaymentStatus.PARTIAL
@@ -228,7 +222,7 @@ class AdvancePaymentService:
             expected = filtered.get("expected_amount", payment.expected_amount)
             if paid is None or paid == 0:
                 filtered["status"] = AdvancePaymentStatus.PENDING
-            elif expected is None or paid >= expected:
+            elif paid >= expected:
                 filtered["status"] = AdvancePaymentStatus.PAID
             else:
                 filtered["status"] = AdvancePaymentStatus.PARTIAL

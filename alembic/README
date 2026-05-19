@@ -5,7 +5,7 @@
 - All schema changes must go through Alembic.
 - Never use `Base.metadata.create_all()` for application schema management.
 - Migration files live in `alembic/versions/`.
-- Current head is `0002_add_overview_query_indexes`.
+- Current head is `8fa413605e29` (tighten financial models).
 - The migration history was reset on 2026-05-17; `0001_initial` is the fresh baseline and `0002` adds overview-query indexes on top of it.
 - Production startup must run migrations before the server command:
   `alembic upgrade head && ...`
@@ -40,6 +40,20 @@ postgresql+psycopg2://matanmalka@localhost:5432/binder_crm
 ```
 
 ## Current migration
+
+### 8fa413605e29 — tighten financial models
+
+- Command:
+  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+- What it does:
+  - Backfills `advance_payments.{expected_amount, calculated_amount}` NULL → 0,
+    then applies NOT NULL on those two derived display columns.
+  - Leaves `turnover_amount` and `advance_rate` nullable — they are source
+    snapshots where NULL means "missing/unknown".
+  - Adds `restored_at`, `restored_by` to `advance_payments` to match `SoftDeletableMixin`
+    (FK to `users.id`).
+- Notes:
+  `down_revision = "0002_add_overview_query_indexes"`.
 
 ### 0002_add_overview_query_indexes
 

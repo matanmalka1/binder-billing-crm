@@ -55,7 +55,11 @@ class VatClientSummaryRepository(BaseRepository[VatWorkItem]):
         )
 
         return self.db.execute(
-            select(VatWorkItem, net_sq.c.output_net, net_sq.c.input_net)
+            select(
+                VatWorkItem,
+                func.coalesce(net_sq.c.output_net, 0).label("output_net"),
+                func.coalesce(net_sq.c.input_net, 0).label("input_net"),
+            )
             .outerjoin(net_sq, VatWorkItem.id == net_sq.c.work_item_id)
             .where(
                 VatWorkItem.client_record_id == client_record_id,

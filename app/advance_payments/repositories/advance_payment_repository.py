@@ -39,7 +39,7 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
             period=period,
             period_months_count=period_months_count,
             due_date=due_date,
-            expected_amount=expected_amount,
+            expected_amount=expected_amount if expected_amount is not None else Decimal("0"),
             paid_amount=paid_amount if paid_amount is not None else Decimal("0"),
             payment_method=payment_method,
             annual_report_id=annual_report_id,
@@ -48,7 +48,7 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
             status=AdvancePaymentStatus.PENDING,
             advance_rate=advance_rate,
             turnover_amount=turnover_amount,
-            calculated_amount=calculated_amount,
+            calculated_amount=calculated_amount if calculated_amount is not None else Decimal("0"),
             override_amount=override_amount,
         )
         self.db.add(payment)

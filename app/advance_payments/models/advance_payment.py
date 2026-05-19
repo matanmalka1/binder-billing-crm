@@ -46,6 +46,7 @@ from sqlalchemy import (
     text,
 )
 
+from app.common.soft_delete import SoftDeletableMixin
 from app.database import Base
 from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
@@ -70,7 +71,7 @@ class PaymentMethod(str, PyEnum):
     OTHER = "other"
 
 
-class AdvancePayment(Base):
+class AdvancePayment(SoftDeletableMixin, Base):
     """SQLAlchemy model for a client's advance tax payment record."""
 
     __tablename__ = "advance_payments"
@@ -87,13 +88,15 @@ class AdvancePayment(Base):
     due_date_override_reason = Column(String(500), nullable=True)
 
     # ── Amounts ───────────────────────────────────────────────────────────────
-    expected_amount = Column(Numeric(10, 2), nullable=True)
+    expected_amount = Column(Numeric(10, 2), nullable=False, default=0)
     paid_amount = Column(Numeric(10, 2), nullable=False, default=0, server_default="0")
 
     # ── Calculation fields ────────────────────────────────────────────────────
+    # turnover_amount and advance_rate are source snapshots — NULL means "unknown",
+    # not zero. calculated_amount is a derived display value, NOT NULL.
     turnover_amount = Column(Numeric(14, 2), nullable=True)
     advance_rate = Column(Numeric(5, 2), nullable=True)
-    calculated_amount = Column(Numeric(12, 2), nullable=True)
+    calculated_amount = Column(Numeric(12, 2), nullable=False, default=0)
     override_amount = Column(Numeric(12, 2), nullable=True)
 
     # ── Status & payment ──────────────────────────────────────────────────────
@@ -120,10 +123,6 @@ class AdvancePayment(Base):
     # ── Metadata ──────────────────────────────────────────────────────────────
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
-
-    # ── Soft delete ───────────────────────────────────────────────────────────
-    deleted_at = Column(DateTime, nullable=True)
-    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (
         Index(

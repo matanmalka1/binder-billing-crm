@@ -23,8 +23,8 @@ class AdvancePaymentRow(BaseModel):
     period: str
     period_months_count: int
     due_date: date
-    expected_amount: ApiDecimal | None = None
-    paid_amount: ApiDecimal | None = None
+    expected_amount: ApiDecimal
+    paid_amount: ApiDecimal
     status: AdvancePaymentStatus
     paid_at: ApiDateTime | None = None
     payment_method: PaymentMethod | None = None
@@ -32,7 +32,7 @@ class AdvancePaymentRow(BaseModel):
     notes: str | None = None
     turnover_amount: ApiDecimal | None = None
     advance_rate: ApiDecimal | None = None
-    calculated_amount: ApiDecimal | None = None
+    calculated_amount: ApiDecimal
     override_amount: ApiDecimal | None = None
     live_turnover: ApiDecimal | None = None  # populated by router, not ORM
     missing_turnover: bool = False
@@ -41,9 +41,7 @@ class AdvancePaymentRow(BaseModel):
 
     @computed_field
     @property
-    def delta(self) -> Decimal | None:
-        if self.expected_amount is None or self.paid_amount is None:
-            return None
+    def delta(self) -> Decimal:
         return self.expected_amount - self.paid_amount
 
     @computed_field
@@ -130,12 +128,12 @@ class AdvancePaymentOverviewRow(BaseModel):
     period: str
     period_months_count: int
     due_date: date
-    expected_amount: ApiDecimal | None = None
-    paid_amount: ApiDecimal | None = None
+    expected_amount: ApiDecimal
+    paid_amount: ApiDecimal
     status: AdvancePaymentStatus
     payment_method: PaymentMethod | None = None
     turnover_amount: ApiDecimal | None = None
-    calculated_amount: ApiDecimal | None = None
+    calculated_amount: ApiDecimal
     override_amount: ApiDecimal | None = None
     live_turnover: ApiDecimal | None = None  # populated by service, not ORM
     missing_turnover: bool = False
@@ -143,9 +141,7 @@ class AdvancePaymentOverviewRow(BaseModel):
 
     @computed_field
     @property
-    def delta(self) -> Decimal | None:
-        if self.expected_amount is None or self.paid_amount is None:
-            return None
+    def delta(self) -> Decimal:
         return self.expected_amount - self.paid_amount
 
     @computed_field

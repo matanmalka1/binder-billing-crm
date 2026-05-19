@@ -93,7 +93,7 @@ class TestComputeAmounts:
             override_amount=None,
             fallback_expected=Decimal("500"),
         )
-        assert calc is None
+        assert calc == Decimal("0.00")
         assert expected == Decimal("500")
 
     def test_rounding_half_up(self, test_db):
@@ -112,8 +112,8 @@ class TestComputeAmounts:
             advance_rate=None,
             override_amount=None,
         )
-        assert calc is None
-        assert expected is None
+        assert calc == Decimal("0.00")
+        assert expected == Decimal("0.00")
 
 
 class TestCreateSnapshots:
