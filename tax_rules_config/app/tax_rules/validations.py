@@ -13,8 +13,7 @@ def validate_osek_patur_no_periodic_vat(profile: ClientTaxProfile) -> str | None
         freq = profile.get("vat_reporting_frequency")
         if freq in (ReportingFrequency.MONTHLY, ReportingFrequency.BIMONTHLY):
             return (
-                "עוסק פטור אינו מגיש דוחות מע״מ תקופתיים. "
-                "תדירות מע״מ חייבת להיות 'exempt' או ריקה."
+                "עוסק פטור אינו מגיש דוחות מע״מ תקופתיים. תדירות מע״מ חייבת להיות 'exempt' או ריקה."
             )
     return None
 
@@ -23,10 +22,7 @@ def validate_company_no_self_employed_ni(profile: ClientTaxProfile) -> str | Non
     """חברה בע"מ לא משלמת ביטוח לאומי כעצמאי."""
     if profile.get("entity_type") == EntityType.COMPANY_LTD:
         if profile.get("btl_status") == "self_employed":
-            return (
-                "חברה בע״מ אינה מסווגת כעצמאי בביטוח לאומי. "
-                "בדוק חובת מעסיק (טופס 102) בנפרד."
-            )
+            return "חברה בע״מ אינה מסווגת כעצמאי בביטוח לאומי. בדוק חובת מעסיק (טופס 102) בנפרד."
     return None
 
 
@@ -82,8 +78,7 @@ def validate_btl_self_employed_requires_advance_amount(
     if profile.get("btl_status") == "self_employed":
         if profile.get("btl_advance_amount") is None:
             return (
-                "עצמאי בביטוח לאומי חייב שדה btl_advance_amount מוגדר "
-                "לצורך חישוב המקדמה החודשית."
+                "עצמאי בביטוח לאומי חייב שדה btl_advance_amount מוגדר לצורך חישוב המקדמה החודשית."
             )
     return None
 
@@ -94,10 +89,7 @@ def validate_company_vat_has_frequency(profile: ClientTaxProfile) -> str | None:
     if entity in (EntityType.COMPANY_LTD, EntityType.OSEK_MURSHE):
         freq = profile.get("vat_reporting_frequency")
         if not freq or freq == ReportingFrequency.NONE:
-            return (
-                f"{entity} חייב שדה vat_reporting_frequency מוגדר "
-                f"(monthly / bimonthly)."
-            )
+            return f"{entity} חייב שדה vat_reporting_frequency מוגדר (monthly / bimonthly)."
     return None
 
 

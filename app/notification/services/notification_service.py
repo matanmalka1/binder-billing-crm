@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import config
-from app.core.exceptions import AppError, NotFoundError
-from app.core.logging_config import get_logger
-from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.person import Person
@@ -16,7 +13,10 @@ from app.clients.models.person_legal_entity_link import (
     PersonLegalEntityLink,
     PersonLegalEntityRole,
 )
-from app.businesses.repositories.business_repository import BusinessRepository
+from app.config import config
+from app.core.exceptions import AppError, NotFoundError
+from app.core.logging_config import get_logger
+from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
 from app.notification.models.notification import (
     NotificationChannel,
     NotificationSeverity,
@@ -84,10 +84,10 @@ class NotificationService:
         client_record_id: int,
         trigger: NotificationTrigger,
         template_data: dict[str, Any] | None = None,
-        business_id: Optional[int] = None,
-        binder_id: Optional[int] = None,
-        annual_report_id: Optional[int] = None,
-        triggered_by: Optional[int] = None,
+        business_id: int | None = None,
+        binder_id: int | None = None,
+        annual_report_id: int | None = None,
+        triggered_by: int | None = None,
         preferred_channel: NotificationChannel = NotificationChannel.EMAIL,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> bool:
@@ -100,9 +100,7 @@ class NotificationService:
             if business is None:
                 raise AppError("העסק לא נמצא", "NOTIFICATION.BUSINESS_NOT_FOUND")
             if business.legal_entity_id != client_record.legal_entity_id:
-                raise AppError(
-                    "העסק אינו שייך ללקוח שצוין", "NOTIFICATION.BUSINESS_MISMATCH"
-                )
+                raise AppError("העסק אינו שייך ללקוח שצוין", "NOTIFICATION.BUSINESS_MISMATCH")
 
         person = self._resolve_client_contact(client_record_id)
         person_name = person.full_name if person else FALLBACK_CLIENT_NAME
@@ -114,9 +112,7 @@ class NotificationService:
         )
 
         if not person:
-            logger.warning(
-                "notify_client: client %s has no linked person", client_record_id
-            )
+            logger.warning("notify_client: client %s has no linked person", client_record_id)
             return False
 
         log_ctx = f"client={client_record_id} trigger={trigger.value}"
@@ -153,11 +149,11 @@ class NotificationService:
         self,
         page: int = 1,
         page_size: int = 20,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-        status: Optional[NotificationStatus] = None,
-        trigger: Optional[NotificationTrigger] = None,
-        channel: Optional[NotificationChannel] = None,
+        client_record_id: int | None = None,
+        business_id: int | None = None,
+        status: NotificationStatus | None = None,
+        trigger: NotificationTrigger | None = None,
+        channel: NotificationChannel | None = None,
     ) -> tuple:
         items, total = self.notification_repo.list_paginated(
             page=page,
@@ -174,8 +170,8 @@ class NotificationService:
 
     def get_summary(
         self,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
+        client_record_id: int | None = None,
+        business_id: int | None = None,
     ) -> NotificationSummaryResponse:
         counts = self.notification_repo.count_by_status(
             client_record_id=client_record_id,

@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -19,7 +18,7 @@ class AgingReportService:
 
     def generate_aging_report(
         self,
-        as_of_date: Optional[date] = None,
+        as_of_date: date | None = None,
     ) -> dict:
         """
         Generate aging report for all clients.
@@ -39,8 +38,7 @@ class AgingReportService:
 
         client_record_ids = [row.client_record_id for row in rows]
         record_map = {
-            record.id: record
-            for record in self.client_record_repo.list_by_ids(client_record_ids)
+            record.id: record for record in self.client_record_repo.list_by_ids(client_record_ids)
         }
         legal_map = {
             legal_id: self.legal_entity_repo.get_by_id(legal_id)

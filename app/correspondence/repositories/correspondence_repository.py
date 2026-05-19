@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -20,9 +20,9 @@ class CorrespondenceRepository(BaseRepository[Correspondence]):
         subject: str,
         occurred_at: datetime,
         created_by: int,
-        business_id: Optional[int] = None,  # OPTIONAL — UI grouping only
-        contact_id: Optional[int] = None,
-        notes: Optional[str] = None,
+        business_id: int | None = None,  # OPTIONAL — UI grouping only
+        contact_id: int | None = None,
+        notes: str | None = None,
     ) -> Correspondence:
         entry = Correspondence(
             client_record_id=client_record_id,
@@ -43,12 +43,12 @@ class CorrespondenceRepository(BaseRepository[Correspondence]):
         *,
         page: int,
         page_size: int,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-        correspondence_type: Optional[CorrespondenceType] = None,
-        contact_id: Optional[int] = None,
-        from_date: Optional[datetime] = None,
-        to_date: Optional[datetime] = None,
+        client_record_id: int | None = None,
+        business_id: int | None = None,
+        correspondence_type: CorrespondenceType | None = None,
+        contact_id: int | None = None,
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
         sort_dir: Literal["asc", "desc"] = "desc",
     ) -> tuple[list[Correspondence], int]:
         filters = [Correspondence.deleted_at.is_(None)]
@@ -65,9 +65,7 @@ class CorrespondenceRepository(BaseRepository[Correspondence]):
         if to_date is not None:
             filters.append(Correspondence.occurred_at <= to_date)
 
-        total = (
-            self.db.scalar(select(func.count(Correspondence.id)).where(*filters)) or 0
-        )
+        total = self.db.scalar(select(func.count(Correspondence.id)).where(*filters)) or 0
         order = (
             Correspondence.occurred_at.desc()
             if sort_dir == "desc"
@@ -75,11 +73,7 @@ class CorrespondenceRepository(BaseRepository[Correspondence]):
         )
         offset = (page - 1) * page_size
         items = self.db.scalars(
-            select(Correspondence)
-            .where(*filters)
-            .order_by(order)
-            .offset(offset)
-            .limit(page_size)
+            select(Correspondence).where(*filters).order_by(order).offset(offset).limit(page_size)
         ).all()
         return items, total
 
@@ -89,11 +83,11 @@ class CorrespondenceRepository(BaseRepository[Correspondence]):
         *,
         page: int,
         page_size: int,
-        business_id: Optional[int] = None,
-        correspondence_type: Optional[CorrespondenceType] = None,
-        contact_id: Optional[int] = None,
-        from_date: Optional[datetime] = None,
-        to_date: Optional[datetime] = None,
+        business_id: int | None = None,
+        correspondence_type: CorrespondenceType | None = None,
+        contact_id: int | None = None,
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
         sort_dir: Literal["asc", "desc"] = "desc",
     ) -> tuple[list[Correspondence], int]:
         return self.list_paginated(
@@ -114,11 +108,11 @@ class CorrespondenceRepository(BaseRepository[Correspondence]):
         *,
         page: int,
         page_size: int,
-        business_id: Optional[int] = None,
-        correspondence_type: Optional[CorrespondenceType] = None,
-        contact_id: Optional[int] = None,
-        from_date: Optional[datetime] = None,
-        to_date: Optional[datetime] = None,
+        business_id: int | None = None,
+        correspondence_type: CorrespondenceType | None = None,
+        contact_id: int | None = None,
+        from_date: datetime | None = None,
+        to_date: datetime | None = None,
         sort_dir: Literal["asc", "desc"] = "desc",
     ) -> tuple[list[Correspondence], int]:
         filters = [
@@ -135,9 +129,7 @@ class CorrespondenceRepository(BaseRepository[Correspondence]):
             filters.append(Correspondence.occurred_at >= from_date)
         if to_date is not None:
             filters.append(Correspondence.occurred_at <= to_date)
-        total = (
-            self.db.scalar(select(func.count(Correspondence.id)).where(*filters)) or 0
-        )
+        total = self.db.scalar(select(func.count(Correspondence.id)).where(*filters)) or 0
         order = (
             Correspondence.occurred_at.desc()
             if sort_dir == "desc"
@@ -145,22 +137,18 @@ class CorrespondenceRepository(BaseRepository[Correspondence]):
         )
         offset = (page - 1) * page_size
         items = self.db.scalars(
-            select(Correspondence)
-            .where(*filters)
-            .order_by(order)
-            .offset(offset)
-            .limit(page_size)
+            select(Correspondence).where(*filters).order_by(order).offset(offset).limit(page_size)
         ).all()
         return items, total
 
-    def get_by_id(self, entry_id: int) -> Optional[Correspondence]:
+    def get_by_id(self, entry_id: int) -> Correspondence | None:
         return self.db.scalars(
             select(Correspondence).where(
                 Correspondence.id == entry_id, Correspondence.deleted_at.is_(None)
             )
         ).first()
 
-    def update(self, entry_id: int, **fields) -> Optional[Correspondence]:
+    def update(self, entry_id: int, **fields) -> Correspondence | None:
         entry = self.get_by_id(entry_id)
         if not entry:
             return None

@@ -1,24 +1,23 @@
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
 from app.binders.models.binder_status_log import BinderStatusLog
+from app.binders.repositories.binder_intake_material_repository import (
+    BinderIntakeMaterialRepository,
+)
+from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import (
     BinderStatusLogRepository,
-)
-from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
-from app.binders.repositories.binder_intake_material_repository import (
-    BinderIntakeMaterialRepository,
 )
 from app.binders.schemas.binder import (
     BinderHistoryEntry,
     BinderIntakeMaterialResponse,
     BinderIntakeResponse,
 )
-from app.core.exceptions import NotFoundError
 from app.binders.services.messages import BINDER_NOT_FOUND
+from app.core.exceptions import NotFoundError
 from app.users.repositories.user_repository import UserRepository
 
 
@@ -33,9 +32,7 @@ class BinderHistoryService:
         self.material_repo = BinderIntakeMaterialRepository(db)
         self.user_repo = UserRepository(db)
 
-    def build_history_entries(
-        self, logs: list[BinderStatusLog]
-    ) -> list[BinderHistoryEntry]:
+    def build_history_entries(self, logs: list[BinderStatusLog]) -> list[BinderHistoryEntry]:
         """Enrich status log records with changed_by user names."""
         user_ids = {log.changed_by for log in logs}
         users = [self.user_repo.get_by_id(uid) for uid in user_ids]
@@ -52,9 +49,7 @@ class BinderHistoryService:
             for log in logs
         ]
 
-    def get_binder_history(
-        self, binder_id: int
-    ) -> Optional[tuple[Binder, list[BinderStatusLog]]]:
+    def get_binder_history(self, binder_id: int) -> tuple[Binder, list[BinderStatusLog]] | None:
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
             return None

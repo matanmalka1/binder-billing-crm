@@ -97,4 +97,3 @@ def test_create_payment_directly_uses_entry_due_date(test_db):
     assert payment.due_date == date(2026, 4, 16)
     assert payment.due_date_original == date(2026, 4, 16)
     assert payment.due_date_effective == date(2026, 4, 16)
-

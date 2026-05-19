@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -41,9 +40,9 @@ class BillingService:
     def _validate_charge_scope(
         self,
         client_record_id: int,
-        business_id: Optional[int],
-        legal_entity_id: Optional[int] = None,
-    ) -> Optional[int]:
+        business_id: int | None,
+        legal_entity_id: int | None = None,
+    ) -> int | None:
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if not client_record:
             raise NotFoundError(
@@ -61,9 +60,9 @@ class BillingService:
         client_record_id: int,
         amount: float,
         charge_type: str,
-        business_id: Optional[int] = None,
-        actor_id: Optional[int] = None,
-        period: Optional[str] = None,
+        business_id: int | None = None,
+        actor_id: int | None = None,
+        period: str | None = None,
         months_covered: int = 1,
     ) -> Charge:
         if amount <= 0:
@@ -98,12 +97,10 @@ class BillingService:
         )
         return charge
 
-    def issue_charge(self, charge_id: int, actor_id: Optional[int] = None) -> Charge:
+    def issue_charge(self, charge_id: int, actor_id: int | None = None) -> Charge:
         charge = self.charge_repo.get_by_id_for_update(charge_id)
         if not charge:
-            raise NotFoundError(
-                CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND"
-            )
+            raise NotFoundError(CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND")
         if charge.status != ChargeStatus.DRAFT:
             raise AppError(
                 CHARGE_INVALID_STATUS_ISSUE.format(status=charge.status.value),
@@ -126,14 +123,10 @@ class BillingService:
         )
         return issued
 
-    def mark_charge_paid(
-        self, charge_id: int, actor_id: Optional[int] = None
-    ) -> Charge:
+    def mark_charge_paid(self, charge_id: int, actor_id: int | None = None) -> Charge:
         charge = self.charge_repo.get_by_id_for_update(charge_id)
         if not charge:
-            raise NotFoundError(
-                CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND"
-            )
+            raise NotFoundError(CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND")
         if charge.status != ChargeStatus.ISSUED:
             raise AppError(
                 CHARGE_INVALID_STATUS_PAY.format(status=charge.status.value),
@@ -159,14 +152,12 @@ class BillingService:
     def cancel_charge(
         self,
         charge_id: int,
-        actor_id: Optional[int] = None,
-        reason: Optional[str] = None,
+        actor_id: int | None = None,
+        reason: str | None = None,
     ) -> Charge:
         charge = self.charge_repo.get_by_id_for_update(charge_id)
         if not charge:
-            raise NotFoundError(
-                CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND"
-            )
+            raise NotFoundError(CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND")
         if charge.status == ChargeStatus.PAID:
             raise AppError(CHARGE_CANNOT_CANCEL_PAID, "CHARGE.INVALID_STATUS")
         if charge.status == ChargeStatus.CANCELED:
@@ -191,12 +182,10 @@ class BillingService:
         )
         return canceled
 
-    def delete_charge(self, charge_id: int, actor_id: Optional[int] = None) -> bool:
+    def delete_charge(self, charge_id: int, actor_id: int | None = None) -> bool:
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise NotFoundError(
-                CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND"
-            )
+            raise NotFoundError(CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND")
         if charge.status not in (ChargeStatus.DRAFT, ChargeStatus.CANCELED):
             raise AppError(
                 CHARGE_DELETE_INVALID_STATUS.format(status=charge.status.value),
@@ -210,7 +199,5 @@ class BillingService:
     def get_charge(self, charge_id: int) -> Charge:
         charge = self.charge_repo.get_by_id(charge_id)
         if not charge:
-            raise NotFoundError(
-                CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND"
-            )
+            raise NotFoundError(CHARGE_NOT_FOUND.format(charge_id=charge_id), "CHARGE.NOT_FOUND")
         return charge

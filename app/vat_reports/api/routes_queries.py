@@ -4,9 +4,9 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
+from app.common.enums import VatType
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.common.enums import VatType
 from app.vat_reports.api.serializers import serialize_enriched_work_item
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.schemas.vat_audit import VatAuditLogResponse, VatAuditTrailResponse
@@ -50,7 +50,7 @@ def get_period_options(
     client_record_id: int,
     db: DBSession,
     current_user: CurrentUser,
-    year: Optional[int] = Query(default=None, ge=2000, le=2100),
+    year: int | None = Query(default=None, ge=2000, le=2100),
 ):
     service = VatReportService(db)
     return service.get_period_options(client_record_id=client_record_id, year=year)
@@ -80,9 +80,7 @@ def get_work_item(item_id: int, db: DBSession, current_user: CurrentUser):
     response_model=VatWorkItemListResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-def list_client_work_items(
-    client_record_id: int, db: DBSession, current_user: CurrentUser
-):
+def list_client_work_items(client_record_id: int, db: DBSession, current_user: CurrentUser):
     service = VatReportService(db)
     enriched = service.get_client_items_enriched(client_record_id)
     items = [
@@ -108,12 +106,12 @@ def list_client_work_items(
 def list_work_items(
     db: DBSession,
     current_user: CurrentUser,
-    status_filter: Optional[VatWorkItemStatus] = Query(default=None, alias="status"),
+    status_filter: VatWorkItemStatus | None = Query(default=None, alias="status"),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=200),
-    period: Optional[str] = Query(None),
-    period_type: Optional[VatType] = Query(None),
-    client_name: Optional[str] = Query(None),
+    period: str | None = Query(None),
+    period_type: VatType | None = Query(None),
+    client_name: str | None = Query(None),
 ):
     service = VatReportService(db)
     enriched = service.get_list_enriched(

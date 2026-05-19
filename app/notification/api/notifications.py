@@ -1,24 +1,22 @@
 """Notification center HTTP endpoints."""
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.notification.models.notification import (
     NotificationChannel,
     NotificationStatus,
     NotificationTrigger,
 )
-from app.notification.services.notification_service import NotificationService
 from app.notification.schemas.notification_schemas import (
     ManualSendRequest,
     ManualSendResponse,
     NotificationListResponse,
     NotificationSummaryResponse,
 )
-
+from app.notification.services.notification_service import NotificationService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/notifications",
@@ -37,11 +35,11 @@ advisor_router = APIRouter(
 def list_notifications(
     db: DBSession,
     user: CurrentUser,
-    client_record_id: Optional[int] = None,
-    business_id: Optional[int] = None,
-    status: Optional[NotificationStatus] = None,
-    trigger: Optional[NotificationTrigger] = None,
-    channel: Optional[NotificationChannel] = None,
+    client_record_id: int | None = None,
+    business_id: int | None = None,
+    status: NotificationStatus | None = None,
+    trigger: NotificationTrigger | None = None,
+    channel: NotificationChannel | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -67,8 +65,8 @@ def list_notifications(
 def get_notification_summary(
     db: DBSession,
     user: CurrentUser,
-    client_record_id: Optional[int] = None,
-    business_id: Optional[int] = None,
+    client_record_id: int | None = None,
+    business_id: int | None = None,
 ):
     svc = NotificationService(db)
     return svc.get_summary(client_record_id=client_record_id, business_id=business_id)

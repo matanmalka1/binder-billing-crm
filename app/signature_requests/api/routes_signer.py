@@ -52,9 +52,7 @@ def signer_approve(token: str, raw_request: Request, db: DBSession):
 
 
 @signer_router.post("/{token}/decline", response_model=SignerViewResponse)
-def signer_decline(
-    token: str, body: SignerDeclineRequest, raw_request: Request, db: DBSession
-):
+def signer_decline(token: str, body: SignerDeclineRequest, raw_request: Request, db: DBSession):
     service = SignatureRequestService(db)
     req = service.decline_request(
         token=token,

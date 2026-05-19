@@ -1,9 +1,9 @@
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, ForeignKey, Integer, Numeric, String, UniqueConstraint
-from app.utils.enum_utils import pg_enum
 
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 
 
 class CreditPointReason(str, PyEnum):

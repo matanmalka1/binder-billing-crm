@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, computed_field, model_validator
 
@@ -19,29 +19,29 @@ from app.core.api_types import ApiDateTime, ApiDecimal, PaginatedResponse
 class AdvancePaymentRow(BaseModel):
     id: int
     client_record_id: int
-    business_name: Optional[str] = None
+    business_name: str | None = None
     period: str
     period_months_count: int
     due_date: date
-    expected_amount: Optional[ApiDecimal] = None
-    paid_amount: Optional[ApiDecimal] = None
+    expected_amount: ApiDecimal | None = None
+    paid_amount: ApiDecimal | None = None
     status: AdvancePaymentStatus
-    paid_at: Optional[ApiDateTime] = None
-    payment_method: Optional[PaymentMethod] = None
-    annual_report_id: Optional[int] = None
-    notes: Optional[str] = None
-    turnover_amount: Optional[ApiDecimal] = None
-    advance_rate: Optional[ApiDecimal] = None
-    calculated_amount: Optional[ApiDecimal] = None
-    override_amount: Optional[ApiDecimal] = None
-    live_turnover: Optional[ApiDecimal] = None  # populated by router, not ORM
+    paid_at: ApiDateTime | None = None
+    payment_method: PaymentMethod | None = None
+    annual_report_id: int | None = None
+    notes: str | None = None
+    turnover_amount: ApiDecimal | None = None
+    advance_rate: ApiDecimal | None = None
+    calculated_amount: ApiDecimal | None = None
+    override_amount: ApiDecimal | None = None
+    live_turnover: ApiDecimal | None = None  # populated by router, not ORM
     missing_turnover: bool = False
     created_at: ApiDateTime
-    updated_at: Optional[ApiDateTime] = None
+    updated_at: ApiDateTime | None = None
 
     @computed_field
     @property
-    def delta(self) -> Optional[Decimal]:
+    def delta(self) -> Decimal | None:
         if self.expected_amount is None or self.paid_amount is None:
             return None
         return self.expected_amount - self.paid_amount
@@ -58,9 +58,7 @@ class AdvancePaymentRow(BaseModel):
     def paid_late(self) -> bool:
         if self.paid_at is None or self.status != AdvancePaymentStatus.PAID:
             return False
-        paid_date = (
-            self.paid_at.date() if isinstance(self.paid_at, datetime) else self.paid_at
-        )
+        paid_date = self.paid_at.date() if isinstance(self.paid_at, datetime) else self.paid_at
         return paid_date > self.due_date
 
     model_config = {"from_attributes": True, "use_enum_values": True}
@@ -71,14 +69,14 @@ AdvancePaymentListResponse = PaginatedResponse[AdvancePaymentRow]
 
 class AdvancePaymentCreateRequest(BaseModel):
     period: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
-    period_months_count: Optional[int] = Field(None, ge=1, le=2)
-    turnover_amount: Optional[ApiDecimal] = Field(None, ge=0)
-    advance_rate: Optional[ApiDecimal] = Field(None, ge=0)
-    override_amount: Optional[ApiDecimal] = Field(None, ge=0)
-    paid_amount: Optional[ApiDecimal] = Field(None, ge=0)
-    payment_method: Optional[PaymentMethod] = None
-    annual_report_id: Optional[int] = None
-    notes: Optional[str] = Field(None, max_length=500)
+    period_months_count: int | None = Field(None, ge=1, le=2)
+    turnover_amount: ApiDecimal | None = Field(None, ge=0)
+    advance_rate: ApiDecimal | None = Field(None, ge=0)
+    override_amount: ApiDecimal | None = Field(None, ge=0)
+    paid_amount: ApiDecimal | None = Field(None, ge=0)
+    payment_method: PaymentMethod | None = None
+    annual_report_id: int | None = None
+    notes: str | None = Field(None, max_length=500)
 
     @model_validator(mode="after")
     def validate_period_for_frequency(self) -> "AdvancePaymentCreateRequest":
@@ -107,14 +105,14 @@ class AdvancePaymentCreateRequest(BaseModel):
 
 
 class AdvancePaymentUpdateRequest(BaseModel):
-    paid_amount: Optional[ApiDecimal] = Field(None, ge=0)
-    expected_amount: Optional[ApiDecimal] = Field(None, ge=0)
-    status: Optional[AdvancePaymentStatus] = None
-    paid_at: Optional[ApiDateTime] = None
-    payment_method: Optional[PaymentMethod] = None
-    notes: Optional[str] = Field(None, max_length=500)
-    turnover_amount: Optional[ApiDecimal] = Field(None, ge=0)
-    override_amount: Optional[ApiDecimal] = Field(None, ge=0)
+    paid_amount: ApiDecimal | None = Field(None, ge=0)
+    expected_amount: ApiDecimal | None = Field(None, ge=0)
+    status: AdvancePaymentStatus | None = None
+    paid_at: ApiDateTime | None = None
+    payment_method: PaymentMethod | None = None
+    notes: str | None = Field(None, max_length=500)
+    turnover_amount: ApiDecimal | None = Field(None, ge=0)
+    override_amount: ApiDecimal | None = Field(None, ge=0)
 
     @model_validator(mode="after")
     def require_at_least_one_field(self) -> "AdvancePaymentUpdateRequest":
@@ -126,26 +124,26 @@ class AdvancePaymentUpdateRequest(BaseModel):
 class AdvancePaymentOverviewRow(BaseModel):
     id: int
     client_record_id: int
-    office_client_number: Optional[int] = None
+    office_client_number: int | None = None
     business_name: str
-    id_number: Optional[str] = None
+    id_number: str | None = None
     period: str
     period_months_count: int
     due_date: date
-    expected_amount: Optional[ApiDecimal] = None
-    paid_amount: Optional[ApiDecimal] = None
+    expected_amount: ApiDecimal | None = None
+    paid_amount: ApiDecimal | None = None
     status: AdvancePaymentStatus
-    payment_method: Optional[PaymentMethod] = None
-    turnover_amount: Optional[ApiDecimal] = None
-    calculated_amount: Optional[ApiDecimal] = None
-    override_amount: Optional[ApiDecimal] = None
-    live_turnover: Optional[ApiDecimal] = None  # populated by service, not ORM
+    payment_method: PaymentMethod | None = None
+    turnover_amount: ApiDecimal | None = None
+    calculated_amount: ApiDecimal | None = None
+    override_amount: ApiDecimal | None = None
+    live_turnover: ApiDecimal | None = None  # populated by service, not ORM
     missing_turnover: bool = False
-    advance_rate: Optional[ApiDecimal] = None  # snapshot from payment
+    advance_rate: ApiDecimal | None = None  # snapshot from payment
 
     @computed_field
     @property
-    def delta(self) -> Optional[Decimal]:
+    def delta(self) -> Decimal | None:
         if self.expected_amount is None or self.paid_amount is None:
             return None
         return self.expected_amount - self.paid_amount
@@ -165,9 +163,9 @@ class AdvancePaymentOverviewResponse(BaseModel):
     page: int
     page_size: int
     total: int
-    total_expected: Optional[ApiDecimal] = None
-    total_paid: Optional[ApiDecimal] = None
-    collection_rate: Optional[float] = None  # 0.0–100.0
+    total_expected: ApiDecimal | None = None
+    total_paid: ApiDecimal | None = None
+    collection_rate: float | None = None  # 0.0–100.0
 
 
 class AnnualKPIResponse(BaseModel):
@@ -183,7 +181,7 @@ class AnnualKPIResponse(BaseModel):
 class MonthBatchSummary(BaseModel):
     year: int
     month: int
-    due_date: Optional[date] = None
+    due_date: date | None = None
     period_months_count: int = 1
     client_count: int
     missing_turnover_count: int
@@ -191,20 +189,17 @@ class MonthBatchSummary(BaseModel):
     pending_count: int = 0
     paid_count: int = 0
     not_paid_count: int = 0
-    total_expected: Optional[ApiDecimal] = None
-    total_paid: Optional[ApiDecimal] = None
+    total_expected: ApiDecimal | None = None
+    total_paid: ApiDecimal | None = None
     collection_rate: float = 0.0
 
 
 class GenerateScheduleRequest(BaseModel):
     year: int
-    period_months_count: Optional[int] = Field(None, ge=1, le=2)
-    reference_date: Optional[date] = Field(
+    period_months_count: int | None = Field(None, ge=1, le=2)
+    reference_date: date | None = Field(
         None,
-        description=(
-            "אם מסופק, ידלג על תקופות שתאריך היעד שלהן קודם לתאריך זה. "
-            "ברירת מחדל: היום."
-        ),
+        description=("אם מסופק, ידלג על תקופות שתאריך היעד שלהן קודם לתאריך זה. ברירת מחדל: היום."),
     )
 
 
@@ -216,6 +211,6 @@ class GenerateScheduleResponse(BaseModel):
 class PrefillTurnoverResponse(BaseModel):
     period: str
     period_months_count: int
-    turnover_amount: Optional[ApiDecimal] = None
-    vat_work_item_id: Optional[int] = None
+    turnover_amount: ApiDecimal | None = None
+    vat_work_item_id: int | None = None
     source: Literal["vat_filed", "vat_pending", "none"]

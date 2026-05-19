@@ -98,9 +98,7 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
     assert ready_data["status"] == "ready_for_pickup"
     ready_actions = ready_data.get("available_actions", [])
     assert any(action["key"] == "return" for action in ready_actions)
-    return_action = next(
-        action for action in ready_actions if action["key"] == "return"
-    )
+    return_action = next(action for action in ready_actions if action["key"] == "return")
     assert "id" not in return_action
     assert return_action["endpoint"] == f"/binders/{binder_id}/return"
     assert return_action["confirm"] is True

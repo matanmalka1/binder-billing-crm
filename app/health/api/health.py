@@ -36,7 +36,5 @@ def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse | JSONRes
     """
     result = HealthService(db).check()
     if result["status"] != "healthy":
-        return JSONResponse(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=result
-        )
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=result)
     return HealthCheckResponse(**result)

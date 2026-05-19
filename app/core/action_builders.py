@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from app.core.action_schemas import ActionDescriptor
 
@@ -29,9 +29,9 @@ def mutation_action(
     endpoint: str,
     *,
     method: Literal["get", "post", "patch", "put", "delete"] = "post",
-    task_id: Optional[int] = None,
-    confirm_title: Optional[str] = None,
-    confirm_message: Optional[str] = None,
+    task_id: int | None = None,
+    confirm_title: str | None = None,
+    confirm_message: str | None = None,
     variant: ActionVariant = "secondary",
     payload_schema: Literal["none", "simple", "requires_input"] = "none",
 ) -> ActionDescriptor:
@@ -54,9 +54,9 @@ def modal_action(
     key: str,
     label: str,
     *,
-    task_id: Optional[int] = None,
+    task_id: int | None = None,
     primary: bool = False,
-    variant: Optional[ActionVariant] = None,
+    variant: ActionVariant | None = None,
 ) -> ActionDescriptor:
     return ActionDescriptor(
         key=key,

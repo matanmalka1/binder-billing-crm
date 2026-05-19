@@ -1,7 +1,7 @@
 """VAT turnover lookup for advance payment context."""
 
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Literal
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -38,7 +38,7 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
         client_record_id: int,
         period: str,
         period_months_count: int = 1,
-    ) -> tuple[Optional[Decimal], Optional[int]]:
+    ) -> tuple[Decimal | None, int | None]:
         """Return (total_output_net, vat_work_item_id) for the period.
 
         For bi-monthly advances, sums both months' vat_work_items.
@@ -66,7 +66,7 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
         self,
         client_record_id: int,
         periods: list[tuple[str, int]],
-    ) -> dict[str, tuple[Optional[Decimal], Optional[int]]]:
+    ) -> dict[str, tuple[Decimal | None, int | None]]:
         """Batch lookup: {period: (turnover, vat_work_item_id)}.
 
         periods is list of (period_str, period_months_count).
@@ -76,9 +76,7 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
             all_periods.update(_expand_period(period, months_count))
 
         rows = self.db.execute(
-            select(
-                VatWorkItem.id, VatWorkItem.period, VatWorkItem.total_output_net
-            ).where(
+            select(VatWorkItem.id, VatWorkItem.period, VatWorkItem.total_output_net).where(
                 VatWorkItem.client_record_id == client_record_id,
                 VatWorkItem.period.in_(all_periods),
                 VatWorkItem.status.in_(_FINAL_STATUSES),
@@ -87,7 +85,7 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
         ).all()
         by_period = {r.period: (Decimal(str(r.total_output_net)), r.id) for r in rows}
 
-        result: dict[str, tuple[Optional[Decimal], Optional[int]]] = {}
+        result: dict[str, tuple[Decimal | None, int | None]] = {}
         for period, months_count in periods:
             sub_periods = _expand_period(period, months_count)
             found = [by_period[p] for p in sub_periods if p in by_period]
@@ -102,7 +100,7 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
     def get_turnover_for_many_clients(
         self,
         periods_by_client: dict[int, list[tuple[str, int]]],
-    ) -> dict[tuple[int, str], tuple[Optional[Decimal], Optional[int]]]:
+    ) -> dict[tuple[int, str], tuple[Decimal | None, int | None]]:
         """Batch lookup for multiple clients using grouped VAT rows."""
         if not periods_by_client:
             return {}
@@ -118,9 +116,7 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
                 VatWorkItem.client_record_id,
                 VatWorkItem.period,
                 func.min(VatWorkItem.id).label("vat_work_item_id"),
-                func.coalesce(func.sum(VatWorkItem.total_output_net), 0).label(
-                    "total_output_net"
-                ),
+                func.coalesce(func.sum(VatWorkItem.total_output_net), 0).label("total_output_net"),
             )
             .where(
                 VatWorkItem.client_record_id.in_(client_ids),
@@ -138,7 +134,7 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
             for row in rows
         }
 
-        result: dict[tuple[int, str], tuple[Optional[Decimal], Optional[int]]] = {}
+        result: dict[tuple[int, str], tuple[Decimal | None, int | None]] = {}
         for client_record_id, periods in periods_by_client.items():
             for period, months_count in periods:
                 sub_periods = _expand_period(period, months_count)
@@ -160,9 +156,7 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
         client_record_id: int,
         period: str,
         period_months_count: int = 1,  # accepted for API symmetry; VatWorkItem has no period_months_count col
-    ) -> tuple[
-        Optional[Decimal], Optional[int], Literal["vat_filed", "vat_pending", "none"]
-    ]:
+    ) -> tuple[Decimal | None, int | None, Literal["vat_filed", "vat_pending", "none"]]:
         """Return (total_output_net, vat_work_item_id, source) for prefill.
 
         Checks FILED first, then READY_FOR_REVIEW. Matches by period string only.

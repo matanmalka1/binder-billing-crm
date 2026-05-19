@@ -8,8 +8,8 @@ from app.config import config
 from app.core.env_validator import EnvValidator
 from app.core.exceptions import setup_exception_handlers
 from app.core.logging_config import get_logger, setup_logging
-from app.middleware.request_id import RequestIDMiddleware
 from app.lifespan import lifespan
+from app.middleware.request_id import RequestIDMiddleware
 from app.router_registry import register_routers
 
 EnvValidator.validate()
@@ -62,13 +62,12 @@ app.add_middleware(
 register_routers(app)
 
 if config.APP_ENV in ("development", "test"):
-    from fastapi.staticfiles import StaticFiles
     import os
 
+    from fastapi.staticfiles import StaticFiles
+
     os.makedirs("./storage", exist_ok=True)
-    app.mount(
-        "/local-storage", StaticFiles(directory="./storage"), name="local-storage"
-    )
+    app.mount("/local-storage", StaticFiles(directory="./storage"), name="local-storage")
 
 if __name__ == "__main__":
     import uvicorn

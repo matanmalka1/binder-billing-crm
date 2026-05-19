@@ -26,9 +26,7 @@ def test_create_list_and_get_scheduler_reminder(client, advisor_headers):
     assert created["action_type"] == "SEND_NOTIFICATION"
     assert "message" not in created
 
-    list_resp = client.get(
-        "/api/v1/reminders?status=scheduled", headers=advisor_headers
-    )
+    list_resp = client.get("/api/v1/reminders?status=scheduled", headers=advisor_headers)
     assert list_resp.status_code == 200
     assert list_resp.json()["total"] == 1
 
@@ -43,14 +41,8 @@ def test_cancel_reminder_marks_scheduled_as_canceled(client, test_db, advisor_he
         action_type=ReminderActionType.CREATE_TASK,
     )
 
-    resp = client.post(
-        f"/api/v1/reminders/{reminder.id}/cancel", headers=advisor_headers
-    )
+    resp = client.post(f"/api/v1/reminders/{reminder.id}/cancel", headers=advisor_headers)
 
     assert resp.status_code == 200
     assert resp.json()["status"] == "canceled"
-    assert (
-        ReminderRepository(test_db).get_by_id(reminder.id).status
-        == ReminderStatus.CANCELED
-    )
-
+    assert ReminderRepository(test_db).get_by_id(reminder.id).status == ReminderStatus.CANCELED

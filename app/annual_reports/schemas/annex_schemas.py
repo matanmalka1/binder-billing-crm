@@ -9,7 +9,6 @@ If a schedule has no validator defined, the data dict passes through unchanged.
 """
 
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -17,137 +16,137 @@ from pydantic import BaseModel
 class ScheduleAData(BaseModel):
     """נספח א — חישוב הכנסה מעסק"""
 
-    gross_income: Optional[Decimal] = None
-    cost_of_goods: Optional[Decimal] = None
-    gross_profit: Optional[Decimal] = None
-    operating_expenses: Optional[Decimal] = None
-    net_income: Optional[Decimal] = None
+    gross_income: Decimal | None = None
+    cost_of_goods: Decimal | None = None
+    gross_profit: Decimal | None = None
+    operating_expenses: Decimal | None = None
+    net_income: Decimal | None = None
 
 
 class ScheduleBData(BaseModel):
     """נספח ב — הכנסות מדמי שכירות"""
 
-    property_address: Optional[str] = None
-    rental_income: Optional[Decimal] = None
-    depreciation_claimed: Optional[Decimal] = None
-    maintenance_expenses: Optional[Decimal] = None
-    net_rental_income: Optional[Decimal] = None
+    property_address: str | None = None
+    rental_income: Decimal | None = None
+    depreciation_claimed: Decimal | None = None
+    maintenance_expenses: Decimal | None = None
+    net_rental_income: Decimal | None = None
 
 
 class ScheduleGimmelData(BaseModel):
     """נספח ג — רווח הון מניירות ערך סחירים"""
 
-    security_name: Optional[str] = None
-    quantity: Optional[Decimal] = None
-    purchase_price: Optional[Decimal] = None
-    sale_price: Optional[Decimal] = None
-    gain_loss: Optional[Decimal] = None
+    security_name: str | None = None
+    quantity: Decimal | None = None
+    purchase_price: Decimal | None = None
+    sale_price: Decimal | None = None
+    gain_loss: Decimal | None = None
 
 
 class ScheduleDaletData(BaseModel):
     """נספח ד — הכנסות מחו\"ל והמס ששולם שם"""
 
-    country: Optional[str] = None
-    income_type: Optional[str] = None
-    gross_income: Optional[Decimal] = None
-    foreign_tax_paid: Optional[Decimal] = None
-    net_income: Optional[Decimal] = None
+    country: str | None = None
+    income_type: str | None = None
+    gross_income: Decimal | None = None
+    foreign_tax_paid: Decimal | None = None
+    net_income: Decimal | None = None
 
 
 class Form150Data(BaseModel):
     """טופס 150 — החזקה בחבר בני אדם תושב חוץ."""
 
-    foreign_entity_name: Optional[str] = None
-    country: Optional[str] = None
-    holding_percentage: Optional[Decimal] = None
-    control_rights: Optional[str] = None
+    foreign_entity_name: str | None = None
+    country: str | None = None
+    holding_percentage: Decimal | None = None
+    control_rights: str | None = None
 
 
 class Form1504Data(BaseModel):
     """טופס 1504 — דיווח שותף בשותפות."""
 
-    partnership_name: Optional[str] = None
-    partnership_id_number: Optional[str] = None
-    share_percentage: Optional[Decimal] = None
-    income_share: Optional[Decimal] = None
+    partnership_name: str | None = None
+    partnership_id_number: str | None = None
+    share_percentage: Decimal | None = None
+    income_share: Decimal | None = None
 
 
 class Form6111Data(BaseModel):
     """טופס 6111 — קידוד דוחות כספיים."""
 
-    turnover_amount: Optional[Decimal] = None
-    accounting_method: Optional[str] = None
-    bookkeeping_basis: Optional[str] = None
+    turnover_amount: Decimal | None = None
+    accounting_method: str | None = None
+    bookkeeping_basis: str | None = None
 
 
 class Form1344Data(BaseModel):
     """טופס 1344 — דיווח על הפסדים רלוונטיים."""
 
-    loss_type: Optional[str] = None
-    originating_year: Optional[int] = None
-    loss_amount: Optional[Decimal] = None
-    utilized_amount: Optional[Decimal] = None
+    loss_type: str | None = None
+    originating_year: int | None = None
+    loss_amount: Decimal | None = None
+    utilized_amount: Decimal | None = None
 
 
 class Form1399Data(BaseModel):
     """טופס 1399 — הודעה על מכירת נכס ורווח הון."""
 
-    asset_description: Optional[str] = None
-    sale_date: Optional[str] = None
-    proceeds_amount: Optional[Decimal] = None
-    cost_amount: Optional[Decimal] = None
-    capital_gain: Optional[Decimal] = None
+    asset_description: str | None = None
+    sale_date: str | None = None
+    proceeds_amount: Decimal | None = None
+    cost_amount: Decimal | None = None
+    capital_gain: Decimal | None = None
 
 
 class Form1350Data(BaseModel):
     """טופס 1350 — משיכות בעל מניות מהותי."""
 
-    company_name: Optional[str] = None
-    withdrawal_amount: Optional[Decimal] = None
-    withdrawal_date: Optional[str] = None
-    balance_at_year_end: Optional[Decimal] = None
+    company_name: str | None = None
+    withdrawal_amount: Decimal | None = None
+    withdrawal_date: str | None = None
+    balance_at_year_end: Decimal | None = None
 
 
 class Form1327Data(BaseModel):
     """טופס 1327 — דוח נאמנות."""
 
-    trust_name: Optional[str] = None
-    trustee_name: Optional[str] = None
-    israel_income: Optional[Decimal] = None
-    foreign_income: Optional[Decimal] = None
+    trust_name: str | None = None
+    trustee_name: str | None = None
+    israel_income: Decimal | None = None
+    foreign_income: Decimal | None = None
 
 
 class Form1342Data(BaseModel):
     """טופס 1342 — פירוט נכסים שנתבע בגינם פחת."""
 
-    asset_description: Optional[str] = None
-    asset_cost: Optional[Decimal] = None
-    depreciation_rate: Optional[Decimal] = None
+    asset_description: str | None = None
+    asset_cost: Decimal | None = None
+    depreciation_rate: Decimal | None = None
 
 
 class Form1343Data(BaseModel):
     """טופס 1343 — ניכוי נוסף בשל פחת."""
 
-    asset_description: Optional[str] = None
-    qualifying_amount: Optional[Decimal] = None
-    extra_deduction_amount: Optional[Decimal] = None
+    asset_description: str | None = None
+    qualifying_amount: Decimal | None = None
+    extra_deduction_amount: Decimal | None = None
 
 
 class Form1348Data(BaseModel):
     """טופס 1348 — הצהרת אי-תושבות ישראל."""
 
-    foreign_residency_country: Optional[str] = None
-    days_in_israel: Optional[int] = None
-    tie_breaker_basis: Optional[str] = None
+    foreign_residency_country: str | None = None
+    days_in_israel: int | None = None
+    tie_breaker_basis: str | None = None
 
 
 class Form858Data(BaseModel):
     """טופס 858 — יחידות השתתפות בשותפות נפט."""
 
-    partnership_name: Optional[str] = None
-    units_held: Optional[Decimal] = None
-    income_share: Optional[Decimal] = None
-    expense_share: Optional[Decimal] = None
+    partnership_name: str | None = None
+    units_held: Decimal | None = None
+    income_share: Decimal | None = None
+    expense_share: Decimal | None = None
 
 
 SCHEDULE_VALIDATORS: dict[str, type[BaseModel]] = {

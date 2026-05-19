@@ -66,9 +66,7 @@ def standard_deadline(
             if specific:
                 d = date.fromisoformat(specific)
                 return datetime(d.year, d.month, d.day, 23, 59, 59)
-            return datetime(
-                tax_year + 1, rule.default_due_month, rule.default_due_day, 23, 59, 59
-            )
+            return datetime(tax_year + 1, rule.default_due_month, rule.default_due_day, 23, 59, 59)
         return datetime(tax_year + 1, 7, 31, 23, 59, 59)
 
     # ── Individuals / self-employed / partners / exempt dealers ───────────────
@@ -85,9 +83,7 @@ def standard_deadline(
             SubmissionMethod.REPRESENTATIVE,
         }:
             return datetime(tax_year + 1, 6, 30, 23, 59, 59)
-        return datetime(
-            tax_year + 1, rule.default_due_month, rule.default_due_day, 23, 59, 59
-        )
+        return datetime(tax_year + 1, rule.default_due_month, rule.default_due_day, 23, 59, 59)
 
     # ── Fallback (no registry rule) ───────────────────────────────────────────
     if submission_method in {SubmissionMethod.ONLINE, SubmissionMethod.REPRESENTATIVE}:

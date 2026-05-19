@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -18,8 +17,8 @@ class BinderIntakeEditLogRepository(BaseRepository[BinderIntakeEditLog]):
         self,
         intake_id: int,
         field_name: str,
-        old_value: Optional[str],
-        new_value: Optional[str],
+        old_value: str | None,
+        new_value: str | None,
         changed_by: int,
     ) -> BinderIntakeEditLog:
         log = BinderIntakeEditLog(

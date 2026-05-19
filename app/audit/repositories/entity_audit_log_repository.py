@@ -1,6 +1,5 @@
 """Repository for EntityAuditLog entities."""
 
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -19,9 +18,9 @@ class EntityAuditLogRepository(BaseRepository[EntityAuditLog]):
         entity_id: int,
         performed_by: int,
         action: str,
-        old_value: Optional[str] = None,
-        new_value: Optional[str] = None,
-        note: Optional[str] = None,
+        old_value: str | None = None,
+        new_value: str | None = None,
+        note: str | None = None,
     ) -> EntityAuditLog:
         entry = EntityAuditLog(
             entity_type=entity_type,

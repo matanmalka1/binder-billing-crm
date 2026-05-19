@@ -26,9 +26,7 @@ class ReminderExecutorService:
         self.db = db
         self.reminder_repo = ReminderRepository(db)
 
-    def fire_due(
-        self, *, now: datetime | None = None, limit: int = 100
-    ) -> ReminderExecutionResult:
+    def fire_due(self, *, now: datetime | None = None, limit: int = 100) -> ReminderExecutionResult:
         now = now or utcnow()
         reminders = self.reminder_repo.list_due_scheduled(now, limit=limit)
         fired = 0

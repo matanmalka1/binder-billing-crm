@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from app.businesses.models.business import Business, BusinessStatus
 from app.core.action_builders import mutation_action
 from app.core.action_schemas import ActionDescriptor
@@ -10,14 +8,12 @@ from app.users.models.user import UserRole
 
 def get_business_actions(
     business: Business,
-    user_role: Optional[UserRole] = None,
-    client_id: Optional[int] = None,
+    user_role: UserRole | None = None,
+    client_id: int | None = None,
 ) -> list[ActionDescriptor]:
     """Return executable actions for a business (role-aware)."""
     status = business.status
-    client_id = (
-        client_id if client_id is not None else getattr(business, "client_id", None)
-    )
+    client_id = client_id if client_id is not None else getattr(business, "client_id", None)
     if client_id is None:
         raise ValueError("Business actions require client_id for endpoint construction")
     endpoint = f"/clients/{client_id}/businesses/{business.id}"

@@ -3,27 +3,26 @@ from __future__ import annotations
 import hashlib
 import secrets
 from datetime import timedelta
-from typing import Optional
 
-from app.core.exceptions import AppError, NotFoundError
-from app.signature_requests.services.messages import (
-    BUSINESS_NOT_FOUND,
-    INVALID_REQUEST_TYPE,
-    SIGNATURE_REQUEST_CREATED_NOTE,
-    SIGNATURE_REQUEST_SENT_NOTE,
-)
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.businesses.services.business_contact_service import BusinessContactService
 from app.businesses.services.business_guards import (
     assert_business_belongs_to_legal_entity,
 )
-from app.businesses.services.business_contact_service import BusinessContactService
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.core.exceptions import AppError, NotFoundError
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
     SignatureRequestType,
 )
 from app.signature_requests.repositories.signature_request_repository import (
     SignatureRequestRepository,
+)
+from app.signature_requests.services.messages import (
+    BUSINESS_NOT_FOUND,
+    INVALID_REQUEST_TYPE,
+    SIGNATURE_REQUEST_CREATED_NOTE,
+    SIGNATURE_REQUEST_SENT_NOTE,
 )
 from app.utils.time_utils import utcnow
 
@@ -33,7 +32,7 @@ def create_request(
     business_repo: BusinessRepository,
     *,
     client_record_id: int,
-    business_id: Optional[int] = None,
+    business_id: int | None = None,
     created_by: int,
     created_by_name: str,
     sent_by: int,
@@ -42,13 +41,13 @@ def create_request(
     request_type: str,
     title: str,
     signer_name: str,
-    description: Optional[str] = None,
-    signer_email: Optional[str] = None,
-    signer_phone: Optional[str] = None,
-    annual_report_id: Optional[int] = None,
-    document_id: Optional[int] = None,
-    storage_key: Optional[str] = None,
-    content_to_hash: Optional[str] = None,
+    description: str | None = None,
+    signer_email: str | None = None,
+    signer_phone: str | None = None,
+    annual_report_id: int | None = None,
+    document_id: int | None = None,
+    storage_key: str | None = None,
+    content_to_hash: str | None = None,
 ) -> SignatureRequest:
     """Create and send a signature request in PENDING_SIGNATURE status.
 
@@ -57,9 +56,7 @@ def create_request(
     """
     client_record = ClientRecordRepository(repo.db).get_by_id(client_record_id)
     if not client_record:
-        raise NotFoundError(
-            f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND"
-        )
+        raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
 
     # Validate business ownership when business_id is supplied
     if business_id is not None:
@@ -129,9 +126,7 @@ def create_request(
         actor_type="advisor",
         actor_id=sent_by,
         actor_name=sent_by_name,
-        notes=SIGNATURE_REQUEST_SENT_NOTE.format(
-            expires_at=expires_at.date().isoformat()
-        ),
+        notes=SIGNATURE_REQUEST_SENT_NOTE.format(expires_at=expires_at.date().isoformat()),
     )
 
     return req

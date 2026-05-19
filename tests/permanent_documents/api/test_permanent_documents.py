@@ -12,7 +12,6 @@ from app.permanent_documents.repositories.permanent_document_repository import (
 )
 from tests.helpers.identity import seed_client_with_business
 
-
 _client_seq = count(1)
 
 
@@ -72,9 +71,7 @@ def test_get_download_url_and_replace_document(client, test_db, advisor_headers)
         uploaded_by=1,
     )
 
-    url_resp = client.get(
-        f"/api/v1/documents/{doc.id}/download-url", headers=advisor_headers
-    )
+    url_resp = client.get(f"/api/v1/documents/{doc.id}/download-url", headers=advisor_headers)
     assert url_resp.status_code == 200
     assert "url" in url_resp.json()
 
@@ -111,9 +108,7 @@ def test_delete_document_marks_deleted(client, test_db, advisor_headers):
     assert list_resp.json()["items"] == []
 
 
-def test_upload_without_business_id_creates_client_owned_document(
-    client, test_db, advisor_headers
-):
+def test_upload_without_business_id_creates_client_owned_document(client, test_db, advisor_headers):
     business = _business(test_db)
 
     resp = client.post(

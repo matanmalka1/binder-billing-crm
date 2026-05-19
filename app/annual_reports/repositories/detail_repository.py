@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,7 +21,7 @@ class AnnualReportDetailRepository(BaseRepository[AnnualReportDetail]):
     def __init__(self, db: Session):
         self.db = db
 
-    def get_by_report_id(self, report_id: int) -> Optional[AnnualReportDetail]:
+    def get_by_report_id(self, report_id: int) -> AnnualReportDetail | None:
         return self.db.scalars(
             select(AnnualReportDetail).where(AnnualReportDetail.report_id == report_id)
         ).first()
@@ -31,9 +30,7 @@ class AnnualReportDetailRepository(BaseRepository[AnnualReportDetail]):
         """Update only business metadata columns (approval, notes, amendment reason, deductions)."""
         return self._upsert(report_id, fields, allowed=_META_COLUMNS)
 
-    def _upsert(
-        self, report_id: int, fields: dict, allowed: frozenset
-    ) -> AnnualReportDetail:
+    def _upsert(self, report_id: int, fields: dict, allowed: frozenset) -> AnnualReportDetail:
         unknown = set(fields) - allowed
         if unknown:
             raise ValueError(

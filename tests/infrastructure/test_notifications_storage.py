@@ -2,9 +2,8 @@ import io
 
 import pytest
 
-from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
-from app.infrastructure.notifications import _to_html
 from app.infrastructure import storage as storage_mod
+from app.infrastructure.notifications import EmailChannel, WhatsAppChannel, _to_html
 
 SENDGRID_API_URL = "https://sendgrid.test/mail/send"
 

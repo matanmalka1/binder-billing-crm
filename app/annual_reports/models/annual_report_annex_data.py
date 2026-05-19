@@ -1,11 +1,11 @@
 """Annex (schedule) data lines for an annual report."""
 
 from sqlalchemy import (
+    JSON,
     Column,
     DateTime,
     ForeignKey,
     Integer,
-    JSON,
     Text,
     UniqueConstraint,
 )
@@ -41,9 +41,7 @@ class AnnualReportAnnexData(Base):
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
-    schedule_entry = relationship(
-        "AnnualReportScheduleEntry", back_populates="annex_lines"
-    )
+    schedule_entry = relationship("AnnualReportScheduleEntry", back_populates="annex_lines")
 
     @hybrid_property
     def annual_report_id(self):

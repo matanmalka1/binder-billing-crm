@@ -28,7 +28,6 @@ from app.core.exceptions import ForbiddenError, NotFoundError
 from tests.helpers.identity import seed_client_identity
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
-
 _seq = count(1)
 
 

@@ -4,7 +4,6 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFoundError
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
@@ -16,6 +15,7 @@ from app.annual_reports.schemas.annual_report_financials import AdvancesSummary
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.core.exceptions import NotFoundError
 
 
 class AnnualReportAdvancesSummaryService:
@@ -32,9 +32,7 @@ class AnnualReportAdvancesSummaryService:
                 "ANNUAL_REPORT.NOT_FOUND",
             )
 
-        client_record_id = (
-            ClientRecordRepository(self.db).get_by_id(report.client_record_id).id
-        )
+        client_record_id = ClientRecordRepository(self.db).get_by_id(report.client_record_id).id
         payments, count = self.advance_repo.list_by_client_record_year(
             client_record_id,
             report.tax_year,
@@ -45,9 +43,7 @@ class AnnualReportAdvancesSummaryService:
 
         total = sum((p.paid_amount or Decimal("0")) for p in payments)
 
-        tax_result = AnnualReportFinancialService(self.db).get_tax_calculation(
-            report_id
-        )
+        tax_result = AnnualReportFinancialService(self.db).get_tax_calculation(report_id)
         balance = tax_result.tax_after_credits - total
 
         if balance > 0:

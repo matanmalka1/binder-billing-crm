@@ -62,9 +62,7 @@ def test_get_client_timeline_sorts_events_and_applies_pagination(test_db, monkey
         captured["client_id"] = client_id
         return [binder]
 
-    monkeypatch.setattr(
-        service.binder_repo, "list_by_client_record", _list_by_client_record
-    )
+    monkeypatch.setattr(service.binder_repo, "list_by_client_record", _list_by_client_record)
     monkeypatch.setattr(
         service,
         "_append_status_change_events",
@@ -127,16 +125,10 @@ def test_get_client_timeline_skips_unreceived_binder_event(test_db, monkeypatch)
         pickup_person_name=None,
     )
 
-    monkeypatch.setattr(
-        service.binder_repo, "list_by_client_record", lambda _client_id: [binder]
-    )
-    monkeypatch.setattr(
-        service, "_append_status_change_events", lambda _events, _binder: None
-    )
+    monkeypatch.setattr(service.binder_repo, "list_by_client_record", lambda _client_id: [binder])
+    monkeypatch.setattr(service, "_append_status_change_events", lambda _events, _binder: None)
     monkeypatch.setattr(service.charge_repo, "list_charges", lambda **_kwargs: [])
-    monkeypatch.setattr(
-        service.invoice_repo, "list_by_charge_ids", lambda _charge_ids: []
-    )
+    monkeypatch.setattr(service.invoice_repo, "list_by_charge_ids", lambda _charge_ids: [])
     monkeypatch.setattr(service, "_build_annual_report_events", lambda _client_id: [])
     monkeypatch.setattr(
         "app.timeline.services.timeline_service.build_client_events",
@@ -164,13 +156,9 @@ def test_get_client_timeline_raises_for_missing_client(test_db):
         assert False, "Expected NotFoundError for missing client"
 
 
-def test_append_status_change_events_skips_noise_and_keeps_meaningful(
-    test_db, monkeypatch
-):
+def test_append_status_change_events_skips_noise_and_keeps_meaningful(test_db, monkeypatch):
     service = TimelineService(test_db)
-    binder = SimpleNamespace(
-        id=17, binder_number="TL-17", status=BinderStatus.IN_OFFICE
-    )
+    binder = SimpleNamespace(id=17, binder_number="TL-17", status=BinderStatus.IN_OFFICE)
     events = []
     logs = [
         SimpleNamespace(
@@ -190,9 +178,7 @@ def test_append_status_change_events_skips_noise_and_keeps_meaningful(
         ),
     ]
 
-    monkeypatch.setattr(
-        service.status_log_repo, "list_by_binder", lambda _binder_id: logs
-    )
+    monkeypatch.setattr(service.status_log_repo, "list_by_binder", lambda _binder_id: logs)
 
     service._append_status_change_events(events, binder)
 
@@ -208,9 +194,7 @@ def test_append_status_change_events_handles_enum_values(test_db, monkeypatch):
     are BinderStatus Enum instances (not raw strings), as may happen in tests or future
     SQLAlchemy Enum-column migrations."""
     service = TimelineService(test_db)
-    binder = SimpleNamespace(
-        id=18, binder_number="TL-18", status=BinderStatus.READY_FOR_PICKUP
-    )
+    binder = SimpleNamespace(id=18, binder_number="TL-18", status=BinderStatus.READY_FOR_PICKUP)
     events = []
     logs = [
         # none → in_office expressed as Enum — must be skipped
@@ -233,9 +217,7 @@ def test_append_status_change_events_handles_enum_values(test_db, monkeypatch):
         ),
     ]
 
-    monkeypatch.setattr(
-        service.status_log_repo, "list_by_binder", lambda _binder_id: logs
-    )
+    monkeypatch.setattr(service.status_log_repo, "list_by_binder", lambda _binder_id: logs)
 
     service._append_status_change_events(events, binder)
 

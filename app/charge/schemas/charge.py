@@ -1,9 +1,9 @@
-from typing import Literal, Optional
 import re
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.charge.models.charge import ChargeType, ChargeStatus
+from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.services.constants import MONTHS_COVERED_MAX, PERIOD_REGEX
 from app.charge.services.messages import PERIOD_INVALID_FORMAT
 from app.core.action_schemas import ActionDescriptor
@@ -12,15 +12,15 @@ from app.core.api_types import ApiDateTime, ApiDecimal
 
 class ChargeCreateRequest(BaseModel):
     client_record_id: int
-    business_id: Optional[int] = None
+    business_id: int | None = None
     amount: ApiDecimal = Field(gt=0)
     charge_type: ChargeType  # enum — לא str חופשי
-    period: Optional[str] = None  # "YYYY-MM"
+    period: str | None = None  # "YYYY-MM"
     months_covered: int = Field(1, ge=1, le=MONTHS_COVERED_MAX)  # monthly or bimonthly
 
     @field_validator("period")
     @classmethod
-    def validate_period(cls, v: Optional[str]) -> Optional[str]:
+    def validate_period(cls, v: str | None) -> str | None:
         if v is not None and not re.fullmatch(PERIOD_REGEX, v):
             raise ValueError(PERIOD_INVALID_FORMAT)
         return v
@@ -29,26 +29,26 @@ class ChargeCreateRequest(BaseModel):
 class ChargeResponse(BaseModel):
     id: int
     client_record_id: int
-    client_name: Optional[str] = None
-    office_client_number: Optional[int] = None
-    business_id: Optional[int] = None
-    business_name: Optional[str] = None  # enriched by service
-    annual_report_id: Optional[int] = None
+    client_name: str | None = None
+    office_client_number: int | None = None
+    business_id: int | None = None
+    business_name: str | None = None  # enriched by service
+    annual_report_id: int | None = None
     charge_type: ChargeType
     status: ChargeStatus
     amount: ApiDecimal
-    period: Optional[str] = None
+    period: str | None = None
     months_covered: int
-    description: Optional[str] = None
+    description: str | None = None
     created_at: ApiDateTime
-    created_by: Optional[int] = None
-    issued_at: Optional[ApiDateTime] = None
-    issued_by: Optional[int] = None
-    paid_at: Optional[ApiDateTime] = None
-    paid_by: Optional[int] = None
-    canceled_at: Optional[ApiDateTime] = None
-    canceled_by: Optional[int] = None
-    cancellation_reason: Optional[str] = None
+    created_by: int | None = None
+    issued_at: ApiDateTime | None = None
+    issued_by: int | None = None
+    paid_at: ApiDateTime | None = None
+    paid_by: int | None = None
+    canceled_at: ApiDateTime | None = None
+    canceled_by: int | None = None
+    cancellation_reason: str | None = None
     available_actions: list[ActionDescriptor] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
@@ -59,25 +59,25 @@ class ChargeResponseSecretary(BaseModel):
 
     id: int
     client_record_id: int
-    client_name: Optional[str] = None
-    office_client_number: Optional[int] = None
-    business_id: Optional[int] = None
-    business_name: Optional[str] = None
+    client_name: str | None = None
+    office_client_number: int | None = None
+    business_id: int | None = None
+    business_name: str | None = None
     charge_type: ChargeType
     status: ChargeStatus
-    period: Optional[str] = None
+    period: str | None = None
     months_covered: int
-    description: Optional[str] = None
+    description: str | None = None
     created_at: ApiDateTime
-    issued_at: Optional[ApiDateTime] = None
-    paid_at: Optional[ApiDateTime] = None
+    issued_at: ApiDateTime | None = None
+    paid_at: ApiDateTime | None = None
     available_actions: list[ActionDescriptor] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
 
 class ChargeCancelRequest(BaseModel):
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 class ChargeStatusStat(BaseModel):
@@ -103,7 +103,7 @@ class ChargeListResponse(BaseModel):
 class BulkChargeActionRequest(BaseModel):
     charge_ids: list[int] = Field(min_length=1)
     action: Literal["issue", "mark-paid", "cancel"]
-    cancellation_reason: Optional[str] = None
+    cancellation_reason: str | None = None
 
 
 class BulkChargeFailedItem(BaseModel):

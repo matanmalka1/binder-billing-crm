@@ -17,9 +17,7 @@ def _business(db, suffix: str) -> Business:
     return business
 
 
-def _create_signature_request(
-    api_client, headers, business: Business, title: str
-) -> int:
+def _create_signature_request(api_client, headers, business: Business, title: str) -> int:
     resp = api_client.post(
         "/api/v1/signature-requests",
         headers=headers,
@@ -37,9 +35,7 @@ def _create_signature_request(
 
 def test_cancel_signature_request(client, test_db, advisor_headers):
     business = _business(test_db, "A")
-    request_id = _create_signature_request(
-        client, advisor_headers, business, "Cancelable"
-    )
+    request_id = _create_signature_request(client, advisor_headers, business, "Cancelable")
 
     cancel_resp = client.post(
         f"/api/v1/signature-requests/{request_id}/cancel",
@@ -53,9 +49,7 @@ def test_cancel_signature_request(client, test_db, advisor_headers):
     assert "signing_token" not in cancel_payload
     assert "signing_url_hint" not in cancel_payload
 
-    detail = client.get(
-        f"/api/v1/signature-requests/{request_id}", headers=advisor_headers
-    )
+    detail = client.get(f"/api/v1/signature-requests/{request_id}", headers=advisor_headers)
     assert detail.status_code == 200
     detail_payload = detail.json()
     assert "signing_token" not in detail_payload
@@ -64,19 +58,13 @@ def test_cancel_signature_request(client, test_db, advisor_headers):
     assert "canceled" in events
 
 
-def test_list_signature_requests_by_client_with_status_filter(
-    client, test_db, advisor_headers
-):
+def test_list_signature_requests_by_client_with_status_filter(client, test_db, advisor_headers):
     business_a = _business(test_db, "B")
     business_b = _business(test_db, "C")
 
-    req_a_pending = _create_signature_request(
-        client, advisor_headers, business_a, "Pending A"
-    )
+    req_a_pending = _create_signature_request(client, advisor_headers, business_a, "Pending A")
 
-    req_a_canceled = _create_signature_request(
-        client, advisor_headers, business_a, "Canceled A"
-    )
+    req_a_canceled = _create_signature_request(client, advisor_headers, business_a, "Canceled A")
     client.post(
         f"/api/v1/signature-requests/{req_a_canceled}/cancel",
         headers=advisor_headers,

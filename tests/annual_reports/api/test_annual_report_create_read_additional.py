@@ -31,12 +31,8 @@ def test_get_report_not_found_and_delete_paths(client, test_db, advisor_headers)
     assert body["client_name"] == "AR CreateRead Additional"
     assert body["available_transitions"] == ["collecting_docs"]
 
-    del_ok = client.delete(
-        f"/api/v1/annual-reports/{report_id}", headers=advisor_headers
-    )
+    del_ok = client.delete(f"/api/v1/annual-reports/{report_id}", headers=advisor_headers)
     assert del_ok.status_code == 204
 
-    del_missing = client.delete(
-        "/api/v1/annual-reports/999999", headers=advisor_headers
-    )
+    del_missing = client.delete("/api/v1/annual-reports/999999", headers=advisor_headers)
     assert del_missing.status_code == 404

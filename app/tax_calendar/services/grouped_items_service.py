@@ -110,8 +110,6 @@ def _matches_client_search(item: TaxCalendarGroupItem, search: str) -> bool:
     values = [
         item.client_name,
         item.id_number,
-        str(item.office_client_number)
-        if item.office_client_number is not None
-        else None,
+        str(item.office_client_number) if item.office_client_number is not None else None,
     ]
     return any(value and normalized in value.lower() for value in values)

@@ -24,9 +24,7 @@ class ClientVatStatsRepository(BaseRepository[ClientRecord]):
 
     def count_active_by_vat_type(self, vat_type: VatType) -> int:
         return self.db.scalar(
-            self._active_base_stmt().where(
-                LegalEntity.vat_reporting_frequency == vat_type
-            )
+            self._active_base_stmt().where(LegalEntity.vat_reporting_frequency == vat_type)
         )
 
     def count_active_by_entity_and_vat_type(
@@ -41,7 +39,5 @@ class ClientVatStatsRepository(BaseRepository[ClientRecord]):
 
     def count_active_exempt(self) -> int:
         return self.db.scalar(
-            self._active_base_stmt().where(
-                LegalEntity.vat_reporting_frequency == VatType.EXEMPT
-            )
+            self._active_base_stmt().where(LegalEntity.vat_reporting_frequency == VatType.EXEMPT)
         )

@@ -11,8 +11,8 @@ from app.work_queue.schemas.work_queue import (
     WorkQueueSourceType,
     WorkQueueUrgency,
 )
-from app.work_queue.services.common import normalize_source_domain, source_route
 from app.work_queue.services.actions import source_actions
+from app.work_queue.services.common import normalize_source_domain, source_route
 from app.work_queue.services.work_queue_service import WorkQueueService
 from tests.helpers.task_helpers import create_business
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
@@ -93,9 +93,7 @@ def test_work_queue_advance_payment_includes_source_payload(test_db):
     test_db.commit()
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
-    item = next(
-        i for i in items if i.source_type == WorkQueueSourceType.ADVANCE_PAYMENT
-    )
+    item = next(i for i in items if i.source_type == WorkQueueSourceType.ADVANCE_PAYMENT)
 
     assert item.client_name.startswith("Task Test Client")
     assert item.office_client_number == 100001
@@ -130,9 +128,7 @@ def test_work_queue_advance_payment_payload_formats_bimonthly_period(test_db):
     test_db.commit()
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
-    item = next(
-        i for i in items if i.source_type == WorkQueueSourceType.ADVANCE_PAYMENT
-    )
+    item = next(i for i in items if i.source_type == WorkQueueSourceType.ADVANCE_PAYMENT)
 
     assert item.metadata["period_label"] == "מרץ–אפריל 2026"
     assert item.metadata["frequency"] == "bimonthly"
@@ -171,8 +167,7 @@ def test_work_queue_advance_payment_batch_loads_all_client_identities(test_db):
     ]
 
     identities = {
-        item.client_record_id: (item.client_name, item.office_client_number)
-        for item in items
+        item.client_record_id: (item.client_name, item.office_client_number) for item in items
     }
     assert identities[first.client_id][0].startswith("Task Test Client")
     assert identities[first.client_id][1] == 100001
@@ -288,9 +283,7 @@ def test_source_routes_only_return_existing_frontend_targets():
     assert source_route(WorkQueueSourceType.ANNUAL_REPORT, 22) == "/tax/reports/22"
     assert source_route(WorkQueueSourceType.CHARGE, 33) == "/charges?charge_id=33"
     assert source_route(WorkQueueSourceType.BINDER, 44) == "/binders?binder_id=44"
-    assert (
-        source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 55) == "/tax/advance-payments"
-    )
+    assert source_route(WorkQueueSourceType.ADVANCE_PAYMENT, 55) == "/tax/advance-payments"
 
 
 # ── Pagination ────────────────────────────────────────────────────────────────
@@ -311,12 +304,8 @@ def test_work_queue_pagination_limit(test_db):
         )
     test_db.commit()
 
-    page1 = WorkQueueService(test_db).list_items(
-        client_record_id=biz.client_id, limit=2, offset=0
-    )
-    page2 = WorkQueueService(test_db).list_items(
-        client_record_id=biz.client_id, limit=2, offset=2
-    )
+    page1 = WorkQueueService(test_db).list_items(client_record_id=biz.client_id, limit=2, offset=0)
+    page2 = WorkQueueService(test_db).list_items(client_record_id=biz.client_id, limit=2, offset=2)
 
     assert len(page1) == 2
     assert len(page2) == 1
@@ -532,9 +521,7 @@ def test_linked_filters_return_expected_rows(test_db):
     unlinked_charge = _add_overdue_charge(test_db, biz, days_ago=32)
     _add_task_for_source(test_db, source_domain="charge", source_id=linked_charge.id)
 
-    linked = WorkQueueService(test_db).list_items(
-        client_record_id=biz.client_id, linked="linked"
-    )
+    linked = WorkQueueService(test_db).list_items(client_record_id=biz.client_id, linked="linked")
     unlinked = WorkQueueService(test_db).list_items(
         client_record_id=biz.client_id, linked="unlinked"
     )
@@ -546,9 +533,7 @@ def test_linked_filters_return_expected_rows(test_db):
 
 
 def test_task_status_open_finds_standalone_task_rows(test_db):
-    task = _add_task_for_source(
-        test_db, source_domain=None, source_id=None, status=TaskStatus.OPEN
-    )
+    task = _add_task_for_source(test_db, source_domain=None, source_id=None, status=TaskStatus.OPEN)
 
     items = WorkQueueService(test_db).list_items(task_status=TaskStatus.OPEN)
 
@@ -575,9 +560,7 @@ def test_task_status_open_finds_linked_source_rows(test_db):
 
 
 def test_history_task_status_done_finds_completed_task_rows(test_db):
-    task = _add_task_for_source(
-        test_db, source_domain=None, source_id=None, status=TaskStatus.DONE
-    )
+    task = _add_task_for_source(test_db, source_domain=None, source_id=None, status=TaskStatus.DONE)
 
     items = WorkQueueService(test_db).list_items(
         include_task_history=True, task_status=TaskStatus.DONE
@@ -587,12 +570,8 @@ def test_history_task_status_done_finds_completed_task_rows(test_db):
 
 
 def test_active_mode_hides_done_and_canceled_task_rows(test_db):
-    _add_task_for_source(
-        test_db, source_domain=None, source_id=None, status=TaskStatus.DONE
-    )
-    _add_task_for_source(
-        test_db, source_domain=None, source_id=None, status=TaskStatus.CANCELED
-    )
+    _add_task_for_source(test_db, source_domain=None, source_id=None, status=TaskStatus.DONE)
+    _add_task_for_source(test_db, source_domain=None, source_id=None, status=TaskStatus.CANCELED)
 
     items = WorkQueueService(test_db).list_items()
 
@@ -657,15 +636,9 @@ def test_summary_without_search_skips_client_display_loading(test_db, monkeypatc
 
 
 def test_summary_respects_history_mode(test_db):
-    _add_task_for_source(
-        test_db, source_domain=None, source_id=None, status=TaskStatus.OPEN
-    )
-    _add_task_for_source(
-        test_db, source_domain=None, source_id=None, status=TaskStatus.DONE
-    )
-    _add_task_for_source(
-        test_db, source_domain=None, source_id=None, status=TaskStatus.CANCELED
-    )
+    _add_task_for_source(test_db, source_domain=None, source_id=None, status=TaskStatus.OPEN)
+    _add_task_for_source(test_db, source_domain=None, source_id=None, status=TaskStatus.DONE)
+    _add_task_for_source(test_db, source_domain=None, source_id=None, status=TaskStatus.CANCELED)
 
     active = WorkQueueService(test_db).summary()
     history = WorkQueueService(test_db).summary(include_task_history=True)
@@ -783,9 +756,7 @@ def test_task_linked_to_source_not_in_queue_appears_as_task(test_db):
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
     task_row = next(
-        i
-        for i in items
-        if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
     )
 
     assert task_row.source_summary is not None
@@ -809,9 +780,7 @@ def test_final_source_with_open_task_returns_task_warning(test_db):
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
     task_row = next(
-        i
-        for i in items
-        if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
     )
 
     assert [w.key for w in task_row.warnings] == ["source_final"]
@@ -834,9 +803,7 @@ def test_deleted_source_with_open_task_returns_task_warning(test_db):
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
     task_row = next(
-        i
-        for i in items
-        if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
     )
 
     assert [w.key for w in task_row.warnings] == ["source_missing"]
@@ -892,9 +859,7 @@ def test_done_linked_task_history_does_not_override_source_actions(test_db):
     )
     charge_row = next(i for i in items if i.source_type == WorkQueueSourceType.CHARGE)
     task_row = next(
-        i
-        for i in items
-        if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
     )
 
     assert charge_row.linked_tasks_count == 0
@@ -951,9 +916,7 @@ def test_pagination_happens_after_merge(test_db):
             title=f"Task {idx}",
         )
 
-    page = WorkQueueService(test_db).list_items(
-        client_record_id=biz.client_id, limit=2, offset=0
-    )
+    page = WorkQueueService(test_db).list_items(client_record_id=biz.client_id, limit=2, offset=0)
 
     assert len(page) == 2
     assert all(i.source_type == WorkQueueSourceType.CHARGE for i in page)

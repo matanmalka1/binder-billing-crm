@@ -1,5 +1,8 @@
 import pytest
 
+from app.tax_calendar.integrations.tax_rules_registry import (
+    registry_periodic_calendar_available,
+)
 from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.tax_calendar.services.bootstrap import (
@@ -11,9 +14,6 @@ from app.tax_calendar.services.settings_calendar_service import (
     get_summary,
     list_entries,
     list_rules,
-)
-from app.tax_calendar.integrations.tax_rules_registry import (
-    registry_periodic_calendar_available,
 )
 
 
@@ -97,11 +97,7 @@ def test_get_summary_detects_missing_entry(test_db):
     bootstrap_tax_calendar(test_db, start_year=2026, end_year=2026)
     test_db.commit()
 
-    entry = (
-        test_db.query(TaxCalendarEntry)
-        .filter(TaxCalendarEntry.tax_year == 2026)
-        .first()
-    )
+    entry = test_db.query(TaxCalendarEntry).filter(TaxCalendarEntry.tax_year == 2026).first()
     test_db.delete(entry)
     test_db.commit()
 

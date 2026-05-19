@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import html
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +48,8 @@ class EmailChannel:
 
     # ------------------------------------------------------------------
     def send(
-        self, recipient: str, content: str, subject: Optional[str] = None
-    ) -> tuple[bool, Optional[str]]:
+        self, recipient: str, content: str, subject: str | None = None
+    ) -> tuple[bool, str | None]:
         """
         Send an email.
 
@@ -80,8 +79,8 @@ class EmailChannel:
             return (False, "EMAIL_FROM_ADDRESS is not configured")
 
         try:
-            import urllib.request
             import json
+            import urllib.request
 
             resolved_subject = subject or "הודעה ממערכת ניהול התיקים"
 
@@ -146,7 +145,7 @@ class WhatsAppChannel:
     def enabled(self) -> bool:
         return bool(self._api_key and self._from_number)
 
-    def send(self, recipient_phone: str, content: str) -> tuple[bool, Optional[str]]:
+    def send(self, recipient_phone: str, content: str) -> tuple[bool, str | None]:
         """
         Send a WhatsApp text message.
 
@@ -154,9 +153,7 @@ class WhatsAppChannel:
         When not configured returns (False, "not configured") immediately.
         """
         if not self.enabled:
-            logger.info(
-                "[WHATSAPP_DISABLED] Would send WhatsApp to %s", recipient_phone
-            )
+            logger.info("[WHATSAPP_DISABLED] Would send WhatsApp to %s", recipient_phone)
             return (False, "not configured")
 
         try:

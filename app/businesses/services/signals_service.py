@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -25,7 +24,7 @@ class SignalsService:
     def compute_business_operational_signals(
         self,
         business_id: int,
-        reference_date: Optional[date] = None,
+        reference_date: date | None = None,
     ) -> dict:
         if reference_date is None:
             reference_date = date.today()

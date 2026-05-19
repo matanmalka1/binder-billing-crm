@@ -12,9 +12,7 @@ def _create_client(test_db, suffix: str) -> SeededClient:
     )
 
 
-def _create_binder_via_api(
-    client, advisor_headers, client_record_id: int, user_id: int
-) -> int:
+def _create_binder_via_api(client, advisor_headers, client_record_id: int, user_id: int) -> int:
     res = client.post(
         "/api/v1/binders/receive",
         headers=advisor_headers,
@@ -40,9 +38,7 @@ def _create_binder_via_api(
 
 def test_get_and_delete_binder_paths(client, test_db, advisor_headers, test_user):
     crm_client = _create_client(test_db, "1")
-    binder_id = _create_binder_via_api(
-        client, advisor_headers, crm_client.id, test_user.id
-    )
+    binder_id = _create_binder_via_api(client, advisor_headers, crm_client.id, test_user.id)
 
     get_ok = client.get(f"/api/v1/binders/{binder_id}", headers=advisor_headers)
     assert get_ok.status_code == 200
@@ -63,9 +59,7 @@ def test_receive_does_not_reuse_number_after_soft_delete(
 ):
     crm_client = _create_client(test_db, "2")
 
-    first_id = _create_binder_via_api(
-        client, advisor_headers, crm_client.id, test_user.id
-    )
+    first_id = _create_binder_via_api(client, advisor_headers, crm_client.id, test_user.id)
     del_ok = client.delete(f"/api/v1/binders/{first_id}", headers=advisor_headers)
     assert del_ok.status_code == 204
 

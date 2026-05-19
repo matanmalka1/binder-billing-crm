@@ -1,6 +1,5 @@
 """Routes: invoice data entry (add / update / delete / list)."""
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, status
 
@@ -61,7 +60,7 @@ def list_invoices(
     item_id: int,
     db: DBSession,
     current_user: CurrentUser,
-    invoice_type: Optional[InvoiceType] = Query(default=None),
+    invoice_type: InvoiceType | None = Query(default=None),
 ):
     """List invoices for a work item, optionally filtered by type."""
     service = VatReportService(db)
@@ -87,9 +86,7 @@ def update_invoice(
         item_id=item_id,
         invoice_id=invoice_id,
         performed_by=current_user.id,
-        gross_amount=float(request.gross_amount)
-        if request.gross_amount is not None
-        else None,
+        gross_amount=float(request.gross_amount) if request.gross_amount is not None else None,
         invoice_number=request.invoice_number,
         invoice_date=request.invoice_date,
         counterparty_name=request.counterparty_name,

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import datetime
 from enum import Enum as PyEnum
-from typing import Any, Optional
+from typing import Any
 
-from sqlalchemy import DateTime, Index, Integer, JSON, String, Text
+from sqlalchemy import JSON, DateTime, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -36,21 +36,15 @@ class Reminder(Base):
     action_type: Mapped[ReminderActionType] = mapped_column(
         pg_enum(ReminderActionType), nullable=False
     )
-    source_domain: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    source_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    target_task_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    notification_template_key: Mapped[Optional[str]] = mapped_column(
-        String(100), nullable=True
-    )
-    payload: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
-    created_by_user_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    fired_at: Mapped[Optional[datetime.datetime]] = mapped_column(
-        DateTime, nullable=True
-    )
-    failure_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=utcnow, nullable=False
-    )
+    source_domain: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    source_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    target_task_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    notification_template_key: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    payload: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    created_by_user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    fired_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+    failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
     updated_at: Mapped[datetime.datetime] = mapped_column(
         DateTime, default=utcnow, onupdate=utcnow, nullable=False
     )

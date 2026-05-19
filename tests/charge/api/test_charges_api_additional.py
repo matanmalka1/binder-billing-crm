@@ -44,9 +44,7 @@ def test_get_charge_as_advisor_and_delete_paths(client, advisor_headers, test_db
     assert delete_missing.status_code == 404
 
 
-def test_bulk_action_endpoint_and_invalid_period_validation(
-    client, advisor_headers, test_db
-):
+def test_bulk_action_endpoint_and_invalid_period_validation(client, advisor_headers, test_db):
     business = _business(test_db)
     first = client.post(
         "/api/v1/charges",

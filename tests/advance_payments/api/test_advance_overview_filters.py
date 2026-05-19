@@ -8,7 +8,7 @@ from app.advance_payments.repositories.advance_payment_repository import (
 )
 from app.clients.models.client_record import ClientRecord
 from app.common.enums import AdvancePaymentFrequency
-from tests.helpers.identity import seed_client_identity, seed_business
+from tests.helpers.identity import seed_business, seed_client_identity
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 _seq = count(1)
@@ -141,9 +141,7 @@ def test_overview_client_search_by_id_number(client, test_db, advisor_headers):
     assert resp.json()["total"] == 1
 
 
-def test_overview_client_search_by_office_client_number(
-    client, test_db, advisor_headers
-):
+def test_overview_client_search_by_office_client_number(client, test_db, advisor_headers):
     b = _business(test_db)
     cr = test_db.get(ClientRecord, b.client_record_id)
     cr.office_client_number = 88771

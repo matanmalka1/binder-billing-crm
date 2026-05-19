@@ -1,10 +1,9 @@
 """Repository for AnnualReportExpenseLine entities."""
 
 from decimal import Decimal
-from typing import Optional
 
-from sqlalchemy.orm import Session
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_expense_line import (
     AnnualReportExpenseLine,
@@ -14,9 +13,7 @@ from app.annual_reports.repositories.financial_line_mixin import FinancialLineMi
 from app.common.repositories.base_repository import BaseRepository
 
 
-class AnnualReportExpenseRepository(
-    FinancialLineMixin, BaseRepository[AnnualReportExpenseLine]
-):
+class AnnualReportExpenseRepository(FinancialLineMixin, BaseRepository[AnnualReportExpenseLine]):
     def __init__(self, db: Session):
         self.db = db
 
@@ -26,9 +23,9 @@ class AnnualReportExpenseRepository(
         category: ExpenseCategoryType,
         amount: Decimal,
         recognition_rate: Decimal,
-        description: Optional[str] = None,
-        external_document_reference: Optional[str] = None,
-        supporting_document_id: Optional[int] = None,
+        description: str | None = None,
+        external_document_reference: str | None = None,
+        supporting_document_id: int | None = None,
     ) -> AnnualReportExpenseLine:
         line = AnnualReportExpenseLine(
             annual_report_id=annual_report_id,
@@ -50,12 +47,12 @@ class AnnualReportExpenseRepository(
             .order_by(AnnualReportExpenseLine.category.asc())
         ).all()
 
-    def get_by_id(self, line_id: int) -> Optional[AnnualReportExpenseLine]:
+    def get_by_id(self, line_id: int) -> AnnualReportExpenseLine | None:
         return self.db.scalars(
             select(AnnualReportExpenseLine).where(AnnualReportExpenseLine.id == line_id)
         ).first()
 
-    def update(self, line_id: int, **fields) -> Optional[AnnualReportExpenseLine]:
+    def update(self, line_id: int, **fields) -> AnnualReportExpenseLine | None:
         return self._update_line(self.get_by_id, line_id, **fields)
 
     def delete(
@@ -82,10 +79,7 @@ class AnnualReportExpenseRepository(
         """Sum of amount × recognition_rate across all expense lines."""
         lines = self.list_by_report(annual_report_id)
         return sum(
-            (
-                Decimal(str(line.amount)) * Decimal(str(line.recognition_rate))
-                for line in lines
-            ),
+            (Decimal(str(line.amount)) * Decimal(str(line.recognition_rate)) for line in lines),
             Decimal("0"),
         )
 

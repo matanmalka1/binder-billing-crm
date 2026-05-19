@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from itertools import count
 from datetime import date
+from itertools import count
 
 from app.businesses.models.business import Business, BusinessStatus
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
+from app.clients.enums import ClientStatus
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
-from app.clients.enums import ClientStatus
 from app.common.enums import IdNumberType, VatType
 
 _seq = count(1)

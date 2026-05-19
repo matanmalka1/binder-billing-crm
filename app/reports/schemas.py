@@ -1,11 +1,10 @@
 from datetime import date
-from typing import Optional
 
 from pydantic import BaseModel
 
 from app.annual_reports.models.annual_report_enums import (
-    PrimaryAnnualReportForm,
     AnnualReportStatus,
+    PrimaryAnnualReportForm,
 )
 
 
@@ -40,7 +39,7 @@ class VatComplianceReportResponse(BaseModel):
 
 class AdvancePaymentReportItemResponse(BaseModel):
     client_record_id: int
-    office_client_number: Optional[int] = None
+    office_client_number: int | None = None
     client_name: str
     total_expected: float
     total_paid: float
@@ -50,7 +49,7 @@ class AdvancePaymentReportItemResponse(BaseModel):
 
 class AdvancePaymentCollectionsReportResponse(BaseModel):
     year: int
-    month: Optional[int] = None
+    month: int | None = None
     total_expected: float
     total_paid: float
     collection_rate: float
@@ -61,9 +60,9 @@ class AdvancePaymentCollectionsReportResponse(BaseModel):
 class AnnualReportStatusClientResponse(BaseModel):
     client_record_id: int
     client_name: str
-    form_type: Optional[PrimaryAnnualReportForm] = None
-    filing_deadline: Optional[date] = None
-    days_until_deadline: Optional[int] = None
+    form_type: PrimaryAnnualReportForm | None = None
+    filing_deadline: date | None = None
+    days_until_deadline: int | None = None
 
 
 class AnnualReportStatusGroupResponse(BaseModel):
@@ -86,8 +85,8 @@ class AgingReportItemResponse(BaseModel):
     days_30: float
     days_60: float
     days_90_plus: float
-    oldest_invoice_date: Optional[date] = None
-    oldest_invoice_days: Optional[int] = None
+    oldest_invoice_date: date | None = None
+    oldest_invoice_days: int | None = None
 
 
 class AgingReportSummaryResponse(BaseModel):

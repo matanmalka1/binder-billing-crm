@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -20,7 +19,7 @@ class DashboardTaxService:
 
     def get_submission_widget_data(
         self,
-        tax_year: Optional[int] = None,
+        tax_year: int | None = None,
     ) -> dict:
         """Get annual report submission statistics."""
         if tax_year is None:
@@ -31,16 +30,12 @@ class DashboardTaxService:
         # TRANSMITTED / fully done statuses
         submitted = self.report_repo.count_by_status(
             AnnualReportStatus.SUBMITTED, tax_year=tax_year
-        ) + self.report_repo.count_by_status(
-            AnnualReportStatus.CLOSED, tax_year=tax_year
-        )
+        ) + self.report_repo.count_by_status(AnnualReportStatus.CLOSED, tax_year=tax_year)
 
         # IN_PROGRESS statuses
         in_progress = self.report_repo.count_by_status(
             AnnualReportStatus.IN_PREPARATION, tax_year=tax_year
-        ) + self.report_repo.count_by_status(
-            AnnualReportStatus.PENDING_CLIENT, tax_year=tax_year
-        )
+        ) + self.report_repo.count_by_status(AnnualReportStatus.PENDING_CLIENT, tax_year=tax_year)
 
         # MATERIAL_COLLECTION statuses
         material_collection = self.report_repo.count_by_status(

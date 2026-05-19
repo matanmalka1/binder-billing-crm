@@ -8,9 +8,8 @@ from app.advance_payments.services.advance_payment_service import AdvancePayment
 from app.clients.enums import ClientStatus
 from app.clients.models.client_record import ClientRecord
 from app.common.enums import AdvancePaymentFrequency
-from app.core.exceptions import NotFoundError, ForbiddenError
+from app.core.exceptions import ForbiddenError, NotFoundError
 from tests.helpers.identity import seed_client_identity
-
 
 _seq = count(1)
 

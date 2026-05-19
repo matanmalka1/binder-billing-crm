@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ from app.common.repositories.base_repository import BaseRepository
 @dataclass(frozen=True, slots=True)
 class ClientDisplayProfile:
     client_name: str
-    office_client_number: Optional[int]
+    office_client_number: int | None
 
 
 class ClientIdentityRepository(BaseRepository[ClientRecord]):
@@ -23,9 +23,7 @@ class ClientIdentityRepository(BaseRepository[ClientRecord]):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def get_display_map(
-        self, client_record_ids: Iterable[int]
-    ) -> dict[int, ClientDisplayProfile]:
+    def get_display_map(self, client_record_ids: Iterable[int]) -> dict[int, ClientDisplayProfile]:
         ids = list(set(client_record_ids))
         if not ids:
             return {}

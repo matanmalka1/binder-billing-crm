@@ -22,9 +22,7 @@ def task_summary(task) -> LinkedTaskSummary:
         title=task.title,
         status=task.status.value,
         due_date=due,
-        priority=task.priority.value
-        if hasattr(task.priority, "value")
-        else task.priority,
+        priority=task.priority.value if hasattr(task.priority, "value") else task.priority,
         assigned_user_id=task.assigned_to_user_id,
         assigned_role=task.assigned_role,
     )
@@ -32,9 +30,7 @@ def task_summary(task) -> LinkedTaskSummary:
 
 def task_item(ctx: WorkQueueContext, task) -> WorkQueueItem:
     due = task.due_date
-    item_urgency = (
-        urgency(due, ctx.today) if due is not None else WorkQueueUrgency.UPCOMING
-    )
+    item_urgency = urgency(due, ctx.today) if due is not None else WorkQueueUrgency.UPCOMING
     return WorkQueueItem(
         id=f"{WorkQueueSourceType.TASK.value}:{task.id}",
         source_type=WorkQueueSourceType.TASK,

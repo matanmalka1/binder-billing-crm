@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import datetime
 from enum import Enum as PyEnum
-from typing import Optional
 
 from sqlalchemy import ForeignKey, Index, SmallInteger, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -66,15 +65,15 @@ class Notification(Base):
         ForeignKey("client_records.id"), nullable=False, index=True
     )
     # OPTIONAL: set when the notification is scoped to a specific business
-    business_id: Mapped[Optional[int]] = mapped_column(
+    business_id: Mapped[int | None] = mapped_column(
         ForeignKey("businesses.id"), nullable=True, index=True
     )
     # OPTIONAL: set when triggered by a binder event
-    binder_id: Mapped[Optional[int]] = mapped_column(
+    binder_id: Mapped[int | None] = mapped_column(
         ForeignKey("binders.id"), nullable=True, index=True
     )
     # OPTIONAL: set when triggered by an annual report event
-    annual_report_id: Mapped[Optional[int]] = mapped_column(
+    annual_report_id: Mapped[int | None] = mapped_column(
         ForeignKey("annual_reports.id"), nullable=True, index=True
     )
 
@@ -91,9 +90,7 @@ class Notification(Base):
         nullable=False,
     )
     recipient: Mapped[str] = mapped_column(String, nullable=False)  # phone or email
-    content_snapshot: Mapped[str] = mapped_column(
-        Text, nullable=False
-    )  # rendered at send time
+    content_snapshot: Mapped[str] = mapped_column(Text, nullable=False)  # rendered at send time
 
     # ── Delivery status ───────────────────────────────────────────────────────
     status: Mapped[NotificationStatus] = mapped_column(
@@ -101,19 +98,17 @@ class Notification(Base):
         default=NotificationStatus.PENDING,
         nullable=False,
     )
-    sent_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    failed_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[datetime.datetime | None] = mapped_column(nullable=True)
+    failed_at: Mapped[datetime.datetime | None] = mapped_column(nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     retry_count: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
 
     # ── Metadata ──────────────────────────────────────────────────────────────
-    triggered_by: Mapped[Optional[int]] = mapped_column(
+    triggered_by: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"),
         nullable=True,  # None = system-triggered
     )
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        default=utcnow, nullable=False
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, nullable=False)
 
     __table_args__ = (
         Index("idx_notification_status", "status"),

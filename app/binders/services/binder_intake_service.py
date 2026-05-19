@@ -1,29 +1,28 @@
 import logging
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AppError
+from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder_intake import BinderIntake
+from app.binders.repositories.binder_intake_material_repository import (
+    BinderIntakeMaterialRepository,
+)
+from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
+from app.binders.repositories.binder_repository import BinderRepository
+from app.binders.repositories.binder_status_log_repository import (
+    BinderStatusLogRepository,
+)
 from app.binders.services.messages import (
     BINDER_CLIENT_LOCKED,
     BINDER_CREATED_OLD_STATUS,
     BINDER_RECEIVED,
 )
-from app.binders.models.binder import Binder, BinderStatus
-from app.binders.models.binder_intake import BinderIntake
-from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import (
-    BinderStatusLogRepository,
-)
-from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
-from app.binders.repositories.binder_intake_material_repository import (
-    BinderIntakeMaterialRepository,
-)
 from app.businesses.models.business import BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.core.exceptions import AppError
 from app.notification.models.notification import NotificationTrigger
 from app.notification.services.notification_service import NotificationService
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -53,8 +52,8 @@ class BinderIntakeService:
         received_at: date,
         received_by: int,
         open_new_binder: bool = False,
-        notes: Optional[str] = None,
-        materials: Optional[list[dict]] = None,
+        notes: str | None = None,
+        materials: list[dict] | None = None,
     ) -> tuple[Binder, BinderIntake, bool]:
         """
         Find open (IN_OFFICE) binder or create new one, then record the intake.
@@ -72,9 +71,7 @@ class BinderIntakeService:
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         assert_client_record_is_active(client_record)
 
-        businesses = self.business_repo.list_by_legal_entity(
-            client_record.legal_entity_id
-        )
+        businesses = self.business_repo.list_by_legal_entity(client_record.legal_entity_id)
         has_active = any(b.status == BusinessStatus.ACTIVE for b in businesses)
         if businesses and not has_active:
             raise AppError(BINDER_CLIENT_LOCKED, "BINDER.CLIENT_LOCKED")
@@ -102,15 +99,11 @@ class BinderIntakeService:
                 self.db.flush()
 
             if client_record.office_client_number is None:
-                raise AppError(
-                    BINDER_OFFICE_NUMBER_MISSING, "BINDER.OFFICE_NUMBER_MISSING"
-                )
+                raise AppError(BINDER_OFFICE_NUMBER_MISSING, "BINDER.OFFICE_NUMBER_MISSING")
             seq = self.binder_repo.count_all_by_client(client_record_id) + 1
             binder = self.binder_repo.create(
                 client_record_id=client_record_id,
-                binder_number=self._build_binder_number(
-                    client_record.office_client_number, seq
-                ),
+                binder_number=self._build_binder_number(client_record.office_client_number, seq),
                 period_start=None,
                 created_by=received_by,
             )
@@ -176,7 +169,7 @@ class BinderIntakeService:
 
     def _auto_advance_vat_work_items(
         self,
-        materials: Optional[list[dict]],
+        materials: list[dict] | None,
         performed_by: int,
     ) -> None:
         """Advance PENDING_MATERIALS → MATERIAL_RECEIVED for linked VAT work items."""
@@ -212,9 +205,9 @@ class BinderIntakeService:
         self,
         *,
         client_record_id: int,
-        active_binder: Optional[Binder],
-        materials: Optional[list[dict]],
-    ) -> Optional[Binder]:
+        active_binder: Binder | None,
+        materials: list[dict] | None,
+    ) -> Binder | None:
         """
         Pick an existing binder for the intake before any "open new binder" logic runs.
 
@@ -252,7 +245,7 @@ class BinderIntakeService:
         active_binder_id: int,
         min_period_start: date,
         max_period_end: date,
-    ) -> Optional[Binder]:
+    ) -> Binder | None:
         """
         Return the latest older binder whose stored period window can contain the intake.
 
@@ -268,18 +261,15 @@ class BinderIntakeService:
                 continue
             if binder.period_start is None or binder.period_end is None:
                 continue
-            if (
-                binder.period_start <= min_period_start
-                and max_period_end <= binder.period_end
-            ):
+            if binder.period_start <= min_period_start and max_period_end <= binder.period_end:
                 candidates.append(binder)
 
         return candidates[-1] if candidates else None
 
     @staticmethod
     def _extract_material_period_window(
-        materials: Optional[list[dict]],
-    ) -> Optional[tuple[date, date]]:
+        materials: list[dict] | None,
+    ) -> tuple[date, date] | None:
         periods: list[tuple[date, date]] = []
         for mat in materials or []:
             py = mat.get("period_year")
@@ -302,8 +292,8 @@ class BinderIntakeService:
     def _validate_old_period_note(
         self,
         binder: Binder,
-        materials: Optional[list[dict]],
-        notes: Optional[str],
+        materials: list[dict] | None,
+        notes: str | None,
     ) -> None:
         """
         Enforce old-period note requirement.
@@ -334,9 +324,7 @@ class BinderIntakeService:
                     )
                 break
 
-    def _resolve_closing_period_structured(
-        self, binder_id: int, fallback: date
-    ) -> date:
+    def _resolve_closing_period_structured(self, binder_id: int, fallback: date) -> date:
         """Derive period_end from the last material's structured period fields."""
         import calendar as _cal
 

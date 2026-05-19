@@ -25,9 +25,7 @@ def _business(db) -> Business:
     return business
 
 
-def _doc(
-    db, business: Business, annual_report_id: int | None = None
-) -> PermanentDocument:
+def _doc(db, business: Business, annual_report_id: int | None = None) -> PermanentDocument:
     return PermanentDocumentRepository(db).create(
         client_record_id=business.client_id,
         business_id=business.id,
@@ -54,7 +52,5 @@ def test_list_versions_returns_empty_for_missing_document_type(test_db):
     business = _business(test_db)
     service = PermanentDocumentActionService(test_db)
 
-    versions = service.get_document_versions(
-        business.client_id, DocumentType.POWER_OF_ATTORNEY
-    )
+    versions = service.get_document_versions(business.client_id, DocumentType.POWER_OF_ATTORNEY)
     assert versions == []

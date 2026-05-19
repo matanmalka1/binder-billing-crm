@@ -3,8 +3,8 @@ from datetime import date, datetime
 
 from sqlalchemy.orm import Session
 
-from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
+from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.common.enums import ObligationType
 from app.tax_calendar.repositories.grouped_repository import (
     TaxCalendarGroupedRepository,
@@ -143,9 +143,7 @@ def _filter_groups_by_status(
         return [
             group
             for group in groups
-            if group.linked_count > 0
-            and group.open_count == 0
-            and group.overdue_count == 0
+            if group.linked_count > 0 and group.open_count == 0 and group.overdue_count == 0
         ]
     return groups
 
@@ -190,9 +188,7 @@ def _linked_rows_by_entry(
 def _effective_due_dates(entry, rows: list) -> tuple[date, date]:
     if not rows:
         return entry.due_date, entry.due_date
-    due_dates = [
-        _row_due_date(entry.obligation_type, row, entry.due_date) for row in rows
-    ]
+    due_dates = [_row_due_date(entry.obligation_type, row, entry.due_date) for row in rows]
     return min(due_dates), max(due_dates)
 
 

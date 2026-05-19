@@ -1,5 +1,5 @@
-import io
 import asyncio
+import io
 from types import SimpleNamespace
 
 import pytest
@@ -45,18 +45,14 @@ def test_template_download(client, advisor_headers):
     )
 
 
-def test_import_clients_excel_advisor_only(
-    client, advisor_headers, secretary_headers, monkeypatch
-):
+def test_import_clients_excel_advisor_only(client, advisor_headers, secretary_headers, monkeypatch):
     calls = []
 
     def _create_client_stub(self, **kwargs):
         calls.append(kwargs)
         return object(), object()
 
-    monkeypatch.setattr(
-        clients_excel_api.CreateClientService, "create_client", _create_client_stub
-    )
+    monkeypatch.setattr(clients_excel_api.CreateClientService, "create_client", _create_client_stub)
     payload = _workbook_bytes(
         [
             ["full_name", "business_name", "id_number", "phone", "email"],
@@ -113,9 +109,7 @@ def test_import_clients_excel_returns_row_errors(client, advisor_headers, monkey
         seen.add(id_number)
         return object(), object()
 
-    monkeypatch.setattr(
-        clients_excel_api.CreateClientService, "create_client", _create_client_stub
-    )
+    monkeypatch.setattr(clients_excel_api.CreateClientService, "create_client", _create_client_stub)
     payload = _workbook_bytes(
         [
             ["full_name", "business_name", "id_number", "phone", "email"],
@@ -221,15 +215,11 @@ def test_import_clients_excel_invalid_file(client, advisor_headers):
     assert response.status_code == 400
 
 
-def test_export_clients_excel_handles_service_import_error(
-    client, advisor_headers, monkeypatch
-):
+def test_export_clients_excel_handles_service_import_error(client, advisor_headers, monkeypatch):
     monkeypatch.setattr(
         clients_excel_api.ClientExcelService,
         "export_clients",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            ImportError("missing dependency")
-        ),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("missing dependency")),
     )
 
     response = client.get("/api/v1/clients/export", headers=advisor_headers)
@@ -238,15 +228,11 @@ def test_export_clients_excel_handles_service_import_error(
     assert response.json()["detail"] == "missing dependency"
 
 
-def test_template_download_handles_service_import_error(
-    client, advisor_headers, monkeypatch
-):
+def test_template_download_handles_service_import_error(client, advisor_headers, monkeypatch):
     monkeypatch.setattr(
         clients_excel_api.ClientExcelService,
         "generate_template",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            ImportError("missing template dependency")
-        ),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("missing template dependency")),
     )
 
     response = client.get("/api/v1/clients/template", headers=advisor_headers)
@@ -276,9 +262,7 @@ def test_import_clients_excel_rejects_large_body_without_content_length(
     assert response.status_code == 413
 
 
-def test_import_clients_excel_openpyxl_missing_returns_500(
-    client, advisor_headers, monkeypatch
-):
+def test_import_clients_excel_openpyxl_missing_returns_500(client, advisor_headers, monkeypatch):
     original_import = __import__
 
     def _import(name, *args, **kwargs):

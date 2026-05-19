@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -21,7 +21,6 @@ from app.notification.models.notification import (
 )
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.services.notification_service import NotificationService
-from datetime import date
 
 
 def _make_client(db, *, email: str = "owner@test.com", phone: str | None = None) -> int:
@@ -135,9 +134,7 @@ def test_notify_client_missing_template_key_raises_app_error(test_db, monkeypatc
             template_data={},  # missing binder_number and period_start
         )
 
-    _, total = NotificationRepository(test_db).list_paginated(
-        client_record_id=client_record_id
-    )
+    _, total = NotificationRepository(test_db).list_paginated(client_record_id=client_record_id)
     assert total == 0
 
 
@@ -233,8 +230,6 @@ def test_notify_client_email_failure_persists_failed_record(test_db, monkeypatch
     )
 
     assert ok is False
-    items, total = NotificationRepository(test_db).list_paginated(
-        client_record_id=client_record_id
-    )
+    items, total = NotificationRepository(test_db).list_paginated(client_record_id=client_record_id)
     assert total == 1
     assert items[0].status == NotificationStatus.FAILED

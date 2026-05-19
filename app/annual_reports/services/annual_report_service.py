@@ -1,27 +1,28 @@
 from sqlalchemy.orm import Session
 
-from app.audit.constants import ENTITY_ANNUAL_REPORT
-from app.audit.services.entity_audit_writer import EntityAuditWriter
-from app.core.exceptions import NotFoundError
-from app.annual_reports.repositories.annual_report_repository import (
-    AnnualReportRepository,
-)
-from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
 from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
 )
+from app.annual_reports.repositories.annex_data_repository import AnnexDataRepository
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
+from app.audit.constants import ENTITY_ANNUAL_REPORT
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.core.exceptions import NotFoundError
 from app.users.repositories.user_repository import UserRepository
 from app.vat_reports.repositories.vat_work_item_write_repository import (
     VatWorkItemWriteRepository as VatWorkItemRepository,
 )
-from .create_service import AnnualReportCreateService
-from .query_service import AnnualReportQueryService
-from .season_service import AnnualReportSeasonService
-from .schedule_service import AnnualReportScheduleService
-from .status_service import AnnualReportStatusService
+
 from .annex_service import AnnualReportAnnexService
+from .create_service import AnnualReportCreateService
 from .messages import ANNUAL_REPORT_DELETED_REASON, ANNUAL_REPORT_NOT_FOUND
+from .query_service import AnnualReportQueryService
+from .schedule_service import AnnualReportScheduleService
+from .season_service import AnnualReportSeasonService
+from .status_service import AnnualReportStatusService
 
 
 class AnnualReportService(
@@ -63,9 +64,7 @@ class AnnualReportService(
         )
         result = self.repo.soft_delete(report_id, deleted_by=actor_id)
         if result:
-            EntityAuditWriter(self.db).record_delete(
-                ENTITY_ANNUAL_REPORT, report_id, actor_id
-            )
+            EntityAuditWriter(self.db).record_delete(ENTITY_ANNUAL_REPORT, report_id, actor_id)
         return result
 
 

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from .obligations.annual_reports import ANNUAL_REPORT_RULES_V2
 from .obligations.income_tax import INCOME_TAX_ADVANCE_RULES
 from .obligations.national_insurance import NATIONAL_INSURANCE_RULES
 from .obligations.vat import VAT_RULES
 from .obligations.withholding import WITHHOLDING_RULES
-from .obligations.annual_reports import ANNUAL_REPORT_RULES_V2
 from .types import (
     BtlStatus,
     ClientTaxProfile,
@@ -95,9 +95,7 @@ def resolve_obligation_rules(profile: ClientTaxProfile) -> list[ObligationRule]:
       requires_pcn874: bool
       has_representative: bool
     """
-    return [
-        rule for rule in ALL_OBLIGATION_RULES if _scope_matches(rule.scope, profile)
-    ]
+    return [rule for rule in ALL_OBLIGATION_RULES if _scope_matches(rule.scope, profile)]
 
 
 def resolve_annual_report_rule(entity_type: str, tax_year: int) -> dict | None:

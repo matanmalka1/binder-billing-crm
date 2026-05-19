@@ -26,9 +26,7 @@ def _seed_binder_with_history(db, user_id: int):
     db.refresh(binder)
 
     log_repo = BinderStatusLogRepository(db)
-    log_repo.append(
-        binder.id, old_status="null", new_status="in_office", changed_by=user_id
-    )
+    log_repo.append(binder.id, old_status="null", new_status="in_office", changed_by=user_id)
     log_repo.append(
         binder.id,
         old_status="in_office",
@@ -38,9 +36,7 @@ def _seed_binder_with_history(db, user_id: int):
     return binder
 
 
-def test_binder_history_endpoint_returns_logs(
-    client, test_db, advisor_headers, test_user
-):
+def test_binder_history_endpoint_returns_logs(client, test_db, advisor_headers, test_user):
     binder = _seed_binder_with_history(test_db, test_user.id)
 
     resp = client.get(f"/api/v1/binders/{binder.id}/history", headers=advisor_headers)

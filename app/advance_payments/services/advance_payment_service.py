@@ -1,11 +1,9 @@
 from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Literal, Optional
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Literal
 
 from sqlalchemy.orm import Session
 
-from app.utils.time_utils import utcnow
-from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.advance_payments.models.advance_payment import (
     AdvancePayment,
     AdvancePaymentStatus,
@@ -13,22 +11,24 @@ from app.advance_payments.models.advance_payment import (
 from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
 )
+from app.advance_payments.repositories.turnover_lookup_repository import (
+    TurnoverLookupRepository,
+)
 from app.advance_payments.services.constants import (
     BIMONTHLY_START_MONTHS,
     SUPPORTED_PERIOD_MONTH_COUNTS,
     get_period_start_months,
 )
-from app.common.period_utils import parse_period_month
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
 from app.common.enums import AdvancePaymentFrequency, ObligationType
-from app.advance_payments.repositories.turnover_lookup_repository import (
-    TurnoverLookupRepository,
-)
+from app.common.period_utils import parse_period_month
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.tax_calendar.services.materialization_service import (
     TaxCalendarMaterializationService,
 )
+from app.utils.time_utils import utcnow
 
 
 class AdvancePaymentService:
@@ -60,21 +60,12 @@ class AdvancePaymentService:
             return 2
         if freq == AdvancePaymentFrequency.MONTHLY:
             return 1
-        raise NotFoundError(
-            "תדירות מקדמות לא מוגדרת ללקוח", "ADVANCE_PAYMENT.FREQUENCY_NOT_SET"
-        )
+        raise NotFoundError("תדירות מקדמות לא מוגדרת ללקוח", "ADVANCE_PAYMENT.FREQUENCY_NOT_SET")
 
-    def _validate_period_months_count(
-        self, period: str, period_months_count: int
-    ) -> None:
+    def _validate_period_months_count(self, period: str, period_months_count: int) -> None:
         if period_months_count not in SUPPORTED_PERIOD_MONTH_COUNTS:
-            raise ConflictError(
-                "תדירות מקדמה לא נתמכת", "ADVANCE_PAYMENT.INVALID_PERIOD"
-            )
-        if (
-            period_months_count == 2
-            and parse_period_month(period) not in BIMONTHLY_START_MONTHS
-        ):
+            raise ConflictError("תדירות מקדמה לא נתמכת", "ADVANCE_PAYMENT.INVALID_PERIOD")
+        if period_months_count == 2 and parse_period_month(period) not in BIMONTHLY_START_MONTHS:
             raise ConflictError(
                 "מקדמה דו-חודשית חייבת להתחיל בחודש אי-זוגי",
                 "ADVANCE_PAYMENT.INVALID_PERIOD",
@@ -86,7 +77,7 @@ class AdvancePaymentService:
         advance_rate,
         override_amount,
         fallback_expected=None,
-    ) -> tuple[Optional[Decimal], Optional[Decimal]]:
+    ) -> tuple[Decimal | None, Decimal | None]:
         if turnover_amount is not None and advance_rate is not None:
             calculated = (
                 Decimal(str(turnover_amount)) * Decimal(str(advance_rate)) / 100
@@ -107,8 +98,8 @@ class AdvancePaymentService:
     def list_payments_for_client(
         self,
         client_record_id: int,
-        year: Optional[int] = None,
-        status: Optional[list[AdvancePaymentStatus]] = None,
+        year: int | None = None,
+        status: list[AdvancePaymentStatus] | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[AdvancePayment], int]:
@@ -125,12 +116,12 @@ class AdvancePaymentService:
         self,
         client_record_id: int,
         period: str,
-        period_months_count: Optional[int],
+        period_months_count: int | None,
         expected_amount=None,
         paid_amount=None,
         payment_method=None,
-        annual_report_id: Optional[int] = None,
-        notes: Optional[str] = None,
+        annual_report_id: int | None = None,
+        notes: str | None = None,
         turnover_amount=None,
         advance_rate=None,
         override_amount=None,
@@ -264,8 +255,8 @@ class AdvancePaymentService:
         self,
         client_record_id: int,
         year: int,
-        period_months_count: Optional[int] = None,
-        reference_date: Optional[date] = None,
+        period_months_count: int | None = None,
+        reference_date: date | None = None,
     ) -> tuple[list[AdvancePayment], int]:
         if reference_date is None:
             reference_date = date.today()
@@ -309,9 +300,7 @@ class AdvancePaymentService:
         client_record_id: int,
         period: str,
         period_months_count: int,
-    ) -> tuple[
-        Optional[Decimal], Optional[int], Literal["vat_filed", "vat_pending", "none"]
-    ]:
+    ) -> tuple[Decimal | None, int | None, Literal["vat_filed", "vat_pending", "none"]]:
         self._get_record_or_raise(client_record_id)
         return TurnoverLookupRepository(self.db).get_prefill_turnover(
             client_record_id, period, period_months_count

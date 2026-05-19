@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -8,12 +7,12 @@ class SearchResult(BaseModel):
 
     result_type: str  # "client" | "binder"
     client_id: int
-    office_client_number: Optional[int] = None
+    office_client_number: int | None = None
     client_name: str
-    id_number: Optional[str] = None
-    client_status: Optional[str] = None
-    binder_id: Optional[int] = None
-    binder_number: Optional[str] = None
+    id_number: str | None = None
+    client_status: str | None = None
+    binder_id: int | None = None
+    binder_number: str | None = None
 
 
 class DocumentSearchResult(BaseModel):
@@ -21,13 +20,13 @@ class DocumentSearchResult(BaseModel):
 
     id: int
     client_record_id: int
-    office_client_number: Optional[int] = None
+    office_client_number: int | None = None
     client_name: str
-    business_id: Optional[int] = None
-    business_name: Optional[str] = None
+    business_id: int | None = None
+    business_name: str | None = None
     document_type: str
-    original_filename: Optional[str] = None
-    tax_year: Optional[int] = None
+    original_filename: str | None = None
+    tax_year: int | None = None
 
 
 class SearchResponse(BaseModel):

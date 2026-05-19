@@ -15,9 +15,7 @@ def _disabled(action: ActionDescriptor, reason: str) -> ActionDescriptor:
     return action
 
 
-def source_link_action(
-    source_type: WorkQueueSourceType, source_id: int
-) -> ActionDescriptor | None:
+def source_link_action(source_type: WorkQueueSourceType, source_id: int) -> ActionDescriptor | None:
     route = source_route(source_type, source_id)
     if route is None:
         return None
@@ -64,9 +62,7 @@ def task_actions(
             )
         )
     if status == TaskStatus.OPEN.value:
-        actions.append(
-            _modal(f"edit_task{suffix}", f"ערוך משימה{label_suffix}", task_id=task_id)
-        )
+        actions.append(_modal(f"edit_task{suffix}", f"ערוך משימה{label_suffix}", task_id=task_id))
         actions.extend(
             [
                 _mutation(
@@ -90,11 +86,7 @@ def task_actions(
             ]
         )
     else:
-        reason = (
-            "המשימה כבר הושלמה"
-            if status == TaskStatus.DONE.value
-            else "המשימה כבר בוטלה"
-        )
+        reason = "המשימה כבר הושלמה" if status == TaskStatus.DONE.value else "המשימה כבר בוטלה"
         actions.extend(
             [
                 _disabled(

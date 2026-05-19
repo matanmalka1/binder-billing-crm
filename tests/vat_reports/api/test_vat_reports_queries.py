@@ -141,9 +141,7 @@ def test_list_work_items_supports_filter_by_client_name_and_id_number(
     assert any(item["id"] == target_item_id for item in payload_name["items"])
 
 
-def test_period_options_default_monthly_returns_12_periods(
-    client, advisor_headers, vat_client
-):
+def test_period_options_default_monthly_returns_12_periods(client, advisor_headers, vat_client):
     resp = client.get(
         f"/api/v1/vat/clients/{vat_client.id}/period-options?year=2026",
         headers=advisor_headers,
@@ -164,11 +162,7 @@ def test_period_options_bimonthly_uses_odd_months_and_marks_opened(
 ):
     from app.clients.models.legal_entity import LegalEntity
 
-    le = (
-        test_db.query(LegalEntity)
-        .filter(LegalEntity.id == vat_client.legal_entity_id)
-        .first()
-    )
+    le = test_db.query(LegalEntity).filter(LegalEntity.id == vat_client.legal_entity_id).first()
     le.vat_reporting_frequency = VatType.BIMONTHLY
     test_db.commit()
 

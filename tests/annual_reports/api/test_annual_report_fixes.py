@@ -5,9 +5,7 @@ def _create_client(db, id_number: str = "AR_FIX_001"):
     return seed_client_identity(db, full_name="Annual Fix Client", id_number=id_number)
 
 
-def test_create_report_invalid_assigned_to_raises_error(
-    client, test_db, advisor_headers
-):
+def test_create_report_invalid_assigned_to_raises_error(client, test_db, advisor_headers):
     """assigned_to with non-existent user ID must return 400."""
     c = _create_client(test_db, "AR_ASSIGN_001")
 
@@ -27,9 +25,7 @@ def test_create_report_invalid_assigned_to_raises_error(
     assert response.json()["error"] == "USER.NOT_FOUND"
 
 
-def test_create_report_valid_assigned_to_succeeds(
-    client, test_db, advisor_headers, test_user
-):
+def test_create_report_valid_assigned_to_succeeds(client, test_db, advisor_headers, test_user):
     """assigned_to with an existing user ID must succeed."""
     c = _create_client(test_db, "AR_ASSIGN_002")
 

@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,13 +21,13 @@ class PersonRepository(BaseRepository[Person]):
         full_name: str,
         id_number: str,
         id_number_type: IdNumberType,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
-        address_street: Optional[str] = None,
-        address_building_number: Optional[str] = None,
-        address_apartment: Optional[str] = None,
-        address_city: Optional[str] = None,
-        address_zip_code: Optional[str] = None,
+        phone: str | None = None,
+        email: str | None = None,
+        address_street: str | None = None,
+        address_building_number: str | None = None,
+        address_apartment: str | None = None,
+        address_city: str | None = None,
+        address_zip_code: str | None = None,
     ) -> Person:
         person = Person(
             full_name=full_name,
@@ -46,9 +45,7 @@ class PersonRepository(BaseRepository[Person]):
         self.db.flush()
         return person
 
-    def get_by_id_number(
-        self, id_number_type: IdNumberType, id_number: str
-    ) -> Optional[Person]:
+    def get_by_id_number(self, id_number_type: IdNumberType, id_number: str) -> Person | None:
         return self.db.scalars(
             select(Person).where(
                 Person.id_number_type == id_number_type,
@@ -72,7 +69,7 @@ class PersonRepository(BaseRepository[Person]):
         self.db.flush()
         return link
 
-    def get_owner_for_legal_entity(self, legal_entity_id: int) -> Optional[Person]:
+    def get_owner_for_legal_entity(self, legal_entity_id: int) -> Person | None:
         return self.db.scalars(
             select(Person)
             .join(PersonLegalEntityLink, PersonLegalEntityLink.person_id == Person.id)
@@ -92,9 +89,7 @@ class PersonRepository(BaseRepository[Person]):
         **fields,
     ) -> None:
         owner_id_number_type = (
-            IdNumberType.OTHER
-            if id_number_type == IdNumberType.CORPORATION
-            else id_number_type
+            IdNumberType.OTHER if id_number_type == IdNumberType.CORPORATION else id_number_type
         )
         person = self.get_by_id_number(owner_id_number_type, id_number)
         if not person:

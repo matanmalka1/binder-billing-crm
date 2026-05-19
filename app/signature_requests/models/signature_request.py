@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import datetime
 from enum import Enum as PyEnum
-from typing import Optional
 
 from sqlalchemy import ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -64,17 +63,17 @@ class SignatureRequest(Base):
         ForeignKey("client_records.id"), nullable=False, index=True
     )
     # OPTIONAL: set when the request is scoped to a specific business activity
-    business_id: Mapped[Optional[int]] = mapped_column(
+    business_id: Mapped[int | None] = mapped_column(
         ForeignKey("businesses.id"), nullable=True, index=True
     )
 
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     # ── Cross-domain links ────────────────────────────────────────────────────
-    annual_report_id: Mapped[Optional[int]] = mapped_column(
+    annual_report_id: Mapped[int | None] = mapped_column(
         ForeignKey("annual_reports.id"), nullable=True, index=True
     )
-    document_id: Mapped[Optional[int]] = mapped_column(
+    document_id: Mapped[int | None] = mapped_column(
         ForeignKey("permanent_documents.id"), nullable=True
     )
 
@@ -83,18 +82,14 @@ class SignatureRequest(Base):
         pg_enum(SignatureRequestType), nullable=False
     )
     title: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    content_hash: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True
-    )  # SHA-256
-    storage_key: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True
-    )  # S3/R2 original
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content_hash: Mapped[str | None] = mapped_column(String, nullable=True)  # SHA-256
+    storage_key: Mapped[str | None] = mapped_column(String, nullable=True)  # S3/R2 original
 
     # ── Signer identity ───────────────────────────────────────────────────────
     signer_name: Mapped[str] = mapped_column(String, nullable=False)
-    signer_email: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    signer_phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    signer_email: Mapped[str | None] = mapped_column(String, nullable=True)
+    signer_phone: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # ── Status & token ────────────────────────────────────────────────────────
     status: Mapped[SignatureRequestStatus] = mapped_column(
@@ -103,39 +98,29 @@ class SignatureRequest(Base):
         nullable=False,
     )
     # Unique one-time token; cleared after terminal state
-    signing_token: Mapped[Optional[str]] = mapped_column(
-        String, nullable=True, unique=True
-    )
+    signing_token: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
 
     # ── Lifecycle timestamps ──────────────────────────────────────────────────
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        default=utcnow, nullable=False
-    )
-    sent_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    expires_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    expiry_days: Mapped[int] = mapped_column(
-        nullable=False, default=14, server_default="14"
-    )
-    signed_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    declined_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    canceled_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    canceled_by: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users.id"), nullable=True
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, nullable=False)
+    sent_at: Mapped[datetime.datetime | None] = mapped_column(nullable=True)
+    expires_at: Mapped[datetime.datetime | None] = mapped_column(nullable=True)
+    expiry_days: Mapped[int] = mapped_column(nullable=False, default=14, server_default="14")
+    signed_at: Mapped[datetime.datetime | None] = mapped_column(nullable=True)
+    declined_at: Mapped[datetime.datetime | None] = mapped_column(nullable=True)
+    canceled_at: Mapped[datetime.datetime | None] = mapped_column(nullable=True)
+    canceled_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Signer evidence (captured at signing/declining time) ──────────────────
-    signer_ip_address: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    signer_user_agent: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    decline_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    signed_document_key: Mapped[Optional[str]] = mapped_column(
+    signer_ip_address: Mapped[str | None] = mapped_column(String, nullable=True)
+    signer_user_agent: Mapped[str | None] = mapped_column(String, nullable=True)
+    decline_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    signed_document_key: Mapped[str | None] = mapped_column(
         String, nullable=True
     )  # S3/R2 countersigned PDF
 
     # ── Soft delete ───────────────────────────────────────────────────────────
-    deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    deleted_by: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users.id"), nullable=True
-    )
+    deleted_at: Mapped[datetime.datetime | None] = mapped_column(nullable=True)
+    deleted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
     annual_report = relationship(
@@ -143,9 +128,7 @@ class SignatureRequest(Base):
         foreign_keys="[SignatureRequest.annual_report_id]",
         viewonly=True,
     )
-    audit_events = relationship(
-        "SignatureAuditEvent", back_populates="signature_request"
-    )
+    audit_events = relationship("SignatureAuditEvent", back_populates="signature_request")
 
     __table_args__ = (
         Index("idx_sig_request_client_record", "client_record_id"),
@@ -183,18 +166,14 @@ class SignatureAuditEvent(Base):
     event_type: Mapped[str] = mapped_column(
         String, nullable=False
     )  # created, sent, viewed, signed, declined, canceled, expired
-    actor_type: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # advisor, signer, system
+    actor_type: Mapped[str] = mapped_column(String, nullable=False)  # advisor, signer, system
 
-    actor_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    actor_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    ip_address: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    user_agent: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    occurred_at: Mapped[datetime.datetime] = mapped_column(
-        nullable=False, default=utcnow
-    )
+    actor_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    actor_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String, nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    occurred_at: Mapped[datetime.datetime] = mapped_column(nullable=False, default=utcnow)
 
     # ── Relationships ─────────────────────────────────────────────────────────
     signature_request = relationship("SignatureRequest", back_populates="audit_events")

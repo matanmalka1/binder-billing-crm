@@ -1,5 +1,9 @@
 from datetime import date, datetime
 
+from app.advance_payments.models.advance_payment import (
+    AdvancePayment,
+    AdvancePaymentStatus,
+)
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
     ClientAnnualFilingType,
@@ -7,10 +11,6 @@ from app.annual_reports.models.annual_report_enums import (
     PrimaryAnnualReportForm,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.advance_payments.models.advance_payment import (
-    AdvancePayment,
-    AdvancePaymentStatus,
-)
 from app.common.enums import DeadlineRuleType, ObligationType, VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.models.vat_work_item import VatWorkItem

@@ -18,7 +18,5 @@ def get_reminder(
     service = ReminderService(db)
     reminder = service.get_reminder(reminder_id)
     if not reminder:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="התזכורת לא נמצאה"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="התזכורת לא נמצאה")
     return service.to_response(reminder)

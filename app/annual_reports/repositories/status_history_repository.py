@@ -33,9 +33,7 @@ class AnnualReportStatusHistoryRepository(BaseRepository[AnnualReportStatusHisto
         self.db.flush()
         return entry
 
-    def get_status_history(
-        self, annual_report_id: int
-    ) -> list[AnnualReportStatusHistory]:
+    def get_status_history(self, annual_report_id: int) -> list[AnnualReportStatusHistory]:
         return self.db.scalars(
             select(AnnualReportStatusHistory)
             .where(AnnualReportStatusHistory.annual_report_id == annual_report_id)

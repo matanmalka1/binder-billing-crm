@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -7,18 +6,18 @@ from app.actions.obligation_orchestrator import (
     generate_client_obligations,
     obligation_fields_changed,
 )
-from app.audit.constants import ACTION_ENTITY_TYPE_CHANGED, ENTITY_CLIENT
-from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.annual_reports.services.client_status_service import (
     AnnualReportClientStatusService,
 )
+from app.audit.constants import ACTION_ENTITY_TYPE_CHANGED, ENTITY_CLIENT
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.binders.repositories.binder_repository import BinderRepository
 from app.clients.enums import ClientStatus
+from app.clients.repositories.client_graph_writer import apply_graph_update
 from app.clients.repositories.client_record_read_repository import (
     get_full_record,
 )
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.clients.repositories.client_graph_writer import apply_graph_update
 from app.core.exceptions import ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
 from app.vat_reports.services.client_status_service import (
@@ -35,7 +34,7 @@ class ClientUpdateService:
         self._audit = EntityAuditWriter(db)
 
     def update_client(
-        self, client_id: int, actor_id: Optional[int] = None, actor_role=None, **fields
+        self, client_id: int, actor_id: int | None = None, actor_role=None, **fields
     ):
         existing = get_full_record(self.db, client_id)
         if not existing:
@@ -76,20 +75,14 @@ class ClientUpdateService:
     def _update_client_record_graph(self, client_id: int, **fields):
         return apply_graph_update(self.db, client_id, **fields)
 
-    def _update_client_record_status(
-        self, client_id: int, new_status: ClientStatus
-    ) -> None:
+    def _update_client_record_status(self, client_id: int, new_status: ClientStatus) -> None:
         record = self.record_repo.get_by_id(client_id)
         if not record:
             return
         self.record_repo.update_status(record.id, new_status)
         if new_status in {ClientStatus.CLOSED, ClientStatus.FROZEN}:
-            VatWorkItemClientStatusService(self.db).cancel_open_by_client_record(
-                record.id
-            )
-            AnnualReportClientStatusService(self.db).cancel_open_by_client_record(
-                record.id
-            )
+            VatWorkItemClientStatusService(self.db).cancel_open_by_client_record(record.id)
+            AnnualReportClientStatusService(self.db).cancel_open_by_client_record(record.id)
             BinderRepository(self.db).close_in_office_by_client_record(record.id)
 
     def _cancel_deadlines_on_entity_type_change(

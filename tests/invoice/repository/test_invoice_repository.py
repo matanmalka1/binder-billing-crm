@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from app.charge.models.charge import ChargeType
@@ -41,7 +41,7 @@ def test_invoice_repository_getters(test_db):
         charge_id=charge.id,
         provider="stripe",
         external_invoice_id="INV-EXT-1",
-        issued_at=datetime(2024, 3, 1, tzinfo=timezone.utc),
+        issued_at=datetime(2024, 3, 1, tzinfo=UTC),
         document_url="https://example.com/inv.pdf",
     )
 

@@ -8,9 +8,7 @@ from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 
 
-def _make_rule(
-    test_db, rule_type: DeadlineRuleType, *, due_day_of_month: int = 15
-) -> DeadlineRule:
+def _make_rule(test_db, rule_type: DeadlineRuleType, *, due_day_of_month: int = 15) -> DeadlineRule:
     existing = (
         test_db.query(DeadlineRule)
         .filter(
@@ -125,9 +123,7 @@ def test_national_insurance_with_null_period_rejected(test_db):
     with pytest.raises((ValueError, IntegrityError)) as exc:
         test_db.commit()
     test_db.rollback()
-    assert "NATIONAL_INSURANCE" in str(exc.value) or "national_insurance" in str(
-        exc.value
-    )
+    assert "NATIONAL_INSURANCE" in str(exc.value) or "national_insurance" in str(exc.value)
 
 
 def test_national_insurance_even_with_period_is_unsupported(test_db):
@@ -208,9 +204,7 @@ def test_annual_report_with_non_null_months_count_rejected(test_db):
     test_db.rollback()
 
 
-@pytest.mark.parametrize(
-    "bad_period", ["2026-13", "26-05", "2026/05", "2026-1", "abcd-ef"]
-)
+@pytest.mark.parametrize("bad_period", ["2026-13", "26-05", "2026/05", "2026-1", "abcd-ef"])
 def test_invalid_period_format_rejected(test_db, bad_period):
     rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
     with pytest.raises(ValueError):
@@ -384,9 +378,7 @@ def test_rule_compatibility_annual_rejects_periodic_rule(test_db):
 
 def test_periodic_unique_does_not_block_annual_with_same_tax_year(test_db):
     vat_rule = _make_rule(test_db, DeadlineRuleType.VAT_MONTHLY)
-    annual_rule = _make_rule(
-        test_db, DeadlineRuleType.ANNUAL_REPORT, due_day_of_month=30
-    )
+    annual_rule = _make_rule(test_db, DeadlineRuleType.ANNUAL_REPORT, due_day_of_month=30)
 
     periodic = _make_entry(
         rule=vat_rule,

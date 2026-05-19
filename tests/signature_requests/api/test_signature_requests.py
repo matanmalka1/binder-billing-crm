@@ -52,9 +52,7 @@ def test_signature_request_full_sign_flow(client, test_db, advisor_headers):
     assert approve_resp.status_code == 200
     assert approve_resp.json()["status"] == "signed"
 
-    detail_resp = client.get(
-        f"/api/v1/signature-requests/{request_id}", headers=advisor_headers
-    )
+    detail_resp = client.get(f"/api/v1/signature-requests/{request_id}", headers=advisor_headers)
     assert detail_resp.status_code == 200
     detail = detail_resp.json()
     assert detail["status"] == "signed"
@@ -148,9 +146,7 @@ def test_create_signature_request_sends_immediately(client, test_db, advisor_hea
     assert payload["signing_token"]
     assert payload["signing_url_hint"] == f"/sign/{payload['signing_token']}"
 
-    detail = client.get(
-        f"/api/v1/signature-requests/{payload['id']}", headers=advisor_headers
-    )
+    detail = client.get(f"/api/v1/signature-requests/{payload['id']}", headers=advisor_headers)
     assert detail.status_code == 200
     detail_payload = detail.json()
     assert "signing_token" not in detail_payload
@@ -169,9 +165,7 @@ def test_removed_send_endpoint_returns_404(client, test_db, advisor_headers):
     assert resp.status_code == 404
 
 
-def test_removed_create_and_send_endpoint_is_not_available(
-    client, test_db, advisor_headers
-):
+def test_removed_create_and_send_endpoint_is_not_available(client, test_db, advisor_headers):
     resp = client.post(
         "/api/v1/signature-requests/create-and-send",
         headers=advisor_headers,

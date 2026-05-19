@@ -1,16 +1,16 @@
-from typing import Optional
 
-from app.core.exceptions import AppError, NotFoundError
 from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.models.annual_report_schedule_entry import AnnualReportSchedule
+from app.core.exceptions import AppError, NotFoundError
+
 from .base import AnnualReportBaseService
 from .constants import SCHEDULE_FLAGS
 from .messages import INVALID_SCHEDULE_ERROR, SCHEDULE_NOT_FOUND
 
 
 class AnnualReportScheduleService(AnnualReportBaseService):
-    def add_schedule(self, report_id: int, schedule: str, notes: Optional[str] = None):
+    def add_schedule(self, report_id: int, schedule: str, notes: str | None = None):
         self._get_or_raise(report_id)
         s = self._parse_schedule(schedule)
         return self.repo.add_schedule(report_id, s, notes=notes)

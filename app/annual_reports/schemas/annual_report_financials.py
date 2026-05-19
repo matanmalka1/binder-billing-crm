@@ -1,14 +1,13 @@
 """Schemas for income/expense lines, financial summary, and tax calculation."""
 
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import AliasChoices, BaseModel, Field
 
-from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
+from app.annual_reports.models.annual_report_income_line import IncomeSourceType
 from app.core.api_types import ApiDateTime, ApiDecimal
-
 
 # ── Income ────────────────────────────────────────────────────────────────────
 
@@ -16,13 +15,13 @@ from app.core.api_types import ApiDateTime, ApiDecimal
 class IncomeLineCreateRequest(BaseModel):
     source_type: IncomeSourceType  # enum — לא str חופשי
     amount: ApiDecimal = Field(ge=0)
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class IncomeLineUpdateRequest(BaseModel):
-    source_type: Optional[IncomeSourceType] = None
-    amount: Optional[ApiDecimal] = Field(None, ge=0)
-    description: Optional[str] = None
+    source_type: IncomeSourceType | None = None
+    amount: ApiDecimal | None = Field(None, ge=0)
+    description: str | None = None
 
 
 class IncomeLineResponse(BaseModel):
@@ -30,9 +29,9 @@ class IncomeLineResponse(BaseModel):
     annual_report_id: int
     source_type: IncomeSourceType
     amount: ApiDecimal
-    description: Optional[str] = None
+    description: str | None = None
     created_at: ApiDateTime
-    updated_at: Optional[ApiDateTime] = None
+    updated_at: ApiDateTime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -43,26 +42,24 @@ class IncomeLineResponse(BaseModel):
 class ExpenseLineCreateRequest(BaseModel):
     category: ExpenseCategoryType  # enum — לא str חופשי
     amount: ApiDecimal = Field(gt=0)
-    description: Optional[str] = None
-    recognition_rate: Optional[ApiDecimal] = Field(None, ge=0, le=1)
-    external_document_reference: Optional[str] = Field(
+    description: str | None = None
+    recognition_rate: ApiDecimal | None = Field(None, ge=0, le=1)
+    external_document_reference: str | None = Field(
         None,
-        validation_alias=AliasChoices(
-            "external_document_reference", "supporting_document_ref"
-        ),
+        validation_alias=AliasChoices("external_document_reference", "supporting_document_ref"),
     )
-    supporting_document_id: Optional[int] = None
+    supporting_document_id: int | None = None
 
     model_config = {"populate_by_name": True}
 
 
 class ExpenseLineUpdateRequest(BaseModel):
-    category: Optional[ExpenseCategoryType] = None
-    amount: Optional[ApiDecimal] = Field(None, gt=0)
-    description: Optional[str] = None
-    recognition_rate: Optional[ApiDecimal] = Field(None, ge=0, le=1)
-    external_document_reference: Optional[str] = None
-    supporting_document_id: Optional[int] = None
+    category: ExpenseCategoryType | None = None
+    amount: ApiDecimal | None = Field(None, gt=0)
+    description: str | None = None
+    recognition_rate: ApiDecimal | None = Field(None, ge=0, le=1)
+    external_document_reference: str | None = None
+    supporting_document_id: int | None = None
 
 
 class ExpenseLineResponse(BaseModel):
@@ -72,12 +69,12 @@ class ExpenseLineResponse(BaseModel):
     amount: ApiDecimal
     recognition_rate: ApiDecimal
     recognized_amount: ApiDecimal = Decimal("0")
-    external_document_reference: Optional[str] = None
-    supporting_document_id: Optional[int] = None
-    supporting_document_filename: Optional[str] = None
-    description: Optional[str] = None
+    external_document_reference: str | None = None
+    supporting_document_id: int | None = None
+    supporting_document_filename: str | None = None
+    description: str | None = None
     created_at: ApiDateTime
-    updated_at: Optional[ApiDateTime] = None
+    updated_at: ApiDateTime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -86,9 +83,7 @@ class ExpenseLineResponse(BaseModel):
         instance = super().model_validate(obj, *args, **kwargs)
         if hasattr(obj, "supporting_document") and obj.supporting_document is not None:
             key = obj.supporting_document.storage_key or ""
-            object.__setattr__(
-                instance, "supporting_document_filename", key.split("/")[-1]
-            )
+            object.__setattr__(instance, "supporting_document_filename", key.split("/")[-1])
         return instance
 
     def model_post_init(self, __context: object) -> None:
@@ -118,7 +113,7 @@ class FinancialSummaryResponse(BaseModel):
 class BracketBreakdownItem(BaseModel):
     rate: float
     from_amount: ApiDecimal
-    to_amount: Optional[ApiDecimal] = None
+    to_amount: ApiDecimal | None = None
     taxable_in_bracket: ApiDecimal
     tax_in_bracket: ApiDecimal
 
@@ -141,7 +136,7 @@ class TaxCalculationResponse(BaseModel):
     effective_rate: float
     national_insurance: NationalInsuranceResponse
     brackets: list[BracketBreakdownItem]
-    total_liability: Optional[ApiDecimal] = None
+    total_liability: ApiDecimal | None = None
     total_credit_points: float = 0.0
 
 
@@ -169,14 +164,14 @@ class ReadinessCheckResponse(BaseModel):
 
 
 class TaxCalculationSaveRequest(BaseModel):
-    tax_due: Optional[ApiDecimal] = None
-    refund_due: Optional[ApiDecimal] = None
+    tax_due: ApiDecimal | None = None
+    refund_due: ApiDecimal | None = None
 
 
 class TaxCalculationSaveResponse(BaseModel):
     annual_report_id: int
-    tax_due: Optional[ApiDecimal]
-    refund_due: Optional[ApiDecimal]
+    tax_due: ApiDecimal | None
+    refund_due: ApiDecimal | None
     saved_at: ApiDateTime
 
 

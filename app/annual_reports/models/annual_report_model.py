@@ -11,18 +11,18 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import relationship
-from app.utils.enum_utils import pg_enum
-from app.database import Base
-from app.utils.time_utils import utcnow
-from app.annual_reports.models.annual_report_enums import (
-    ClientAnnualFilingType,
-    PrimaryAnnualReportForm,
-    AnnualReportStatus,
-    FilingDeadlineType,
-    SubmissionMethod,
-    ExtensionReason,
-)
 
+from app.annual_reports.models.annual_report_enums import (
+    AnnualReportStatus,
+    ClientAnnualFilingType,
+    ExtensionReason,
+    FilingDeadlineType,
+    PrimaryAnnualReportForm,
+    SubmissionMethod,
+)
+from app.database import Base
+from app.utils.enum_utils import pg_enum
+from app.utils.time_utils import utcnow
 
 # ─── AnnualReport ─────────────────────────────────────────────────────────────
 
@@ -31,9 +31,7 @@ class AnnualReport(Base):
     __tablename__ = "annual_reports"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    client_record_id = Column(
-        Integer, ForeignKey("client_records.id"), nullable=False, index=True
-    )
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
 

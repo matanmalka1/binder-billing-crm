@@ -33,9 +33,7 @@ def _create_contact(test_db, client_id: int) -> AuthorityContact:
     return contact
 
 
-def test_create_correspondence_with_business_context(
-    client, test_db, advisor_headers, test_user
-):
+def test_create_correspondence_with_business_context(client, test_db, advisor_headers, test_user):
     business = _create_business(test_db)
     contact = _create_contact(test_db, business.client_id)
 
@@ -62,9 +60,7 @@ def test_create_correspondence_with_business_context(
     assert data["created_by"] == test_user.id
 
 
-def test_create_correspondence_invalid_type_returns_422(
-    client, test_db, advisor_headers
-):
+def test_create_correspondence_invalid_type_returns_422(client, test_db, advisor_headers):
     business = _create_business(test_db)
 
     response = client.post(
@@ -82,9 +78,7 @@ def test_create_correspondence_invalid_type_returns_422(
     assert response.json()["error"] == "validation_error"
 
 
-def test_create_correspondence_contact_mismatch_returns_403(
-    client, test_db, advisor_headers
-):
+def test_create_correspondence_contact_mismatch_returns_403(client, test_db, advisor_headers):
     owner_business = _create_business(test_db, id_number="777777777")
     other_business = _create_business(test_db, id_number="888888888")
     contact = _create_contact(test_db, owner_business.client_id)

@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -14,21 +13,21 @@ from app.notification.models.notification import (
 class NotificationResponse(BaseModel):
     id: int
     client_record_id: int
-    client_name: Optional[str] = None  # enriched by service layer
-    business_id: Optional[int] = None
-    business_name: Optional[str] = None  # enriched by service layer
-    binder_id: Optional[int] = None
+    client_name: str | None = None  # enriched by service layer
+    business_id: int | None = None
+    business_name: str | None = None  # enriched by service layer
+    binder_id: int | None = None
     trigger: NotificationTrigger
     channel: NotificationChannel
     severity: NotificationSeverity
     recipient: str
     content_snapshot: str
     status: NotificationStatus
-    sent_at: Optional[ApiDateTime] = None
-    failed_at: Optional[ApiDateTime] = None
-    error_message: Optional[str] = None
+    sent_at: ApiDateTime | None = None
+    failed_at: ApiDateTime | None = None
+    error_message: str | None = None
     retry_count: int
-    triggered_by: Optional[int] = None
+    triggered_by: int | None = None
     created_at: ApiDateTime
 
     model_config = {"from_attributes": True}
@@ -43,7 +42,7 @@ class NotificationSummaryResponse(BaseModel):
 
 class ManualSendRequest(BaseModel):
     client_record_id: int = Field(gt=0)
-    business_id: Optional[int] = Field(None, gt=0)
+    business_id: int | None = Field(None, gt=0)
     preferred_channel: NotificationChannel = NotificationChannel.EMAIL
     message: str = Field(min_length=1, max_length=1000)
 

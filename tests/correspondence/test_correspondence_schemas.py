@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
@@ -17,7 +17,7 @@ def test_create_schema_rejects_future_occurred_at():
         CorrespondenceCreateRequest(
             correspondence_type=CorrespondenceType.CALL,
             subject="future",
-            occurred_at=datetime.now(timezone.utc) + timedelta(minutes=1),
+            occurred_at=datetime.now(UTC) + timedelta(minutes=1),
         )
 
 
@@ -27,7 +27,7 @@ def test_update_schema_allows_none_occurred_at_and_rejects_future():
 
     with pytest.raises(ValidationError):
         CorrespondenceUpdateRequest(
-            occurred_at=datetime.now(timezone.utc) + timedelta(minutes=1),
+            occurred_at=datetime.now(UTC) + timedelta(minutes=1),
         )
 
 
@@ -40,14 +40,12 @@ def test_list_response_build_calculates_total_pages():
         correspondence_type=CorrespondenceType.EMAIL,
         subject="s",
         notes=None,
-        occurred_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        occurred_at=datetime(2026, 1, 1, tzinfo=UTC),
         created_by=1,
-        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
     )
 
-    resp = CorrespondenceListResponse.build(
-        items=[item], page=1, page_size=20, total=41
-    )
+    resp = CorrespondenceListResponse.build(items=[item], page=1, page_size=20, total=41)
     assert resp.total_pages == 3
 
     empty = CorrespondenceListResponse.build(items=[], page=1, page_size=0, total=0)

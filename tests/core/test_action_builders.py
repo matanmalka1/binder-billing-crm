@@ -25,9 +25,7 @@ def test_modal_action_sets_type():
 
 
 def test_mutation_action_confirm_true_when_title_provided():
-    action = mutation_action(
-        "del", "מחק", "/x", confirm_title="אישור", confirm_message="?"
-    )
+    action = mutation_action("del", "מחק", "/x", confirm_title="אישור", confirm_message="?")
     assert action.confirm is True
     assert action.confirm_title == "אישור"
     assert action.confirm_message == "?"

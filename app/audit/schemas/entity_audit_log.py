@@ -1,6 +1,5 @@
 """Pydantic schemas for the generic entity audit trail."""
 
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -12,11 +11,11 @@ class EntityAuditLogResponse(BaseModel):
     entity_type: str
     entity_id: int
     performed_by: int
-    performed_by_name: Optional[str] = None
+    performed_by_name: str | None = None
     action: str
-    old_value: Optional[str]
-    new_value: Optional[str]
-    note: Optional[str]
+    old_value: str | None
+    new_value: str | None
+    note: str | None
     performed_at: ApiDateTime
 
     model_config = {"from_attributes": True}

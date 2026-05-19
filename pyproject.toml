@@ -1,3 +1,37 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [
+  ".venv",
+  "venv",
+  "alembic",
+  "migrations",
+  "seed",
+  "__pycache__",
+]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes: undefined names, unused imports
+  "I",   # import sorting
+  "B",   # bugbear: risky bug patterns
+  "UP",  # pyupgrade
+]
+ignore = [
+  "E501", # line length handled by formatter / line-length
+  "B008", # FastAPI Depends/Query false positives
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "tests"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+
 [tool.pylint.main]
 ignore = [
   ".venv",
@@ -11,18 +45,12 @@ ignore = [
 [tool.pylint.messages_control]
 disable = ["all"]
 enable = [
-  # real bugs
-  "undefined-variable",
+  # bugs / risky flow
   "used-before-assignment",
   "unreachable",
   "assignment-from-no-return",
 
-  # imports / dead code
-  "unused-import",
-  "unused-variable",
-
-  # risky code
-  "dangerous-default-value",
+  # exception handling
   "bare-except",
   "broad-exception-caught",
   "raise-missing-from",
@@ -42,3 +70,6 @@ ignore-imports = true
 max-branches = 15
 max-statements = 60
 max-locals = 25
+
+[tool.pylint.format]
+max-line-length = 100

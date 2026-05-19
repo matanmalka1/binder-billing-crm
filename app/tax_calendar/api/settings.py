@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 
 from app.tax_calendar.schemas.settings import (
+    DeadlineRuleResponse,
     TaxCalendarBootstrapRequest,
     TaxCalendarBootstrapResponse,
-    DeadlineRuleResponse,
     TaxCalendarEntryResponse,
     TaxCalendarSummaryResponse,
 )
@@ -42,9 +42,7 @@ def list_tax_calendar_entries(
     end_year: int | None = Query(None),
 ) -> list[TaxCalendarEntryResponse]:
     _check_year_range(start_year, end_year)
-    return settings_calendar_service.list_entries(
-        db, start_year=start_year, end_year=end_year
-    )
+    return settings_calendar_service.list_entries(db, start_year=start_year, end_year=end_year)
 
 
 @router.get(
@@ -58,9 +56,7 @@ def get_tax_calendar_summary(
     end_year: int | None = Query(None),
 ) -> TaxCalendarSummaryResponse:
     _check_year_range(start_year, end_year)
-    return settings_calendar_service.get_summary(
-        db, start_year=start_year, end_year=end_year
-    )
+    return settings_calendar_service.get_summary(db, start_year=start_year, end_year=end_year)
 
 
 @router.post(

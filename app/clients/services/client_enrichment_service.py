@@ -16,16 +16,12 @@ class ClientEnrichmentService:
         self._binder_service = BinderOperationsService(db)
         self._vat_repo = VatClientSummaryRepository(db)
 
-    def _compute_annual_turnover(
-        self, client: ClientRecordResponse, year: int
-    ) -> AnnualTurnover:
+    def _compute_annual_turnover(self, client: ClientRecordResponse, year: int) -> AnnualTurnover:
         reported = self._vat_repo.get_annual_turnover(client.id, year)
         if reported is not None:
             return AnnualTurnover(amount=reported, source="reported", year=year)
         if client.annual_revenue is not None:
-            return AnnualTurnover(
-                amount=client.annual_revenue, source="manual", year=year
-            )
+            return AnnualTurnover(amount=client.annual_revenue, source="manual", year=year)
         return AnnualTurnover(amount=None, source="none", year=year)
 
     def enrich_single(
@@ -43,9 +39,7 @@ class ClientEnrichmentService:
     ) -> list[ClientRecordResponse]:
         if not items:
             return items
-        active_binders = self._binder_service.map_active_binders_for_clients(
-            [c.id for c in items]
-        )
+        active_binders = self._binder_service.map_active_binders_for_clients([c.id for c in items])
         year = tax_year or utcnow().year
         for client in items:
             if client.id in active_binders:

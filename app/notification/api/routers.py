@@ -2,6 +2,8 @@ from fastapi import APIRouter
 
 from app.notification.api.notifications import (
     advisor_router,
+)
+from app.notification.api.notifications import (
     router as notifications_router,
 )
 

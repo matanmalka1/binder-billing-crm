@@ -91,9 +91,7 @@ def _count_entries(
         TaxCalendarEntry.obligation_type == obligation_type.value,
     )
     if period_months_count is not None:
-        query = query.filter(
-            TaxCalendarEntry.period_months_count == period_months_count
-        )
+        query = query.filter(TaxCalendarEntry.period_months_count == period_months_count)
     if tax_year is not None:
         query = query.filter(TaxCalendarEntry.tax_year == tax_year)
     return query.count()
@@ -415,12 +413,8 @@ def test_periodic_and_annual_can_coexist_for_same_tax_year(test_db):
     _seed_all_rules(test_db)
     generate_for_year(test_db, 2026)
     test_db.commit()
-    periodic = _count_entries(
-        test_db, obligation_type=ObligationType.VAT, tax_year=2026
-    )
-    annual = _count_entries(
-        test_db, obligation_type=ObligationType.ANNUAL_REPORT, tax_year=2026
-    )
+    periodic = _count_entries(test_db, obligation_type=ObligationType.VAT, tax_year=2026)
+    annual = _count_entries(test_db, obligation_type=ObligationType.ANNUAL_REPORT, tax_year=2026)
     assert periodic == 18  # 12 monthly + 6 bimonthly
     assert annual == 1
 
@@ -498,6 +492,7 @@ def test_registry_not_applied_to_annual_report_rule(test_db):
 def test_registry_failure_falls_back_and_logs_warning(test_db, caplog):
     """When the registry call raises, periodic_due_date falls back to DeadlineRule and logs a warning."""
     import logging
+
     import app.tax_calendar.integrations.tax_rules_registry as registry
 
     rule = _seed_rule(
@@ -507,15 +502,12 @@ def test_registry_failure_falls_back_and_logs_warning(test_db, caplog):
         offset_months=1,
     )
     with (
-        patch.object(
-            registry, "_registry_periodic", side_effect=RuntimeError("registry down")
-        ),
+        patch.object(registry, "_registry_periodic", side_effect=RuntimeError("registry down")),
         caplog.at_level(logging.WARNING, logger=registry.__name__),
     ):
         result = periodic_due_date(rule, 2026, 5)
 
     assert result == date(2026, 6, 15)
     assert any(
-        "registry down" in r.message or "registry" in r.message.lower()
-        for r in caplog.records
+        "registry down" in r.message or "registry" in r.message.lower() for r in caplog.records
     )

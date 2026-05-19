@@ -11,6 +11,8 @@ Design decisions:
 - counterparty_id_type enables validation routing (IL checksum vs. foreign).
 """
 
+from datetime import date
+
 from sqlalchemy import (
     Boolean,
     Column,
@@ -23,17 +25,15 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
-from app.utils.enum_utils import pg_enum
-
-from datetime import date
 
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.vat_reports.models.vat_enums import (
+    CounterpartyIdType,
     DocumentType,
     ExpenseCategory,
     InvoiceType,
     VatRateType,
-    CounterpartyIdType,
 )
 
 
@@ -52,9 +52,7 @@ class VatInvoice(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     # Optional tag: which BusinessActivity (branch/shop/service) contributed this invoice.
     # NULL = untagged (valid — e.g. client has only one activity or is a COMPANY_LTD).
-    business_activity_id = Column(
-        Integer, ForeignKey("businesses.id"), nullable=True, index=True
-    )
+    business_activity_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
 
     # Document classification
     invoice_type = Column(pg_enum(InvoiceType), nullable=False)
@@ -77,9 +75,7 @@ class VatInvoice(Base):
 
     # VAT classification
     expense_category = Column(pg_enum(ExpenseCategory), nullable=True)
-    rate_type = Column(
-        pg_enum(VatRateType), nullable=False, default=VatRateType.STANDARD
-    )
+    rate_type = Column(pg_enum(VatRateType), nullable=False, default=VatRateType.STANDARD)
     deduction_rate = Column(Numeric(5, 4), nullable=False, default=1.0000)
     # Auto-populated from CATEGORY_DEDUCTION_RATES on create/update
 

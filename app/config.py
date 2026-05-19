@@ -1,8 +1,8 @@
+import datetime as _dt
 import os
+from decimal import Decimal
 from pathlib import Path
 from typing import Literal
-from decimal import Decimal
-import datetime as _dt
 
 from app.common.integrations.tax_rules_financials import get_vat_rate_percent
 from app.core.exceptions import AppError
@@ -54,18 +54,14 @@ class Config:
 
     JWT_SECRET: str = os.getenv("JWT_SECRET") or ""
     if not JWT_SECRET:
-        raise AppError(
-            "JWT_SECRET חייב להיות מוגדר", "CONFIG.JWT_SECRET_MISSING", status_code=500
-        )
+        raise AppError("JWT_SECRET חייב להיות מוגדר", "CONFIG.JWT_SECRET_MISSING", status_code=500)
 
     JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
     _vat_pct = get_vat_rate_percent(_dt.date.today().year)
     if _vat_pct is not None:
         ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(str(_vat_pct)) / Decimal("100")
     else:
-        ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(
-            os.getenv("ADVANCE_PAYMENT_VAT_RATE", "0.18")
-        )
+        ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(os.getenv("ADVANCE_PAYMENT_VAT_RATE", "0.18"))
 
     _CORS_ALLOWED_ORIGINS_ENV = os.getenv("CORS_ALLOWED_ORIGINS", "")
     if APP_ENV in ("staging", "production") and not _CORS_ALLOWED_ORIGINS_ENV:
@@ -92,9 +88,7 @@ class Config:
     # ── Notifications ──────────────────────────────────────────────────
     # Set NOTIFICATIONS_ENABLED=true in production to actually send emails.
     # In development/test the EmailChannel logs instead of sending.
-    NOTIFICATIONS_ENABLED: bool = (
-        os.getenv("NOTIFICATIONS_ENABLED", "false").lower() == "true"
-    )
+    NOTIFICATIONS_ENABLED: bool = os.getenv("NOTIFICATIONS_ENABLED", "false").lower() == "true"
 
     # SendGrid
     SENDGRID_API_KEY: str = os.getenv("SENDGRID_API_KEY", "")
@@ -102,16 +96,12 @@ class Config:
         "SENDGRID_API_URL",
         "https://api.sendgrid.com/v3/mail/send",
     )
-    EMAIL_FROM_ADDRESS: str = os.getenv(
-        "EMAIL_FROM_ADDRESS", ""
-    )  # must be verified in SendGrid
+    EMAIL_FROM_ADDRESS: str = os.getenv("EMAIL_FROM_ADDRESS", "")  # must be verified in SendGrid
     EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", "")
 
     # WhatsApp (360dialog or Twilio — set key to enable)
     WHATSAPP_API_KEY: str = os.getenv("WHATSAPP_API_KEY", "")
-    WHATSAPP_API_URL: str = os.getenv(
-        "WHATSAPP_API_URL", "https://waba.360dialog.io/v1/messages"
-    )
+    WHATSAPP_API_URL: str = os.getenv("WHATSAPP_API_URL", "https://waba.360dialog.io/v1/messages")
     WHATSAPP_FROM_NUMBER: str = os.getenv("WHATSAPP_FROM_NUMBER", "")
 
     # ── Invoice provider (future) ──────────────────────────────────────

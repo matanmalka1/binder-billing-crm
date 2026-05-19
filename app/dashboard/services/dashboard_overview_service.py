@@ -1,6 +1,5 @@
 from datetime import date
 from decimal import Decimal, InvalidOperation
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -8,17 +7,17 @@ from app.annual_reports.repositories.annual_report_repository import (
     AnnualReportRepository,
 )
 from app.binders.repositories.binder_repository import BinderRepository
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.businesses.repositories.business_repository import BusinessRepository
-from app.notification.repositories.notification_repository import NotificationRepository
-from app.users.models.user import UserRole
+from app.dashboard.services.advisor_today_service import AdvisorTodayService
 from app.dashboard.services.dashboard_attention_service import DashboardAttentionService
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
-from app.dashboard.services.advisor_today_service import AdvisorTodayService
 from app.dashboard.services.recent_activity_service import RecentActivityService
 from app.dashboard.services.tax_status_stats_service import TaxStatusStatsService
+from app.notification.repositories.notification_repository import NotificationRepository
+from app.users.models.user import UserRole
 from app.utils.time_utils import israel_today
 
 
@@ -49,8 +48,8 @@ class DashboardOverviewService:
 
     def get_overview(
         self,
-        reference_date: Optional[date] = None,
-        user_role: Optional[UserRole] = None,
+        reference_date: date | None = None,
+        user_role: UserRole | None = None,
     ) -> dict:
         if reference_date is None:
             reference_date = israel_today()
@@ -60,16 +59,12 @@ class DashboardOverviewService:
         is_advisor = user_role == UserRole.ADVISOR
 
         attention_items = (
-            self.attention_service.build(
-                user_role=user_role, reference_date=reference_date
-            )
+            self.attention_service.build(user_role=user_role, reference_date=reference_date)
             if is_advisor
             else []
         )
 
-        open_charges_count, open_charges_amount_ils = self._open_charges_stats(
-            is_advisor
-        )
+        open_charges_count, open_charges_amount_ils = self._open_charges_stats(is_advisor)
 
         quick_actions = self._build_quick_actions(reference_date) if is_advisor else []
         advisor_today = (
@@ -90,12 +85,10 @@ class DashboardOverviewService:
                 "total": len(attention_items),
             },
             "advisor_today": advisor_today,
-            "recent_activity": self.recent_activity_service.build()
-            if is_advisor
-            else [],
+            "recent_activity": self.recent_activity_service.build() if is_advisor else [],
         }
 
-    def _open_charges_stats(self, is_advisor: bool) -> tuple[int, Optional[str]]:
+    def _open_charges_stats(self, is_advisor: bool) -> tuple[int, str | None]:
         if not is_advisor:
             return 0, None
         count = self.charge_repo.count_charges(status=ChargeStatus.ISSUED.value)

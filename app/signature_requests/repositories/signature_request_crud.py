@@ -1,5 +1,4 @@
 import datetime
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -26,14 +25,14 @@ class SignatureRequestCrudMixin:
         sent_at: datetime.datetime,
         expires_at: datetime.datetime,
         expiry_days: int,
-        business_id: Optional[int] = None,  # OPTIONAL context
-        description: Optional[str] = None,
-        signer_email: Optional[str] = None,
-        signer_phone: Optional[str] = None,
-        annual_report_id: Optional[int] = None,
-        document_id: Optional[int] = None,
-        storage_key: Optional[str] = None,
-        content_hash: Optional[str] = None,
+        business_id: int | None = None,  # OPTIONAL context
+        description: str | None = None,
+        signer_email: str | None = None,
+        signer_phone: str | None = None,
+        annual_report_id: int | None = None,
+        document_id: int | None = None,
+        storage_key: str | None = None,
+        content_hash: str | None = None,
     ) -> SignatureRequest:
         if not signing_token or sent_at is None or expires_at is None:
             raise ValueError(
@@ -63,21 +62,21 @@ class SignatureRequestCrudMixin:
         self.db.flush()
         return req
 
-    def get_by_id(self, request_id: int) -> Optional[SignatureRequest]:
+    def get_by_id(self, request_id: int) -> SignatureRequest | None:
         stmt = select(SignatureRequest).where(
             SignatureRequest.id == request_id,
             SignatureRequest.deleted_at.is_(None),
         )
         return self.db.scalars(stmt).first()
 
-    def get_by_token(self, token: str) -> Optional[SignatureRequest]:
+    def get_by_token(self, token: str) -> SignatureRequest | None:
         stmt = select(SignatureRequest).where(
             SignatureRequest.signing_token == token,
             SignatureRequest.deleted_at.is_(None),
         )
         return self.db.scalars(stmt).first()
 
-    def get_by_id_for_update(self, request_id: int) -> Optional[SignatureRequest]:
+    def get_by_id_for_update(self, request_id: int) -> SignatureRequest | None:
         """Fetch with a row-level lock for status transitions."""
         stmt = (
             select(SignatureRequest)
@@ -89,7 +88,7 @@ class SignatureRequestCrudMixin:
         )
         return self.db.scalars(stmt).first()
 
-    def get_by_token_for_update(self, token: str) -> Optional[SignatureRequest]:
+    def get_by_token_for_update(self, token: str) -> SignatureRequest | None:
         """Fetch by signing token with a row-level lock for signer actions."""
         stmt = (
             select(SignatureRequest)
@@ -106,7 +105,7 @@ class SignatureRequestCrudMixin:
     def list_by_client_record(
         self,
         client_record_id: int,
-        status: Optional[SignatureRequestStatus] = None,
+        status: SignatureRequestStatus | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[SignatureRequest]:
@@ -118,17 +117,13 @@ class SignatureRequestCrudMixin:
         if status:
             stmt = stmt.where(SignatureRequest.status == status)
         offset = (page - 1) * page_size
-        stmt = (
-            stmt.order_by(SignatureRequest.created_at.desc())
-            .offset(offset)
-            .limit(page_size)
-        )
+        stmt = stmt.order_by(SignatureRequest.created_at.desc()).offset(offset).limit(page_size)
         return self.db.scalars(stmt).all()
 
     def count_by_client_record(
         self,
         client_record_id: int,
-        status: Optional[SignatureRequestStatus] = None,
+        status: SignatureRequestStatus | None = None,
     ) -> int:
         stmt = select(func.count(SignatureRequest.id)).where(
             SignatureRequest.client_record_id == client_record_id,
@@ -143,7 +138,7 @@ class SignatureRequestCrudMixin:
     def list_by_business(
         self,
         business_id: int,
-        status: Optional[SignatureRequestStatus] = None,
+        status: SignatureRequestStatus | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[SignatureRequest]:
@@ -154,17 +149,13 @@ class SignatureRequestCrudMixin:
         if status:
             stmt = stmt.where(SignatureRequest.status == status)
         offset = (page - 1) * page_size
-        stmt = (
-            stmt.order_by(SignatureRequest.created_at.desc())
-            .offset(offset)
-            .limit(page_size)
-        )
+        stmt = stmt.order_by(SignatureRequest.created_at.desc()).offset(offset).limit(page_size)
         return self.db.scalars(stmt).all()
 
     def count_by_business(
         self,
         business_id: int,
-        status: Optional[SignatureRequestStatus] = None,
+        status: SignatureRequestStatus | None = None,
     ) -> int:
         stmt = select(func.count(SignatureRequest.id)).where(
             SignatureRequest.business_id == business_id,
@@ -176,9 +167,7 @@ class SignatureRequestCrudMixin:
 
     # ── Pending (global advisor view) ─────────────────────────────────────────
 
-    def list_pending(
-        self, page: int = 1, page_size: int = 20
-    ) -> list[SignatureRequest]:
+    def list_pending(self, page: int = 1, page_size: int = 20) -> list[SignatureRequest]:
         offset = (page - 1) * page_size
         stmt = (
             select(SignatureRequest)
@@ -202,9 +191,9 @@ class SignatureRequestCrudMixin:
     def update(
         self,
         request_id: int,
-        req: Optional[SignatureRequest] = None,
+        req: SignatureRequest | None = None,
         **fields,
-    ) -> Optional[SignatureRequest]:
+    ) -> SignatureRequest | None:
         """Update fields on a signature request.
 
         Pass a pre-fetched (optionally locked) ``req`` entity to avoid a second
@@ -219,9 +208,7 @@ class SignatureRequestCrudMixin:
         self.db.flush()
         return entity
 
-    def list_pending_by_annual_report(
-        self, annual_report_id: int
-    ) -> list[SignatureRequest]:
+    def list_pending_by_annual_report(self, annual_report_id: int) -> list[SignatureRequest]:
         """Return all PENDING_SIGNATURE requests linked to the given annual report."""
         stmt = select(SignatureRequest).where(
             SignatureRequest.annual_report_id == annual_report_id,

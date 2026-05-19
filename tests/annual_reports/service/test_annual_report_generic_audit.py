@@ -15,15 +15,12 @@ from app.audit.constants import (
 from app.audit.models.entity_audit_log import EntityAuditLog
 from tests.helpers.identity import seed_client_identity
 
-
 _seq = count(1)
 
 
 def _create_report(db, user):
     idx = next(_seq)
-    client = seed_client_identity(
-        db, full_name=f"Audit Report {idx}", id_number=f"ARG{idx:06d}"
-    )
+    client = seed_client_identity(db, full_name=f"Audit Report {idx}", id_number=f"ARG{idx:06d}")
     return AnnualReportService(db).create_report(
         client_record_id=client.id,
         tax_year=2026,
@@ -124,9 +121,7 @@ def test_annex_add_update_delete_write_generic_audit(test_db, test_user):
 
     added = json.loads(_entry(test_db, report.id, ACTION_ANNEX_LINE_ADDED).new_value)
     updated = _entry(test_db, report.id, ACTION_ANNEX_LINE_UPDATED)
-    deleted = json.loads(
-        _entry(test_db, report.id, ACTION_ANNEX_LINE_DELETED).old_value
-    )
+    deleted = json.loads(_entry(test_db, report.id, ACTION_ANNEX_LINE_DELETED).old_value)
     assert added == {
         "schedule": "schedule_b",
         "line_id": line.id,

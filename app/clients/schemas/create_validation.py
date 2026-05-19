@@ -1,6 +1,4 @@
-from typing import Optional
 
-from app.clients.create_policy import derive_id_number_type
 from app.clients.constants import (
     ADVANCE_PAYMENT_FREQUENCY_REQUIRED_ERROR,
     COMPANY_EXEMPT_VAT_ERROR,
@@ -13,6 +11,7 @@ from app.clients.constants import (
     UNSUPPORTED_EMPLOYEE_CREATE_ERROR,
     VAT_FREQUENCY_REQUIRED_ERROR,
 )
+from app.clients.create_policy import derive_id_number_type
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.utils.id_validation import validate_israeli_id_checksum
 
@@ -37,14 +36,14 @@ def validate_identifier_for_entity(entity_type: EntityType, id_number: str) -> N
 
 def validate_create_entity_rules(
     *,
-    entity_type: Optional[EntityType],
+    entity_type: EntityType | None,
     id_number: str,
-    provided_id_number_type: Optional[IdNumberType],
+    provided_id_number_type: IdNumberType | None,
     id_number_type_was_set: bool,
-    vat_reporting_frequency: Optional[VatType],
+    vat_reporting_frequency: VatType | None,
     vat_reporting_frequency_was_set: bool,
     vat_exempt_ceiling_was_set: bool,
-    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
+    advance_payment_frequency: AdvancePaymentFrequency | None = None,
 ) -> None:
     if entity_type is None:
         raise ValueError("יש לבחור סוג ישות")
@@ -65,10 +64,7 @@ def validate_create_entity_rules(
     else:
         if vat_reporting_frequency is None:
             raise ValueError(VAT_FREQUENCY_REQUIRED_ERROR)
-        if (
-            entity_type == EntityType.COMPANY_LTD
-            and vat_reporting_frequency == VatType.EXEMPT
-        ):
+        if entity_type == EntityType.COMPANY_LTD and vat_reporting_frequency == VatType.EXEMPT:
             raise ValueError(COMPANY_EXEMPT_VAT_ERROR)
         if vat_exempt_ceiling_was_set:
             raise ValueError(NON_PATUR_VAT_EXEMPT_CEILING_ERROR)
@@ -90,22 +86,16 @@ def validate_update_entity_rules(
 def validate_preview_entity_rules(
     *,
     entity_type: EntityType,
-    vat_reporting_frequency: Optional[VatType],
+    vat_reporting_frequency: VatType | None,
     vat_reporting_frequency_was_set: bool,
 ) -> None:
     if entity_type == EntityType.EMPLOYEE:
         raise ValueError(UNSUPPORTED_EMPLOYEE_CREATE_ERROR)
     if entity_type == EntityType.OSEK_PATUR:
-        if (
-            vat_reporting_frequency_was_set
-            and vat_reporting_frequency != VatType.EXEMPT
-        ):
+        if vat_reporting_frequency_was_set and vat_reporting_frequency != VatType.EXEMPT:
             raise ValueError(PATUR_MANUAL_VAT_FREQUENCY_ERROR)
         return
-    if (
-        entity_type == EntityType.COMPANY_LTD
-        and vat_reporting_frequency == VatType.EXEMPT
-    ):
+    if entity_type == EntityType.COMPANY_LTD and vat_reporting_frequency == VatType.EXEMPT:
         raise ValueError(COMPANY_EXEMPT_VAT_ERROR)
     if vat_reporting_frequency is None:
         raise ValueError(VAT_FREQUENCY_REQUIRED_ERROR)

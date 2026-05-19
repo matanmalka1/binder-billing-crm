@@ -1,5 +1,5 @@
-from app.core.exceptions import AppError
 from app.charge.services.bulk_billing_service import BulkBillingService
+from app.core.exceptions import AppError
 
 
 class _FakeBilling:

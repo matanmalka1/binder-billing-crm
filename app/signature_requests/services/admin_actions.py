@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import (
     SignatureRequest,
@@ -11,8 +9,8 @@ from app.signature_requests.repositories.signature_request_repository import (
     SignatureRequestRepository,
 )
 from app.signature_requests.services.messages import (
-    CANCELED_BY_ADVISOR_NOTE,
     CANCEL_REQUEST_INVALID_STATUS,
+    CANCELED_BY_ADVISOR_NOTE,
     SIGNATURE_REQUEST_EXPIRED_NOTE,
 )
 from app.signature_requests.services.signature_request_validations import (
@@ -27,7 +25,7 @@ def cancel_request(
     request_id: int,
     canceled_by: int,
     canceled_by_name: str,
-    reason: Optional[str] = None,
+    reason: str | None = None,
 ) -> SignatureRequest:
     req = get_or_raise_for_update(repo, request_id)
 

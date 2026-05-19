@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -23,12 +23,12 @@ class ReminderRepository(BaseRepository):
         *,
         fire_at: datetime,
         action_type: ReminderActionType,
-        source_domain: Optional[str] = None,
-        source_id: Optional[int] = None,
-        target_task_id: Optional[int] = None,
-        notification_template_key: Optional[str] = None,
-        payload: Optional[dict[str, Any]] = None,
-        created_by_user_id: Optional[int] = None,
+        source_domain: str | None = None,
+        source_id: int | None = None,
+        target_task_id: int | None = None,
+        notification_template_key: str | None = None,
+        payload: dict[str, Any] | None = None,
+        created_by_user_id: int | None = None,
     ) -> Reminder:
         reminder = Reminder(
             fire_at=fire_at,
@@ -47,7 +47,7 @@ class ReminderRepository(BaseRepository):
 
     def update_status(
         self, reminder_id: int, new_status: ReminderStatus, **fields
-    ) -> Optional[Reminder]:
+    ) -> Reminder | None:
         reminder = self.get_by_id(reminder_id)
         if not reminder:
             return None
@@ -71,9 +71,7 @@ class ReminderRepository(BaseRepository):
         return list(self.db.scalars(self.apply_pagination(stmt, page, page_size)))
 
     def count_by_status(self, status: ReminderStatus) -> int:
-        return self.db.scalar(
-            select(func.count(Reminder.id)).where(Reminder.status == status)
-        )
+        return self.db.scalar(select(func.count(Reminder.id)).where(Reminder.status == status))
 
     def list_due_scheduled(self, now: datetime, limit: int = 100) -> list[Reminder]:
         stmt = (

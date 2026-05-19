@@ -4,9 +4,9 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.signature_requests.schemas.signature_request import (
     SignatureAuditEventResponse,
+    SignatureRequestCreatedResponse,
     SignatureRequestListResponse,
     SignatureRequestResponse,
-    SignatureRequestCreatedResponse,
     SignatureRequestWithAuditResponse,
 )
 
@@ -38,9 +38,7 @@ class SignatureRequestResponseBuilder:
             total=total,
         )
 
-    def build_with_audit(
-        self, request, audit_events
-    ) -> SignatureRequestWithAuditResponse:
+    def build_with_audit(self, request, audit_events) -> SignatureRequestWithAuditResponse:
         response = SignatureRequestWithAuditResponse.model_validate(request)
         self._enrich(response)
         response.audit_trail = [
@@ -72,9 +70,7 @@ class SignatureRequestResponseBuilder:
             response.business_name = business_map.get(response.business_id)
 
     def _business_name_map(self, items) -> dict[int, str]:
-        business_ids = sorted(
-            {item.business_id for item in items if item.business_id is not None}
-        )
+        business_ids = sorted({item.business_id for item in items if item.business_id is not None})
         return {
             business.id: business.business_name
             for business in self.business_repo.list_by_ids(business_ids)

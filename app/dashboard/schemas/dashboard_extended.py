@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -17,15 +17,15 @@ class DashboardQuickAction(BaseModel):
     label: str
     method: str
     endpoint: str
-    payload: Optional[dict[str, Any]] = None
-    confirm: Optional[ConfirmDetails] = None
-    client_name: Optional[str] = None
-    binder_number: Optional[str] = None
-    category: Optional[str] = None  # "binders" | "vat" | "annual_reports"
-    due_label: Optional[str] = None
-    description: Optional[str] = None
-    urgency: Optional[Literal["overdue", "upcoming"]] = None
-    due_date: Optional[date] = None
+    payload: dict[str, Any] | None = None
+    confirm: ConfirmDetails | None = None
+    client_name: str | None = None
+    binder_number: str | None = None
+    category: str | None = None  # "binders" | "vat" | "annual_reports"
+    due_label: str | None = None
+    description: str | None = None
+    urgency: Literal["overdue", "upcoming"] | None = None
+    due_date: date | None = None
 
 
 class AttentionBoardItem(BaseModel):
@@ -33,11 +33,11 @@ class AttentionBoardItem(BaseModel):
     source_type: str
     source_id: int
     title: str
-    client_name: Optional[str] = None
-    due_date: Optional[date] = None
+    client_name: str | None = None
+    due_date: date | None = None
     days_delta: int = 0
-    reason: Optional[str] = None
-    amount: Optional[str] = None
+    reason: str | None = None
+    amount: str | None = None
     urgency: str
     href: str
 
@@ -50,9 +50,9 @@ class AttentionResponse(BaseModel):
 class AdvisorTodayItem(BaseModel):
     id: int
     label: str
-    sublabel: Optional[str] = None
-    description: Optional[str] = None
-    href: Optional[str] = None
+    sublabel: str | None = None
+    description: str | None = None
+    href: str | None = None
 
 
 class AdvisorTodayResponse(BaseModel):
@@ -95,7 +95,7 @@ class DashboardOverviewResponse(BaseModel):
 
     is_empty: bool
     open_charges_count: int = 0
-    open_charges_amount_ils: Optional[str] = None
+    open_charges_amount_ils: str | None = None
     vat_stats: VatDashboardStats
     quick_actions: list[DashboardQuickAction] = Field(default_factory=list)
     attention: AttentionResponse = Field(default_factory=AttentionResponse)

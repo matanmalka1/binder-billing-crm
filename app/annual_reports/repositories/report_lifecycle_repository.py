@@ -1,15 +1,13 @@
 """Lifecycle/season operations for AnnualReport entities."""
 
 import datetime as _dt
-from datetime import timezone
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy import func, select
 
-from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.utils.time_utils import israel_today, utcnow
 
 DASHBOARD_FINAL_STATUSES = frozenset(
@@ -26,7 +24,7 @@ class AnnualReportLifecycleRepository:
         return scope_to_active_clients_stmt(select(AnnualReport), AnnualReport)
 
     def list_overdue(
-        self, tax_year: Optional[int] = None, page: int = 1, page_size: int = 20
+        self, tax_year: int | None = None, page: int = 1, page_size: int = 20
     ) -> list[AnnualReport]:
         now = utcnow()
         open_statuses = [
@@ -50,9 +48,7 @@ class AnnualReportLifecycleRepository:
     def sum_financials_by_year(self, tax_year: int) -> dict:
         stmt = scope_to_active_clients_stmt(
             select(
-                func.coalesce(func.sum(AnnualReport.refund_due), 0).label(
-                    "total_refund_due"
-                ),
+                func.coalesce(func.sum(AnnualReport.refund_due), 0).label("total_refund_due"),
                 func.coalesce(func.sum(AnnualReport.tax_due), 0).label("total_tax_due"),
             ),
             AnnualReport,
@@ -66,11 +62,9 @@ class AnnualReportLifecycleRepository:
             "total_tax_due": Decimal(str(row.total_tax_due)),
         }
 
-    def list_stuck_reports(
-        self, stale_days: int = 7, limit: int = 3
-    ) -> list[AnnualReport]:
+    def list_stuck_reports(self, stale_days: int = 7, limit: int = 3) -> list[AnnualReport]:
         """Return reports stuck in PENDING_CLIENT or COLLECTING_DOCS for >= stale_days."""
-        cutoff = _dt.datetime.now(timezone.utc) - _dt.timedelta(days=stale_days)
+        cutoff = _dt.datetime.now(_dt.UTC) - _dt.timedelta(days=stale_days)
         stmt = (
             self._active_client_stmt()
             .where(
@@ -91,7 +85,7 @@ class AnnualReportLifecycleRepository:
     def list_for_dashboard(self, limit: int = 50) -> list[AnnualReport]:
         """Return non-final reports with a filing_deadline set, ordered by deadline asc.
         Excludes reports older than 2 years to avoid unsupported tax year errors."""
-        cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=730)
+        cutoff = _dt.datetime.now(_dt.UTC) - _dt.timedelta(days=730)
         stmt = (
             self._active_client_stmt()
             .where(
@@ -105,7 +99,7 @@ class AnnualReportLifecycleRepository:
         )
         return list(self.db.scalars(stmt).all())
 
-    def get_default_tax_year_candidate(self) -> Optional[AnnualReport]:
+    def get_default_tax_year_candidate(self) -> AnnualReport | None:
         stmt = (
             self._active_client_stmt()
             .where(
@@ -119,7 +113,7 @@ class AnnualReportLifecycleRepository:
         )
         return self.db.scalars(stmt).first()
 
-    def get_latest_tax_year(self) -> Optional[int]:
+    def get_latest_tax_year(self) -> int | None:
         stmt = scope_to_active_clients_stmt(
             select(func.max(AnnualReport.tax_year)), AnnualReport
         ).where(AnnualReport.deleted_at.is_(None))

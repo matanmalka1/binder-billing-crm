@@ -3,14 +3,10 @@ from tests.helpers.identity import seed_client_identity
 
 
 def _client(db):
-    return seed_client_identity(
-        db, full_name="Annual Delete Client", id_number="ADS001"
-    )
+    return seed_client_identity(db, full_name="Annual Delete Client", id_number="ADS001")
 
 
-def test_delete_report_soft_deletes_existing_and_returns_false_for_missing(
-    test_db, test_user
-):
+def test_delete_report_soft_deletes_existing_and_returns_false_for_missing(test_db, test_user):
     service = AnnualReportService(test_db)
     client = _client(test_db)
     report = service.create_report(
@@ -21,12 +17,6 @@ def test_delete_report_soft_deletes_existing_and_returns_false_for_missing(
         created_by_name="Test User",
     )
 
-    assert (
-        service.delete_report(report.id, actor_id=test_user.id, actor_name="Test User")
-        is True
-    )
+    assert service.delete_report(report.id, actor_id=test_user.id, actor_name="Test User") is True
     assert service.repo.get_by_id(report.id) is None
-    assert (
-        service.delete_report(999999, actor_id=test_user.id, actor_name="Test User")
-        is False
-    )
+    assert service.delete_report(999999, actor_id=test_user.id, actor_name="Test User") is False

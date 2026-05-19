@@ -11,9 +11,9 @@ from sqlalchemy import (
     Numeric,
     String,
 )
-from app.utils.enum_utils import pg_enum
 
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
 
@@ -38,9 +38,7 @@ class AnnualReportIncomeLine(Base):
 
     __tablename__ = "annual_report_income_lines"
     __table_args__ = (
-        CheckConstraint(
-            "amount >= 0", name="ck_annual_report_income_lines_amount_non_negative"
-        ),
+        CheckConstraint("amount >= 0", name="ck_annual_report_income_lines_amount_non_negative"),
     )
 
     id = Column(Integer, primary_key=True, autoincrement=True)

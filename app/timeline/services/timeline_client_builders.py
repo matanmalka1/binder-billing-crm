@@ -5,9 +5,7 @@ from app.timeline.labels import (
 
 
 def client_created_event(client) -> dict:
-    client_name = getattr(client, "full_name", None) or getattr(
-        client, "official_name", ""
-    )
+    client_name = getattr(client, "full_name", None) or getattr(client, "official_name", "")
     entity_type = getattr(client, "entity_type", None)
     entity_type_value = getattr(entity_type, "value", entity_type)
     return {

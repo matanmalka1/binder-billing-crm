@@ -55,9 +55,7 @@ def test_readonly_get_endpoints_keep_db_state_intact(
         "binders": test_db.scalar(select(func.count(Binder.id))),
         "logs": test_db.scalar(select(func.count(BinderStatusLog.id))),
         "clients": test_db.scalar(select(func.count(ClientRecord.id))),
-        "statuses": {
-            b.id: b.status.value for b in test_db.scalars(select(Binder)).all()
-        },
+        "statuses": {b.id: b.status.value for b in test_db.scalars(select(Binder)).all()},
     }
 
     r_client_binders = client.get(
@@ -66,9 +64,7 @@ def test_readonly_get_endpoints_keep_db_state_intact(
     assert r_client_binders.status_code == 200
     assert r_client_binders.json()["total"] == 3
 
-    r_history = client.get(
-        f"/api/v1/binders/{b_open.id}/history", headers=advisor_headers
-    )
+    r_history = client.get(f"/api/v1/binders/{b_open.id}/history", headers=advisor_headers)
     assert r_history.status_code == 200
     assert r_history.json()["binder_id"] == b_open.id
 
@@ -80,8 +76,6 @@ def test_readonly_get_endpoints_keep_db_state_intact(
     assert test_db.scalar(select(func.count(Binder.id))) == baseline["binders"]
     assert test_db.scalar(select(func.count(BinderStatusLog.id))) == baseline["logs"]
     assert test_db.scalar(select(func.count(ClientRecord.id))) == baseline["clients"]
-    assert {
-        b.id: b.status.value for b in test_db.scalars(select(Binder)).all()
-    } == baseline[
+    assert {b.id: b.status.value for b in test_db.scalars(select(Binder)).all()} == baseline[
         "statuses"
     ]

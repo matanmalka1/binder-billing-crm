@@ -1,9 +1,7 @@
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.clients.enums import ClientStatus
-from app.common.enums import EntityType
 from app.clients.repositories.client_record_read_repository import (
     get_full_record,
     get_full_record_including_deleted,
@@ -21,6 +19,7 @@ from app.clients.schemas.client_record_response import (
     ClientRecordResponse,
 )
 from app.clients.services.client_enrichment_service import ClientEnrichmentService
+from app.common.enums import EntityType
 from app.core.exceptions import NotFoundError
 
 
@@ -40,17 +39,14 @@ class ClientQueryService:
     def list_all_clients(self) -> list[ClientRecordResponse]:
         records = self.record_repo.list_all()
         full_map = get_full_records_bulk(self.db, [r.id for r in records])
-        return [
-            ClientRecordResponse(**full_map[r.id]) for r in records if r.id in full_map
-        ]
+        return [ClientRecordResponse(**full_map[r.id]) for r in records if r.id in full_map]
 
     def get_conflict_info(self, id_number: str) -> ClientConflictInfo:
         active_records = self.record_repo.get_active_by_id_number(id_number)
         deleted_records = self.record_repo.get_deleted_by_id_number(id_number)
         active_full = get_full_records_bulk(self.db, [r.id for r in active_records])
         deleted_full = {
-            r.id: get_full_record_including_deleted(self.db, r.id)
-            for r in deleted_records
+            r.id: get_full_record_including_deleted(self.db, r.id) for r in deleted_records
         }
         return ClientConflictInfo(
             id_number=id_number,
@@ -67,34 +63,28 @@ class ClientQueryService:
         )
 
     def get_full_client(
-        self, client_record_id: int, tax_year: Optional[int] = None
+        self, client_record_id: int, tax_year: int | None = None
     ) -> ClientRecordResponse:
         data = get_full_record(self.db, client_record_id)
         if not data:
-            raise NotFoundError(
-                f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND"
-            )
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
         return ClientEnrichmentService(self.db).enrich_single(
             ClientRecordResponse(**data), tax_year=tax_year
         )
 
-    def get_full_client_including_deleted(
-        self, client_record_id: int
-    ) -> ClientRecordResponse:
+    def get_full_client_including_deleted(self, client_record_id: int) -> ClientRecordResponse:
         data = get_full_record_including_deleted(self.db, client_record_id)
         if not data:
-            raise NotFoundError(
-                f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND"
-            )
+            raise NotFoundError(f"רשומת לקוח {client_record_id} לא נמצאה", "CLIENT.NOT_FOUND")
         return ClientRecordResponse(**data)
 
     def list_full_clients(
         self,
-        search: Optional[str] = None,
-        status: Optional[ClientStatus] = None,
-        accountant_id: Optional[int] = None,
-        entity_type: Optional[EntityType] = None,
-        tax_year: Optional[int] = None,
+        search: str | None = None,
+        status: ClientStatus | None = None,
+        accountant_id: int | None = None,
+        entity_type: EntityType | None = None,
+        tax_year: int | None = None,
         sort_by: str = "official_name",
         sort_order: str = "asc",
         page: int = 1,
@@ -118,11 +108,7 @@ class ClientQueryService:
         )
         record_ids = [r.id for r in records]
         full_map = get_full_records_bulk(self.db, record_ids)
-        items = [
-            ClientRecordResponse(**full_map[rid])
-            for rid in record_ids
-            if rid in full_map
-        ]
+        items = [ClientRecordResponse(**full_map[rid]) for rid in record_ids if rid in full_map]
         items = ClientEnrichmentService(self.db).enrich_list(items, tax_year=tax_year)
         counts = self.record_repo.count_by_status(
             search=search,

@@ -33,15 +33,12 @@ class AdvancePaymentBatchRepository(BaseRepository):
                     func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label(
                         "total_expected"
                     ),
-                    func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label(
-                        "total_paid"
-                    ),
+                    func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
                     func.coalesce(
                         func.sum(
                             case(
                                 (
-                                    (AdvancePayment.due_date < today_expr)
-                                    & not_paid_expr,
+                                    (AdvancePayment.due_date < today_expr) & not_paid_expr,
                                     1,
                                 ),
                                 else_=0,
@@ -81,11 +78,7 @@ class AdvancePaymentBatchRepository(BaseRepository):
                 AdvancePayment,
             )
             .where(
-                *(
-                    [AdvancePayment.period.like(f"{year}-%")]
-                    if year is not None
-                    else []
-                ),
+                *([AdvancePayment.period.like(f"{year}-%")] if year is not None else []),
                 AdvancePayment.deleted_at.is_(None),
             )
             .group_by(period_year, start_month, AdvancePayment.period_months_count)

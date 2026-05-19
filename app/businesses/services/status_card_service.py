@@ -1,8 +1,15 @@
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from app.advance_payments.repositories.advance_payment_repository import (
+    AdvancePaymentRepository,
+)
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
+from app.binders.models.binder import BinderStatus
+from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.schemas.business_status_card import (
     AdvancePaymentsCard,
     AnnualReportCard,
@@ -12,25 +19,17 @@ from app.businesses.schemas.business_status_card import (
     DocumentsCard,
     VatSummaryCard,
 )
-from app.utils.time_utils import utcnow
-from app.vat_reports.repositories.vat_work_item_write_repository import (
-    VatWorkItemWriteRepository as VatWorkItemRepository,
-)
-from app.vat_reports.models.vat_work_item import VatWorkItemStatus
-from app.annual_reports.repositories.annual_report_repository import (
-    AnnualReportRepository,
-)
-from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.models.charge import ChargeStatus
-from app.advance_payments.repositories.advance_payment_repository import (
-    AdvancePaymentRepository,
-)
-from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.models.binder import BinderStatus
+from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
 from app.permanent_documents.repositories.permanent_document_repository import (
     PermanentDocumentRepository,
+)
+from app.utils.time_utils import utcnow
+from app.vat_reports.models.vat_work_item import VatWorkItemStatus
+from app.vat_reports.repositories.vat_work_item_write_repository import (
+    VatWorkItemWriteRepository as VatWorkItemRepository,
 )
 
 
@@ -52,23 +51,19 @@ class StatusCardService:
     def get_status_card(
         self,
         client_id: int,
-        year: Optional[int] = None,
+        year: int | None = None,
     ) -> ClientStatusCardResponse:
         resolved_year = year or utcnow().year
         client_record = ClientRecordRepository(self._db).get_by_id(client_id)
         if not client_record:
-            raise NotFoundError(
-                f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND"
-            )
+            raise NotFoundError(f"רשומת לקוח {client_id} לא נמצאה", "CLIENT_RECORD.NOT_FOUND")
         return ClientStatusCardResponse(
             client_id=client_id,
             year=resolved_year,
             client_vat=self._vat_card(client_record.id, resolved_year),
             annual_report=self._annual_report_card(client_record.id, resolved_year),
             charges=self._charges_card(client_record.id),
-            advance_payments=self._advance_payments_card(
-                client_record.id, resolved_year
-            ),
+            advance_payments=self._advance_payments_card(client_record.id, resolved_year),
             binders=self._binders_card(client_record.id),
             documents=self._documents_card(client_record.id),
         )
@@ -95,9 +90,7 @@ class StatusCardService:
         if not report:
             return AnnualReportCard()
         deadline_str = (
-            report.filing_deadline.strftime("%Y-%m-%d")
-            if report.filing_deadline
-            else None
+            report.filing_deadline.strftime("%Y-%m-%d") if report.filing_deadline else None
         )
         return AnnualReportCard(
             status=report.status.value if report.status else None,
@@ -117,9 +110,7 @@ class StatusCardService:
         total = sum((r.amount or Decimal(0)) for r in rows)
         return ChargesCard(total_outstanding=total, unpaid_count=len(rows))
 
-    def _advance_payments_card(
-        self, client_record_id: int, year: int
-    ) -> AdvancePaymentsCard:
+    def _advance_payments_card(self, client_record_id: int, year: int) -> AdvancePaymentsCard:
         rows, _ = self._advance_repo.list_by_client_record_year(
             client_record_id=client_record_id,
             year=year,

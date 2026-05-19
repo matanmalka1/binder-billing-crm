@@ -12,9 +12,7 @@ class PermanentDocumentResponseBuilder:
     def build_one(self, document: PermanentDocument) -> PermanentDocumentResponse:
         return self.build_many([document])[0]
 
-    def build_many(
-        self, documents: list[PermanentDocument]
-    ) -> list[PermanentDocumentResponse]:
+    def build_many(self, documents: list[PermanentDocument]) -> list[PermanentDocumentResponse]:
         client_ids = sorted({doc.client_record_id for doc in documents})
         clients = get_full_records_bulk(self.db, client_ids)
         responses: list[PermanentDocumentResponse] = []

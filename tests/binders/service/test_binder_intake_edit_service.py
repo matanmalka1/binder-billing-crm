@@ -136,9 +136,7 @@ def _intake_with_material(
     return intake
 
 
-def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(
-    test_db, test_user
-):
+def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(test_db, test_user):
     source_client = _client(test_db, "001", office_client_number=100401)
     target_client = _client(test_db, "002", office_client_number=100402)
 
@@ -188,9 +186,7 @@ def test_edit_intake_moves_to_target_client_active_binder_and_logs_fk_changes(
     }
 
 
-def test_edit_intake_rejects_cross_client_transfer_with_foreign_linked_entities(
-    test_db, test_user
-):
+def test_edit_intake_rejects_cross_client_transfer_with_foreign_linked_entities(test_db, test_user):
     source_client = _client(test_db, "003", office_client_number=100403)
     target_client = _client(test_db, "004", office_client_number=100404)
 

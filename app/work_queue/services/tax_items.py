@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
-from typing import Optional
 
 from sqlalchemy import select
 
@@ -28,15 +27,11 @@ def _vat_due_date(item) -> date:
     due_date_effective = item.due_date_effective
     if due_date_effective is None:
         raise ValueError(f"VatWorkItem {item.id} is missing due_date_effective")
-    return (
-        due_date_effective.date()
-        if hasattr(due_date_effective, "date")
-        else due_date_effective
-    )
+    return due_date_effective.date() if hasattr(due_date_effective, "date") else due_date_effective
 
 
 def vat_work_item_items(
-    ctx: WorkQueueContext, client_record_id: Optional[int]
+    ctx: WorkQueueContext, client_record_id: int | None
 ) -> list[WorkQueueItem]:
     """Return work-queue items for unfiled VAT periods.
 
@@ -70,7 +65,7 @@ def vat_work_item_items(
 
 
 def annual_report_items(
-    ctx: WorkQueueContext, client_record_id: Optional[int]
+    ctx: WorkQueueContext, client_record_id: int | None
 ) -> list[WorkQueueItem]:
     cutoff = ctx.today + timedelta(days=UPCOMING_WINDOW_DAYS)
     annual_report = annual_report_models.AnnualReport
@@ -99,8 +94,6 @@ def _annual_report_item(ctx: WorkQueueContext, report) -> WorkQueueItem:
         f"דוח שנתי {report.tax_year}",
         due_date,
         report.client_record_id,
-        status_label=report.status.value
-        if hasattr(report.status, "value")
-        else str(report.status),
+        status_label=report.status.value if hasattr(report.status, "value") else str(report.status),
         metadata=annual_report_metadata(report),
     )

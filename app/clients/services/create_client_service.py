@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -7,8 +6,8 @@ from sqlalchemy.orm import Session
 from app.audit.constants import ENTITY_CLIENT
 from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.businesses.models.business import Business
-from app.businesses.services.client_business_service import ClientBusinessService
 from app.businesses.services.business_service import BusinessService
+from app.businesses.services.client_business_service import ClientBusinessService
 from app.clients.constants import (
     COMPANY_CORPORATION_ID_ERROR,
     UNSUPPORTED_EMPLOYEE_CREATE_ERROR,
@@ -64,25 +63,25 @@ class CreateClientService:
         *,
         full_name: str,
         id_number: str,
-        business_name: Optional[str] = None,
+        business_name: str | None = None,
         id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,  # type: ignore
-        entity_type: Optional[EntityType] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
-        address_street: Optional[str] = None,
-        address_building_number: Optional[str] = None,
-        address_apartment: Optional[str] = None,
-        address_city: Optional[str] = None,
-        address_zip_code: Optional[str] = None,
-        vat_reporting_frequency: Optional[VatType] = None,
-        advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
+        entity_type: EntityType | None = None,
+        phone: str | None = None,
+        email: str | None = None,
+        address_street: str | None = None,
+        address_building_number: str | None = None,
+        address_apartment: str | None = None,
+        address_city: str | None = None,
+        address_zip_code: str | None = None,
+        vat_reporting_frequency: VatType | None = None,
+        advance_payment_frequency: AdvancePaymentFrequency | None = None,
         vat_exempt_ceiling=None,
         advance_rate=None,
-        accountant_id: Optional[int] = None,
-        business_opened_at: Optional[date] = None,
-        business_notes: Optional[str] = None,
-        actor_id: Optional[int] = None,
-        reference_date: Optional[date] = None,
+        accountant_id: int | None = None,
+        business_opened_at: date | None = None,
+        business_notes: str | None = None,
+        actor_id: int | None = None,
+        reference_date: date | None = None,
     ) -> tuple[ClientRecord, Business]:
         """
         Create all records in the current DB transaction.
@@ -118,9 +117,7 @@ class CreateClientService:
         except ConflictError as exc:
             if exc.code not in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}:
                 raise
-            raise ClientCreationConflictError(
-                self._client_conflict_detail(id_number, exc)
-            ) from exc
+            raise ClientCreationConflictError(self._client_conflict_detail(id_number, exc)) from exc
         business = self.business_service.create_business_for_client_record(
             client_record_id=client_record.id,
             opened_at=business_opened_at,
@@ -136,28 +133,25 @@ class CreateClientService:
         full_name: str,
         id_number: str,
         id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,  # type: ignore
-        entity_type: Optional[EntityType] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
-        address_street: Optional[str] = None,
-        address_building_number: Optional[str] = None,
-        address_apartment: Optional[str] = None,
-        address_city: Optional[str] = None,
-        address_zip_code: Optional[str] = None,
-        vat_reporting_frequency: Optional[VatType] = None,
-        advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
+        entity_type: EntityType | None = None,
+        phone: str | None = None,
+        email: str | None = None,
+        address_street: str | None = None,
+        address_building_number: str | None = None,
+        address_apartment: str | None = None,
+        address_city: str | None = None,
+        address_zip_code: str | None = None,
+        vat_reporting_frequency: VatType | None = None,
+        advance_payment_frequency: AdvancePaymentFrequency | None = None,
         vat_exempt_ceiling=None,
         advance_rate=None,
-        accountant_id: Optional[int] = None,
-        actor_id: Optional[int] = None,
-        reference_date: Optional[date] = None,
+        accountant_id: int | None = None,
+        actor_id: int | None = None,
+        reference_date: date | None = None,
     ) -> ClientRecord:
         if entity_type == EntityType.EMPLOYEE:
             raise ValueError(UNSUPPORTED_EMPLOYEE_CREATE_ERROR)
-        if (
-            entity_type == EntityType.COMPANY_LTD
-            and id_number_type != IdNumberType.CORPORATION
-        ):
+        if entity_type == EntityType.COMPANY_LTD and id_number_type != IdNumberType.CORPORATION:
             raise ValueError(COMPANY_CORPORATION_ID_ERROR)
 
         effective_vat_reporting_frequency = normalize_vat_reporting_frequency(

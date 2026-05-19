@@ -60,9 +60,7 @@ def test_user_management_create_and_update_validation(test_db, test_user):
         )
 
 
-def test_user_management_activate_deactivate_not_found_and_self_guard(
-    test_db, test_user
-):
+def test_user_management_activate_deactivate_not_found_and_self_guard(test_db, test_user):
     service = UserManagementService(test_db)
     with pytest.raises(NotFoundError):
         service.activate_user(test_user.id, UserRole.ADVISOR, 999999)

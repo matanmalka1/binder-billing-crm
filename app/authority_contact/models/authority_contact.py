@@ -28,9 +28,9 @@ Design decisions:
 from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
-from app.utils.enum_utils import pg_enum
 
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
 
@@ -45,9 +45,7 @@ class AuthorityContact(Base):
     __tablename__ = "authority_contacts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    client_record_id = Column(
-        Integer, ForeignKey("client_records.id"), nullable=False, index=True
-    )
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
 
     # ── Contact identity ──────────────────────────────────────────────────────
     contact_type = Column(pg_enum(ContactType), nullable=False)

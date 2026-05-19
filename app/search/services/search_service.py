@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -37,27 +36,23 @@ class SearchService:
 
     def search(
         self,
-        query: Optional[str] = None,
-        client_name: Optional[str] = None,
-        id_number: Optional[str] = None,
-        binder_number: Optional[str] = None,
-        client_status: Optional[ClientStatus] = None,
-        entity_type: Optional[EntityType] = None,
-        binder_status: Optional[BinderStatus] = None,
-        filename: Optional[str] = None,
+        query: str | None = None,
+        client_name: str | None = None,
+        id_number: str | None = None,
+        binder_number: str | None = None,
+        client_status: ClientStatus | None = None,
+        entity_type: EntityType | None = None,
+        binder_status: BinderStatus | None = None,
+        filename: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[dict], int, list[DocumentSearchResult]]:
         doc_service = DocumentSearchService(self.db)
         documents: list[DocumentSearchResult] = (
-            doc_service.search_documents(query, filename=filename)
-            if (query or filename)
-            else []
+            doc_service.search_documents(query, filename=filename) if (query or filename) else []
         )
 
-        has_client_filter = bool(
-            query or client_name or id_number or client_status or entity_type
-        )
+        has_client_filter = bool(query or client_name or id_number or client_status or entity_type)
         has_binder_filter = bool(query or binder_number or binder_status)
 
         # --- Pure client-only search: DB-level pagination ---
@@ -71,12 +66,8 @@ class SearchService:
                 page=page,
                 page_size=page_size,
             )
-            legal_map = self._legal_entity_map(
-                [record.legal_entity_id for record in records]
-            )
-            binder_map = self.binder_repo.map_active_by_clients(
-                [record.id for record in records]
-            )
+            legal_map = self._legal_entity_map([record.legal_entity_id for record in records])
+            binder_map = self.binder_repo.map_active_by_clients([record.id for record in records])
             return (
                 [
                     {
@@ -90,9 +81,7 @@ class SearchService:
                         if legal_map.get(record.legal_entity_id)
                         else None,
                         "client_status": record.status,
-                        "binder_id": binder_map[record.id].id
-                        if record.id in binder_map
-                        else None,
+                        "binder_id": binder_map[record.id].id if record.id in binder_map else None,
                         "binder_number": binder_map[record.id].binder_number
                         if record.id in binder_map
                         else None,
@@ -117,9 +106,7 @@ class SearchService:
                 page=1,
                 page_size=_MIXED_SEARCH_CLIENT_LIMIT,
             )
-            legal_map = self._legal_entity_map(
-                [record.legal_entity_id for record in all_records]
-            )
+            legal_map = self._legal_entity_map([record.legal_entity_id for record in all_records])
             client_binder_map = self.binder_repo.map_active_by_clients(
                 [record.id for record in all_records]
             )
@@ -131,9 +118,7 @@ class SearchService:
                         "result_type": "client",
                         "client_id": record.id,
                         "office_client_number": record.office_client_number,
-                        "client_name": legal_entity.official_name
-                        if legal_entity
-                        else "לא ידוע",
+                        "client_name": legal_entity.official_name if legal_entity else "לא ידוע",
                         "id_number": legal_entity.id_number if legal_entity else None,
                         "client_status": record.status,
                         "binder_id": b.id if b else None,
@@ -142,9 +127,7 @@ class SearchService:
                 )
 
         if has_binder_filter:
-            db_binder_number = binder_number or (
-                query if not (client_name or id_number) else None
-            )
+            db_binder_number = binder_number or (query if not (client_name or id_number) else None)
             include_returned = binder_status == BinderStatus.RETURNED
             binders = self.binder_repo.list_active(
                 binder_number=db_binder_number,
@@ -155,12 +138,9 @@ class SearchService:
             )
             binder_cr_ids = [b.client_record_id for b in binders]
             records = {
-                record.id: record
-                for record in self.client_record_repo.list_by_ids(binder_cr_ids)
+                record.id: record for record in self.client_record_repo.list_by_ids(binder_cr_ids)
             }
-            cr_to_legal = {
-                record.id: record.legal_entity_id for record in records.values()
-            }
+            cr_to_legal = {record.id: record.legal_entity_id for record in records.values()}
             legal_entity_ids = list(cr_to_legal.values())
             legal_map = self._legal_entity_map(legal_entity_ids)
             businesses = self.business_repo.list_by_legal_entity_ids(legal_entity_ids)
@@ -174,14 +154,10 @@ class SearchService:
                     {
                         "result_type": "binder",
                         "client_id": binder.client_record_id,
-                        "office_client_number": record.office_client_number
-                        if record
-                        else None,
+                        "office_client_number": record.office_client_number if record else None,
                         "client_name": business.full_name
                         if business
-                        else (
-                            legal_entity.official_name if legal_entity else "לא ידוע"
-                        ),
+                        else (legal_entity.official_name if legal_entity else "לא ידוע"),
                         "id_number": legal_entity.id_number if legal_entity else None,
                         "client_status": record.status if record else None,
                         "binder_id": binder.id,

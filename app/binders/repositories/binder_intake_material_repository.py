@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -20,10 +19,10 @@ class BinderIntakeMaterialRepository(BaseRepository[BinderIntakeMaterial]):
         period_year: int,
         period_month_start: int,
         period_month_end: int,
-        business_id: Optional[int] = None,
-        annual_report_id: Optional[int] = None,
-        vat_report_id: Optional[int] = None,
-        description: Optional[str] = None,
+        business_id: int | None = None,
+        annual_report_id: int | None = None,
+        vat_report_id: int | None = None,
+        description: str | None = None,
     ) -> BinderIntakeMaterial:
         material = BinderIntakeMaterial(
             intake_id=intake_id,
@@ -58,7 +57,7 @@ class BinderIntakeMaterialRepository(BaseRepository[BinderIntakeMaterial]):
             .order_by(BinderIntakeMaterial.id.asc())
         ).all()
 
-    def get_last_by_binder(self, binder_id: int) -> Optional[BinderIntakeMaterial]:
+    def get_last_by_binder(self, binder_id: int) -> BinderIntakeMaterial | None:
         """Return the most recent material across all intakes for a binder."""
         from app.binders.models.binder_intake import BinderIntake
 

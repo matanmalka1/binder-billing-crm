@@ -50,9 +50,7 @@ class AuditTrailService:
     def _assert_entity_readable(self, entity_type: str, entity_id: int) -> None:
         self._validate_entity_type(entity_type)
         if not self._entity_exists(entity_type, entity_id):
-            raise AppError(
-                ENTITY_NOT_FOUND_ERROR, "AUDIT.ENTITY_NOT_FOUND", status_code=404
-            )
+            raise AppError(ENTITY_NOT_FOUND_ERROR, "AUDIT.ENTITY_NOT_FOUND", status_code=404)
 
     def get_entity_audit_trail(
         self,
@@ -73,6 +71,4 @@ class AuditTrailService:
             row = EntityAuditLogResponse.model_validate(entry)
             row.performed_by_name = user_map.get(entry.performed_by)
             items.append(row)
-        return EntityAuditTrailResponse(
-            items=items, total=total, limit=limit, offset=offset
-        )
+        return EntityAuditTrailResponse(items=items, total=total, limit=limit, offset=offset)

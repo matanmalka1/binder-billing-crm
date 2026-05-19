@@ -1,20 +1,19 @@
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AppError
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_handover import BinderHandover
+from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.repositories.binder_status_log_repository import (
     BinderStatusLogRepository,
 )
-from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
 from app.binders.services.messages import (
     BINDER_HANDOVER_INVALID_BINDERS,
     BINDER_PICKED_UP_BY,
 )
+from app.core.exceptions import AppError
 
 
 class BinderHandoverService:
@@ -35,7 +34,7 @@ class BinderHandoverService:
         until_period_year: int,
         until_period_month: int,
         actor_id: int,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> BinderHandover:
         """
         Return multiple binders to a client in a single grouped handover event.
@@ -83,12 +82,8 @@ class BinderHandoverService:
         for bid in binder_ids:
             binder = self.binder_repo.get_by_id_for_update(bid)
             if not binder or binder.client_record_id != client_record_id:
-                raise AppError(
-                    BINDER_HANDOVER_INVALID_BINDERS, "BINDER.HANDOVER_INVALID"
-                )
+                raise AppError(BINDER_HANDOVER_INVALID_BINDERS, "BINDER.HANDOVER_INVALID")
             if binder.status != BinderStatus.READY_FOR_PICKUP:
-                raise AppError(
-                    BINDER_HANDOVER_INVALID_BINDERS, "BINDER.HANDOVER_INVALID"
-                )
+                raise AppError(BINDER_HANDOVER_INVALID_BINDERS, "BINDER.HANDOVER_INVALID")
             binders.append(binder)
         return binders

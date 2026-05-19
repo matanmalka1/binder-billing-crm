@@ -7,8 +7,8 @@ from app.vat_reports.repositories.vat_work_item_write_repository import (
 )
 from app.vat_reports.services.constants import ACTION_INVOICE_DELETED
 from app.vat_reports.services.data_entry_common import (
-    audit_invoice_snapshot,
     assert_editable,
+    audit_invoice_snapshot,
     recalculate_totals,
 )
 from app.vat_reports.services.messages import (
@@ -41,9 +41,7 @@ def delete_invoice(
     invoice = invoice_repo.get_by_id(invoice_id)
     if not invoice or invoice.work_item_id != item_id:
         raise NotFoundError(
-            VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM.format(
-                invoice_id=invoice_id, item_id=item_id
-            ),
+            VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM.format(invoice_id=invoice_id, item_id=item_id),
             "VAT.NOT_FOUND",
         )
 

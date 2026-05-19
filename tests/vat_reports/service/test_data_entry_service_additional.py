@@ -17,9 +17,7 @@ from app.vat_reports.services.data_entry_common import (
 from app.vat_reports.services.data_entry_invoice_delete import delete_invoice
 from app.vat_reports.services.data_entry_invoices import add_invoice
 
-OSEK_PATUR_CEILING_ILS = Decimal(
-    str(get_financial(2026, "osek_patur_ceiling_ils").value)
-)
+OSEK_PATUR_CEILING_ILS = Decimal(str(get_financial(2026, "osek_patur_ceiling_ils").value))
 
 
 def test_add_invoice_not_found_and_invalid_status(monkeypatch):
@@ -83,9 +81,7 @@ def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
     )
     invoice_repo = SimpleNamespace(
         get_by_number=lambda *args, **kwargs: None,
-        create=lambda **kwargs: created.setdefault(
-            "invoice", SimpleNamespace(id=44, **kwargs)
-        ),
+        create=lambda **kwargs: created.setdefault("invoice", SimpleNamespace(id=44, **kwargs)),
     )
     monkeypatch.setattr(
         "app.vat_reports.services.data_entry_invoices.recalculate_totals",
@@ -97,9 +93,7 @@ def test_add_invoice_autofill_fields_for_income_and_expense(monkeypatch):
     )
     monkeypatch.setattr(
         "app.vat_reports.services.data_entry_invoices.LegalEntityRepository",
-        lambda db: SimpleNamespace(
-            get_by_id=lambda _id: SimpleNamespace(entity_type=None)
-        ),
+        lambda db: SimpleNamespace(get_by_id=lambda _id: SimpleNamespace(entity_type=None)),
     )
 
     income, ceiling_warning = add_invoice(
@@ -211,6 +205,4 @@ def test_delete_invoice_not_found_paths():
     work_item_repo = SimpleNamespace(get_by_id=lambda _id: None)
     invoice_repo = SimpleNamespace()
     with pytest.raises(NotFoundError):
-        delete_invoice(
-            work_item_repo, invoice_repo, item_id=1, invoice_id=1, performed_by=1
-        )
+        delete_invoice(work_item_repo, invoice_repo, item_id=1, invoice_id=1, performed_by=1)

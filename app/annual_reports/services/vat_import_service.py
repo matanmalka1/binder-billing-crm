@@ -13,18 +13,14 @@ from app.annual_reports.domain.expense_rules import default_recognition_rate
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_expense_line import ExpenseCategoryType
 from app.annual_reports.models.annual_report_income_line import IncomeSourceType
-from app.annual_reports.repositories.income_repository import (
-    AnnualReportIncomeRepository,
-)
 from app.annual_reports.repositories.expense_repository import (
     AnnualReportExpenseRepository,
 )
+from app.annual_reports.repositories.income_repository import (
+    AnnualReportIncomeRepository,
+)
 from app.annual_reports.repositories.report_repository import (
     AnnualReportReportRepository,
-)
-from app.core.exceptions import AppError, ConflictError, NotFoundError
-from app.vat_reports.repositories.vat_invoice_aggregation_repository import (
-    VatInvoiceAggregationRepository,
 )
 from app.annual_reports.services.messages import (
     ANNUAL_REPORT_NOT_FOUND,
@@ -32,6 +28,10 @@ from app.annual_reports.services.messages import (
     AUTOPOPULATE_LINES_ALREADY_EXIST,
     VAT_IMPORTED_BUSINESS_INCOME_DESCRIPTION,
     VAT_IMPORTED_EXPENSE_DESCRIPTION,
+)
+from app.core.exceptions import AppError, ConflictError, NotFoundError
+from app.vat_reports.repositories.vat_invoice_aggregation_repository import (
+    VatInvoiceAggregationRepository,
 )
 
 # Statuses in which auto-population is permitted
@@ -137,9 +137,7 @@ class VatImportService:
         merged: dict[ExpenseCategoryType, Decimal] = {}
         for vat_cat, amount in expense_by_vat_cat.items():
             annual_cat = _VAT_TO_ANNUAL.get(vat_cat, ExpenseCategoryType.OTHER)
-            merged[annual_cat] = merged.get(annual_cat, Decimal("0")) + Decimal(
-                str(amount)
-            )
+            merged[annual_cat] = merged.get(annual_cat, Decimal("0")) + Decimal(str(amount))
 
         expense_lines_created = 0
         expense_total = Decimal("0")

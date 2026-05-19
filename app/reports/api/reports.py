@@ -1,25 +1,23 @@
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse
 
-from app.users.api.deps import DBSession, require_role
-from app.users.models.user import UserRole
 from app.reports.schemas import (
     AdvancePaymentCollectionsReportResponse,
     AgingReportResponse,
     AnnualReportStatusReportResponse,
     VatComplianceReportResponse,
 )
-from app.reports.services.reports_service import AgingReportService
-from app.reports.services.reports_export_service import ReportsExportService
+from app.reports.services.advance_payment_report import AdvancePaymentReportService
 from app.reports.services.annual_report_status_report import (
     AnnualReportStatusReportService,
 )
-from app.reports.services.advance_payment_report import AdvancePaymentReportService
+from app.reports.services.reports_export_service import ReportsExportService
+from app.reports.services.reports_service import AgingReportService
 from app.reports.services.vat_compliance_report import VatComplianceReportService
-
+from app.users.api.deps import DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/reports",
@@ -41,7 +39,7 @@ def get_vat_compliance_report(
 def get_advance_payment_report(
     db: DBSession,
     year: int = Query(...),
-    month: Optional[int] = Query(None),
+    month: int | None = Query(None),
 ):
     service = AdvancePaymentReportService(db)
     return service.get_collections_report(year, month)
@@ -59,7 +57,7 @@ def get_annual_report_status_report(
 @router.get("/aging", response_model=AgingReportResponse)
 def get_aging_report(
     db: DBSession,
-    as_of_date: Optional[date] = Query(None),
+    as_of_date: date | None = Query(None),
 ):
     service = AgingReportService(db)
     return service.generate_aging_report(as_of_date=as_of_date)
@@ -69,7 +67,7 @@ def get_aging_report(
 def export_aging_report(
     db: DBSession,
     format: str = Query(..., pattern="^(excel|pdf)$"),
-    as_of_date: Optional[date] = Query(None),
+    as_of_date: date | None = Query(None),
 ):
     result = ReportsExportService(db).export_aging_report(
         export_format=format,

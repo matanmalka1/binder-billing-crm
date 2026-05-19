@@ -3,20 +3,15 @@ from itertools import count
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from tests.helpers.identity import seed_client_identity
 
-
 _client_seq = count(1)
 
 
 def _client(db):
     idx = next(_client_seq)
-    return seed_client_identity(
-        db, full_name=f"Annual API Client {idx}", id_number=f"AAP{idx:03d}"
-    )
+    return seed_client_identity(db, full_name=f"Annual API Client {idx}", id_number=f"AAP{idx:03d}")
 
 
-def test_client_and_tax_year_list_endpoints(
-    client, test_db, advisor_headers, test_user
-):
+def test_client_and_tax_year_list_endpoints(client, test_db, advisor_headers, test_user):
     service = AnnualReportService(test_db)
     client_a = _client(test_db)
     client_b = _client(test_db)

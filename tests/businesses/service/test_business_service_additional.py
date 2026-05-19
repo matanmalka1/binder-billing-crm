@@ -1,17 +1,17 @@
 from datetime import date
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.exc import IntegrityError
-from unittest.mock import patch
 
 from app.audit.constants import ACTION_RESTORED, ENTITY_BUSINESS
 from app.audit.models.entity_audit_log import EntityAuditLog
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.services.business_service import BusinessService
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
-from app.utils.time_utils import utcnow
 from app.users.models.user import UserRole
+from app.utils.time_utils import utcnow
 from tests.helpers.identity import seed_client_identity
 
 
@@ -76,9 +76,7 @@ def test_create_business_maps_integrity_error_to_conflict(test_db):
     assert exc.value.code == "BUSINESS.CONFLICT"
 
 
-def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(
-    monkeypatch, test_db
-):
+def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(monkeypatch, test_db):
     captured = {}
 
     def _create(**kwargs):
@@ -107,9 +105,7 @@ def test_create_business_defaults_opened_at_to_today_when_missing_everywhere(
 
 
 def test_update_business_rejects_invalid_status_value(test_db):
-    client = seed_client_identity(
-        test_db, full_name="Additional Client", id_number="BADD001"
-    )
+    client = seed_client_identity(test_db, full_name="Additional Client", id_number="BADD001")
     business = _create_business_row(test_db, legal_entity_id=client.legal_entity_id)
     service = BusinessService(test_db)
 
@@ -125,9 +121,7 @@ def test_update_business_rejects_invalid_status_value(test_db):
 
 
 def test_update_business_rejects_wrong_client_id(test_db):
-    client = seed_client_identity(
-        test_db, full_name="Additional Client", id_number="BADD002"
-    )
+    client = seed_client_identity(test_db, full_name="Additional Client", id_number="BADD002")
     business = _create_business_row(test_db, legal_entity_id=client.legal_entity_id)
     service = BusinessService(test_db)
 
@@ -143,9 +137,7 @@ def test_update_business_rejects_wrong_client_id(test_db):
 
 
 def test_update_business_to_active_clears_closed_at(test_db):
-    client = seed_client_identity(
-        test_db, full_name="Additional Client", id_number="BADD003"
-    )
+    client = seed_client_identity(test_db, full_name="Additional Client", id_number="BADD003")
     business = _create_business_row(
         test_db,
         status=BusinessStatus.CLOSED,
@@ -186,9 +178,7 @@ def test_restore_business_requires_advisor_role(test_db):
 def test_restore_business_not_deleted_raises_conflict(test_db):
     service = BusinessService(test_db)
     service._lifecycle.business_repo = SimpleNamespace(
-        get_by_id_including_deleted=lambda _business_id: SimpleNamespace(
-            deleted_at=None
-        )
+        get_by_id_including_deleted=lambda _business_id: SimpleNamespace(deleted_at=None)
     )
 
     with pytest.raises(ConflictError) as exc:

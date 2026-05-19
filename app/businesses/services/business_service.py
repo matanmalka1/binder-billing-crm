@@ -1,17 +1,16 @@
 from datetime import date
-from typing import Optional
 
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.audit.constants import ENTITY_BUSINESS
 from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.businesses.services.business_lifecycle_service import BusinessLifecycleService
 from app.businesses.services.business_guards import (
     assert_business_belongs_to_legal_entity,
 )
+from app.businesses.services.business_lifecycle_service import BusinessLifecycleService
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
 from app.users.models.user import UserRole
@@ -37,10 +36,10 @@ class BusinessService:
     def create_business(
         self,
         client_id: int,
-        opened_at: Optional[date] = None,
-        business_name: Optional[str] = None,
-        notes: Optional[str] = None,
-        actor_id: Optional[int] = None,
+        opened_at: date | None = None,
+        business_name: str | None = None,
+        notes: str | None = None,
+        actor_id: int | None = None,
     ) -> Business:
         return self.create_business_for_client_record(
             client_record_id=client_id,
@@ -53,10 +52,10 @@ class BusinessService:
     def create_business_for_client_record(
         self,
         client_record_id: int,
-        opened_at: Optional[date] = None,
-        business_name: Optional[str] = None,
-        notes: Optional[str] = None,
-        actor_id: Optional[int] = None,
+        opened_at: date | None = None,
+        business_name: str | None = None,
+        notes: str | None = None,
+        actor_id: int | None = None,
     ) -> Business:
         record = self.client_repo.get_by_id(client_record_id)
         if not record:
@@ -64,9 +63,7 @@ class BusinessService:
 
         effective_opened_at = opened_at or date.today()
 
-        if self.business_repo.all_non_deleted_are_closed_for_legal_entity(
-            record.legal_entity_id
-        ):
+        if self.business_repo.all_non_deleted_are_closed_for_legal_entity(record.legal_entity_id):
             raise AppError(
                 "כל העסקים של לקוח זה סגורים — לא ניתן להוסיף עסק חדש ללא אישור מפורש",
                 "BUSINESS.CLIENT_ALL_CLOSED",
@@ -112,7 +109,7 @@ class BusinessService:
         )
         return business
 
-    def get_business(self, business_id: int) -> Optional[Business]:
+    def get_business(self, business_id: int) -> Business | None:
         return self.business_repo.get_by_id(business_id)
 
     def get_business_or_raise(self, business_id: int) -> Business:
@@ -140,7 +137,7 @@ class BusinessService:
         business_id: int,
         client_id: int,
         user_role: UserRole,
-        actor_id: Optional[int] = None,
+        actor_id: int | None = None,
         **fields,
     ) -> Business:
         record = self.client_repo.get_by_id(client_id)
@@ -166,9 +163,7 @@ class BusinessService:
         new_status = fields.get("status")
         if new_status in (BusinessStatus.FROZEN, BusinessStatus.CLOSED):
             if user_role != UserRole.ADVISOR:
-                raise ForbiddenError(
-                    "רק יועצים יכולים להקפיא או לסגור עסקים", "BUSINESS.FORBIDDEN"
-                )
+                raise ForbiddenError("רק יועצים יכולים להקפיא או לסגור עסקים", "BUSINESS.FORBIDDEN")
         if new_status == BusinessStatus.CLOSED:
             fields.setdefault("closed_at", date.today())
         if new_status == BusinessStatus.ACTIVE:
@@ -176,13 +171,9 @@ class BusinessService:
 
         fields.pop("entity_type", None)
 
-        old_snapshot = {
-            k: getattr(business, k, None) for k in fields if hasattr(business, k)
-        }
+        old_snapshot = {k: getattr(business, k, None) for k in fields if hasattr(business, k)}
         updated = self.business_repo.update(business_id, **fields)
-        new_snapshot = {
-            k: getattr(updated, k, None) for k in fields if hasattr(updated, k)
-        }
+        new_snapshot = {k: getattr(updated, k, None) for k in fields if hasattr(updated, k)}
 
         self._audit.record_update(
             ENTITY_BUSINESS,
@@ -196,7 +187,5 @@ class BusinessService:
     def delete_business(self, business_id: int, actor_id: int) -> None:
         self._lifecycle.delete_business(business_id, actor_id)
 
-    def restore_business(
-        self, business_id: int, actor_id: int, actor_role: UserRole
-    ) -> Business:
+    def restore_business(self, business_id: int, actor_id: int, actor_role: UserRole) -> Business:
         return self._lifecycle.restore_business(business_id, actor_id, actor_role)

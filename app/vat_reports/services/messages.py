@@ -20,14 +20,10 @@ VAT_CLIENT_CLOSED_ADD_INVOICES = "לקוח זה סגור — לא ניתן לה�
 VAT_BUSINESS_ACTIVITY_WRONG_CLIENT = "פעילות עסקית זו אינה שייכת ללקוח של פריט העבודה"
 VAT_INCOME_COUNTERPARTY_NAME = "הכנסות"
 VAT_UNKNOWN_COUNTERPARTY_NAME = "לא ידוע"
-VAT_INVOICE_NUMBER_CONFLICT = (
-    "מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה"
-)
+VAT_INVOICE_NUMBER_CONFLICT = "מספר חשבונית '{invoice_number}' כבר קיים לתקופה ולסוג הזה"
 VAT_AUTO_STATUS_CHANGE_ON_FIRST_INVOICE = "מעבר אוטומטי בעת הוספת חשבונית ראשונה"
 VAT_ADD_INVOICE_INVALID_STATUS = "לא ניתן להוסיף חשבוניות לפריט עבודה במצב {status}"
-VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM = (
-    "החשבונית {invoice_id} לא נמצאה בפריט עבודה {item_id}"
-)
+VAT_INVOICE_NOT_FOUND_IN_WORK_ITEM = "החשבונית {invoice_id} לא נמצאה בפריט עבודה {item_id}"
 VAT_READY_FOR_REVIEW_INVALID_STATUS = "לא ניתן לסמן מוכן לבדיקה מסטטוס {status}"
 VAT_CORRECTION_NOTE_REQUIRED = "נדרש טקסט תיקון כאשר מחזירים את הפריט לתיקון"
 VAT_CLIENT_EXEMPT = 'לקוח זה פטור ממע"מ ולא ניתן לפתוח עבורו דוח'
@@ -36,9 +32,7 @@ VAT_INVALID_BIMONTHLY_PERIOD = (
 )
 VAT_CLIENT_CLOSED_CREATE_ITEM = 'לקוח זה סגור — לא ניתן לפתוח דוח מע"מ'
 VAT_CLIENT_FROZEN_CREATE_ITEM = 'לקוח זה מוקפא — לא ניתן לפתוח דוח מע"מ'
-VAT_WORK_ITEM_CONFLICT = (
-    'פריט עבודה למע"מ כבר קיים עבור לקוח {client_record_id} לתקופה {period}'
-)
+VAT_WORK_ITEM_CONFLICT = 'פריט עבודה למע"מ כבר קיים עבור לקוח {client_record_id} לתקופה {period}'
 VAT_PENDING_MATERIALS_NOTE_REQUIRED = (
     "pending_materials_note: נדרש תיאור החומרים כאשר הפריט מסומן כמצב המתנה"
 )

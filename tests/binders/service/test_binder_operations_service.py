@@ -91,9 +91,7 @@ def test_get_client_binders_scopes_to_client(test_db, test_user):
     )
 
     service = BinderOperationsService(test_db)
-    items, total = service.get_client_binders(
-        client_record_id=client_a.id, page=1, page_size=10
-    )
+    items, total = service.get_client_binders(client_record_id=client_a.id, page=1, page_size=10)
 
     assert total == 1
     assert items[0].id == target.id

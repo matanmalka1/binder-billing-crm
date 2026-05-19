@@ -3,13 +3,13 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.common.enums import ObligationType
+from app.tax_calendar.integrations.tax_rules_registry import missing_registry_years
 from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.tax_calendar.repositories.settings_repository import (
     TaxCalendarSettingsRepository,
 )
 from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
-from app.tax_calendar.integrations.tax_rules_registry import missing_registry_years
 
 # (obligation_type, period_months_count) → expected count per year
 # None for period_months_count = annual (no period)
@@ -32,9 +32,7 @@ def list_entries(
     start_year: int | None,
     end_year: int | None,
 ) -> list[TaxCalendarEntry]:
-    return TaxCalendarSettingsRepository(db).list_entries(
-        start_year=start_year, end_year=end_year
-    )
+    return TaxCalendarSettingsRepository(db).list_entries(start_year=start_year, end_year=end_year)
 
 
 def get_summary(
@@ -44,9 +42,7 @@ def get_summary(
     end_year: int | None,
 ) -> dict:
     repo = TaxCalendarSettingsRepository(db)
-    rows = repo.count_by_year_obligation_months(
-        start_year=start_year, end_year=end_year
-    )
+    rows = repo.count_by_year_obligation_months(start_year=start_year, end_year=end_year)
 
     # Build per-year breakdown keyed by "{obligation_type}_{months_count or 'annual'}"
     per_year: dict[int, dict[str, int]] = {}
@@ -68,9 +64,7 @@ def get_summary(
             found = actual.get((year, obtype, months), 0)
             if found != expected_count:
                 label = _summary_label(obtype, months)
-                warnings.append(
-                    f"Year {year}: {label} — expected {expected_count}, found {found}."
-                )
+                warnings.append(f"Year {year}: {label} — expected {expected_count}, found {found}.")
 
     # Warn for years using DeadlineRule fallback (no official registry calendar)
     if start_year is not None and end_year is not None:
@@ -88,9 +82,7 @@ def get_summary(
                     f"tax calendar registry data is missing."
                 )
 
-    total_entries = sum(
-        c for year_data in per_year.values() for c in year_data.values()
-    )
+    total_entries = sum(c for year_data in per_year.values() for c in year_data.values())
 
     return {
         "start_year": start_year,

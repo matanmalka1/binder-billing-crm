@@ -33,9 +33,7 @@ def test_audit_endpoint_paginates_and_sorts_newest_first(
     assert payload["limit"] == 2
     assert payload["offset"] == 1
     assert [item["id"] for item in payload["items"]] == [second.id, first.id]
-    assert all(
-        item["performed_by_name"] == test_user.full_name for item in payload["items"]
-    )
+    assert all(item["performed_by_name"] == test_user.full_name for item in payload["items"])
 
 
 def test_audit_endpoint_limit_validation(client, advisor_headers):

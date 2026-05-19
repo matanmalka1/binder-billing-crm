@@ -1,5 +1,4 @@
 from datetime import UTC, datetime, timedelta
-from typing import Optional
 
 import bcrypt
 import jwt
@@ -7,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.config import config
 from app.core.logging_config import get_logger
-from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.models.user import User
+from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.repositories.user_repository import UserRepository
 from app.users.services.audit_log_service import AuditLogService
 
@@ -34,7 +33,7 @@ class AuthService:
         """Verify password against bcrypt hash."""
         return bcrypt.checkpw(password.encode(), password_hash.encode())
 
-    def authenticate(self, email: str, password: str) -> Optional[User]:
+    def authenticate(self, email: str, password: str) -> User | None:
         """Authenticate user by email and password."""
         user = self.user_repo.get_by_email(email)
 
@@ -119,7 +118,7 @@ class AuthService:
         return jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
 
     @staticmethod
-    def decode_token(token: str) -> Optional[dict]:
+    def decode_token(token: str) -> dict | None:
         """Decode and validate JWT token. Returns payload or None."""
         try:
             payload = jwt.decode(token, config.JWT_SECRET, algorithms=["HS256"])

@@ -6,8 +6,8 @@ from app.advance_payments.models.advance_payment import (
 )
 from tests.tax_calendar.api.grouped_helpers import (
     PATH,
-    add_annual_report,
     add_advance_payment,
+    add_annual_report,
     add_vat_item,
     advance_entry,
     headers,
@@ -16,9 +16,7 @@ from tests.tax_calendar.api.grouped_helpers import (
 from tests.tax_calendar.service.linking_helpers import advance_client
 
 
-def test_vat_linked_item_uses_snapshot_effective_due_date(
-    client, auth_token, test_db, test_user
-):
+def test_vat_linked_item_uses_snapshot_effective_due_date(client, auth_token, test_db, test_user):
     entry = vat_entry(test_db)
     add_vat_item(test_db, entry, test_user.id)
     test_db.commit()
@@ -32,9 +30,7 @@ def test_vat_linked_item_uses_snapshot_effective_due_date(
     assert data["effective_due_date_max"] == "2026-02-20"
 
 
-def test_advance_payment_linked_item_uses_snapshot_effective_due_date(
-    client, auth_token, test_db
-):
+def test_advance_payment_linked_item_uses_snapshot_effective_due_date(client, auth_token, test_db):
     entry = advance_entry(test_db)
     add_advance_payment(test_db, entry)
     test_db.commit()
@@ -64,9 +60,7 @@ def test_annual_report_linked_item_appears(client, auth_token, test_db):
     assert data["effective_due_date_max"] == "2027-07-31"
 
 
-def test_multiple_linked_rows_return_effective_due_date_min_and_max(
-    client, auth_token, test_db
-):
+def test_multiple_linked_rows_return_effective_due_date_min_and_max(client, auth_token, test_db):
     entry = advance_entry(test_db)
     add_advance_payment(test_db, entry, due_date=date(2026, 2, 21))
     add_advance_payment(test_db, entry, due_date=date(2026, 2, 28))

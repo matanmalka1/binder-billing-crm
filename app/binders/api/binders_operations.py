@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.binders.schemas.binder_extended import (
     BinderDetailResponse,
     BinderListResponseExtended,
 )
 from app.binders.services.binder_operations_service import BinderOperationsService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/binders",

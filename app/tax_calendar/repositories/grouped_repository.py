@@ -1,8 +1,8 @@
 from sqlalchemy import String, case, cast, func, select
 from sqlalchemy.orm import Session
 
-from app.annual_reports.models.annual_report_model import AnnualReport
 from app.advance_payments.models.advance_payment import AdvancePayment
+from app.annual_reports.models.annual_report_model import AnnualReport
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.common.enums import ObligationType
@@ -105,10 +105,7 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
         client_record_id: int | None = None,
         client_search: str | None = None,
     ) -> list[AdvancePayment]:
-        if (
-            obligation_type is not None
-            and obligation_type != ObligationType.ADVANCE_PAYMENT
-        ):
+        if obligation_type is not None and obligation_type != ObligationType.ADVANCE_PAYMENT:
             return []
         stmt = (
             select(AdvancePayment)
@@ -135,10 +132,7 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
         client_record_id: int | None = None,
         client_search: str | None = None,
     ) -> list[AnnualReport]:
-        if (
-            obligation_type is not None
-            and obligation_type != ObligationType.ANNUAL_REPORT
-        ):
+        if obligation_type is not None and obligation_type != ObligationType.ANNUAL_REPORT:
             return []
         stmt = (
             select(AnnualReport)
@@ -176,13 +170,10 @@ class TaxCalendarGroupedRepository(BaseRepository[TaxCalendarEntry]):
         if not client_search:
             return stmt
         like = f"%{client_search.strip()}%"
-        return (
-            stmt.join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-            .where(
-                LegalEntity.official_name.ilike(like)
-                | LegalEntity.id_number.ilike(like)
-                | cast(ClientRecord.office_client_number, String).ilike(like)
-            )
+        return stmt.join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id).where(
+            LegalEntity.official_name.ilike(like)
+            | LegalEntity.id_number.ilike(like)
+            | cast(ClientRecord.office_client_number, String).ilike(like)
         )
 
     def get_entry(self, entry_id: int) -> TaxCalendarEntry | None:

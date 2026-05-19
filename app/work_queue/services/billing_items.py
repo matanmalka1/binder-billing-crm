@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional
 
 from sqlalchemy import select
 
@@ -25,14 +24,12 @@ from app.work_queue.services.metadata import (
 
 
 def advance_payment_items(
-    ctx: WorkQueueContext, client_record_id: Optional[int]
+    ctx: WorkQueueContext, client_record_id: int | None
 ) -> list[WorkQueueItem]:
     cutoff = ctx.today + timedelta(days=UPCOMING_WINDOW_DAYS)
     stmt = scope_to_active_clients_stmt(select(AdvancePayment), AdvancePayment).where(
         AdvancePayment.deleted_at.is_(None),
-        AdvancePayment.status.in_(
-            [AdvancePaymentStatus.PENDING, AdvancePaymentStatus.PARTIAL]
-        ),
+        AdvancePayment.status.in_([AdvancePaymentStatus.PENDING, AdvancePaymentStatus.PARTIAL]),
         AdvancePayment.due_date <= cutoff,
     )
     if client_record_id is not None:
@@ -60,8 +57,8 @@ def advance_payment_items(
 
 def charge_items(
     ctx: WorkQueueContext,
-    client_record_id: Optional[int],
-    business_id: Optional[int],
+    client_record_id: int | None,
+    business_id: int | None,
 ) -> list[WorkQueueItem]:
     threshold = ctx.today - timedelta(days=UNPAID_CHARGE_TASK_THRESHOLD_DAYS)
     stmt = scope_to_active_clients_stmt(select(Charge), Charge).where(
@@ -80,9 +77,7 @@ def charge_items(
 
 
 def _charge_item(ctx: WorkQueueContext, charge) -> WorkQueueItem:
-    due_date = charge.issued_at.date() + timedelta(
-        days=UNPAID_CHARGE_TASK_THRESHOLD_DAYS
-    )
+    due_date = charge.issued_at.date() + timedelta(days=UNPAID_CHARGE_TASK_THRESHOLD_DAYS)
     return ctx.item(
         WorkQueueSourceType.CHARGE,
         charge.id,
@@ -92,8 +87,6 @@ def _charge_item(ctx: WorkQueueContext, charge) -> WorkQueueItem:
         business_id=charge.business_id,
         # Always OVERDUE: items only appear after the unpaid threshold has passed.
         item_urgency=WorkQueueUrgency.OVERDUE,
-        status_label=charge.status.value
-        if hasattr(charge.status, "value")
-        else str(charge.status),
+        status_label=charge.status.value if hasattr(charge.status, "value") else str(charge.status),
         metadata=charge_metadata(charge, due_date),
     )

@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,9 +16,9 @@ class PermanentDocumentQueryRepository(BaseRepository[PermanentDocument]):
         self,
         client_record_id: int,
         document_type: str,
-        tax_year: Optional[int] = None,
-        business_id: Optional[int] = None,
-    ) -> Optional[PermanentDocument]:
+        tax_year: int | None = None,
+        business_id: int | None = None,
+    ) -> PermanentDocument | None:
         stmt = select(PermanentDocument).where(
             PermanentDocument.client_record_id == client_record_id,
             PermanentDocument.document_type == document_type,
@@ -35,7 +34,7 @@ class PermanentDocumentQueryRepository(BaseRepository[PermanentDocument]):
         return self.db.scalars(stmt.order_by(PermanentDocument.version.desc())).first()
 
     def get_all_versions(
-        self, business_id: int, document_type: str, tax_year: Optional[int] = None
+        self, business_id: int, document_type: str, tax_year: int | None = None
     ) -> list[PermanentDocument]:
         stmt = select(PermanentDocument).where(
             PermanentDocument.business_id == business_id,
@@ -47,7 +46,7 @@ class PermanentDocumentQueryRepository(BaseRepository[PermanentDocument]):
         return self.db.scalars(stmt.order_by(PermanentDocument.version.desc())).all()
 
     def get_all_versions_by_client(
-        self, client_record_id: int, document_type: str, tax_year: Optional[int] = None
+        self, client_record_id: int, document_type: str, tax_year: int | None = None
     ) -> list[PermanentDocument]:
         stmt = select(PermanentDocument).where(
             PermanentDocument.client_record_id == client_record_id,
@@ -59,7 +58,7 @@ class PermanentDocumentQueryRepository(BaseRepository[PermanentDocument]):
         return self.db.scalars(stmt.order_by(PermanentDocument.version.desc())).all()
 
     def get_all_versions_by_client_record(
-        self, client_record_id: int, document_type: str, tax_year: Optional[int] = None
+        self, client_record_id: int, document_type: str, tax_year: int | None = None
     ) -> list[PermanentDocument]:
         stmt = select(PermanentDocument).where(
             PermanentDocument.client_record_id == client_record_id,
@@ -98,9 +97,7 @@ class PermanentDocumentQueryRepository(BaseRepository[PermanentDocument]):
         existing_types = {row[0] for row in existing}
         return [t for t in required_types if t not in existing_types]
 
-    def missing_by_client_type(
-        self, client_record_id: int, required_types: list[str]
-    ) -> list[str]:
+    def missing_by_client_type(self, client_record_id: int, required_types: list[str]) -> list[str]:
         existing = self.db.execute(
             select(PermanentDocument.document_type)
             .where(

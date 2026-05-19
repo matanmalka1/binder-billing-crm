@@ -1,9 +1,9 @@
 import asyncio
 import os
-from typing import Callable
+from collections.abc import Callable
 
-from app.core.logging_config import get_logger
 from app.config import config
+from app.core.logging_config import get_logger
 from app.database import SessionLocal
 from app.signature_requests.repositories.signature_request_repository import (
     SignatureRequestRepository,

@@ -6,11 +6,11 @@ from itertools import count
 
 from app.businesses.models.business import Business
 from app.common.enums import AdvancePaymentFrequency, VatType
-from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.tax_calendar.services.materialization_service import (
     TaxCalendarMaterializationService,
 )
+from app.vat_reports.models.vat_enums import VatWorkItemStatus
+from app.vat_reports.models.vat_work_item import VatWorkItem
 from tests.helpers.identity import seed_client_identity
 
 _seq = count(1)
@@ -62,9 +62,7 @@ def _filed_vat(db, client_id, period, net, user_id):
 
 def test_prefill_turnover_returns_filed(client, test_db, advisor_headers, test_user):
     business = _business(test_db)
-    item = _filed_vat(
-        test_db, business.client_record_id, "2026-10", 70000, test_user.id
-    )
+    item = _filed_vat(test_db, business.client_record_id, "2026-10", 70000, test_user.id)
 
     resp = client.get(
         f"/api/v1/clients/{business.client_record_id}/advance-payments/prefill-turnover"

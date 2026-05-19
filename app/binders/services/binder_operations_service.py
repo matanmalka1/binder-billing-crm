@@ -55,16 +55,14 @@ class BinderOperationsService:
             return None
         return self.repo.get_active_by_client_record(client_record_id)
 
-    def map_active_binders_for_clients(
-        self, client_record_ids: list[int]
-    ) -> dict[int, "Binder"]:
+    def map_active_binders_for_clients(self, client_record_ids: list[int]) -> dict[int, "Binder"]:
         """Return {client_record_id: binder} for each client's active IN_OFFICE binder."""
         return self.repo.map_active_by_clients(client_record_ids)
 
     def enrich_binder(
         self,
         binder: Binder,
-        reference_date: Optional[date] = None,
+        reference_date: date | None = None,
     ) -> dict:
         """
         Enrich binder with operational state.
@@ -73,7 +71,5 @@ class BinderOperationsService:
           id, client_record_id, office_client_number, client_name, client_id_number, binder_number, period_start, period_end,
           status, returned_at, pickup_person_name, days_in_office.
         """
-        response = self.list_service.build_binder_response(
-            binder, reference_date=reference_date
-        )
+        response = self.list_service.build_binder_response(binder, reference_date=reference_date)
         return response.model_dump()

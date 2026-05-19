@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Optional
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -25,15 +24,13 @@ class ReportsExportService:
         self,
         *,
         export_format: str,
-        as_of_date: Optional[date] = None,
+        as_of_date: date | None = None,
     ) -> ReportExportResult:
         report = self.report_service.generate_aging_report(as_of_date=as_of_date)
         try:
             if export_format == "excel":
                 result = self.export_service.export_aging_report_to_excel(report)
-                media_type = (
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
+                media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             else:
                 result = self.export_service.export_aging_report_to_pdf(report)
                 media_type = "application/pdf"

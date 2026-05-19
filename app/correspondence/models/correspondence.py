@@ -22,13 +22,12 @@ from __future__ import annotations
 
 import datetime
 from enum import Enum as PyEnum
-from typing import Optional
 
 from sqlalchemy import ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.utils.enum_utils import pg_enum
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow_aware
 
 
@@ -50,11 +49,11 @@ class Correspondence(Base):
         ForeignKey("client_records.id"), nullable=False, index=True
     )
     # OPTIONAL: set when the correspondence is scoped to a specific business
-    business_id: Mapped[Optional[int]] = mapped_column(
+    business_id: Mapped[int | None] = mapped_column(
         ForeignKey("businesses.id"), nullable=True, index=True
     )
     # OPTIONAL: authority contact involved (רשות המסים, ביטוח לאומי, etc.)
-    contact_id: Mapped[Optional[int]] = mapped_column(
+    contact_id: Mapped[int | None] = mapped_column(
         ForeignKey("authority_contacts.id"), nullable=True, index=True
     )
 
@@ -63,22 +62,18 @@ class Correspondence(Base):
         pg_enum(CorrespondenceType), nullable=False
     )
     subject: Mapped[str] = mapped_column(String, nullable=False)
-    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     occurred_at: Mapped[datetime.datetime] = mapped_column(
         nullable=False  # UTC; מתי התרחש האירוע בפועל — frontend converts to Asia/Jerusalem
     )
 
     # ── Metadata ──────────────────────────────────────────────────────────────
     created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        default=utcnow_aware, nullable=False
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow_aware, nullable=False)
 
     # ── Soft delete ───────────────────────────────────────────────────────────
-    deleted_at: Mapped[Optional[datetime.datetime]] = mapped_column(nullable=True)
-    deleted_by: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("users.id"), nullable=True
-    )
+    deleted_at: Mapped[datetime.datetime | None] = mapped_column(nullable=True)
+    deleted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
     contact = relationship(

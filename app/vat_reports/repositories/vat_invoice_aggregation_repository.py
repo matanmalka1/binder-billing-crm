@@ -50,8 +50,7 @@ class VatInvoiceAggregationRepository(BaseRepository[VatInvoice]):
                         ),
                         (
                             VatInvoice.invoice_type == InvoiceType.EXPENSE,
-                            self._signed_amount(VatInvoice.vat_amount)
-                            * VatInvoice.deduction_rate,
+                            self._signed_amount(VatInvoice.vat_amount) * VatInvoice.deduction_rate,
                         ),
                         else_=0,
                     )
@@ -87,9 +86,7 @@ class VatInvoiceAggregationRepository(BaseRepository[VatInvoice]):
             grouped.get(InvoiceType.EXPENSE, Decimal("0")),
         )
 
-    def sum_income_net_by_client_year(
-        self, client_record_id: int, year: int
-    ) -> Decimal:
+    def sum_income_net_by_client_year(self, client_record_id: int, year: int) -> Decimal:
         """Sum net_amount of INCOME invoices for a client across a tax year.
 
         Used for OSEK PATUR ceiling enforcement.

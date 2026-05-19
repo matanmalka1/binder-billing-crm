@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -15,11 +14,11 @@ class SignatureRequestAuditMixin:
         signature_request_id: int,
         event_type: str,
         actor_type: str,
-        actor_id: Optional[int] = None,
-        actor_name: Optional[str] = None,
-        ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        notes: Optional[str] = None,
+        actor_id: int | None = None,
+        actor_name: str | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        notes: str | None = None,
     ) -> SignatureAuditEvent:
         event = SignatureAuditEvent(
             signature_request_id=signature_request_id,

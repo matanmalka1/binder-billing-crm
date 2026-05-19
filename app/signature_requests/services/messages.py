@@ -1,14 +1,10 @@
 BUSINESS_NOT_FOUND = "עסק {business_id} לא נמצא"
 BUSINESS_CLIENT_MISMATCH = "עסק {business_id} אינו שייך ללקוח {client_record_id}"
-INVALID_REQUEST_TYPE = (
-    "סוג בקשה '{request_type}' אינו חוקי. ערכים חוקיים: {valid_types}"
-)
+INVALID_REQUEST_TYPE = "סוג בקשה '{request_type}' אינו חוקי. ערכים חוקיים: {valid_types}"
 SIGNATURE_REQUEST_CREATED_NOTE = "בקשת חתימה נוצרה: {title}"
 SIGNATURE_REQUEST_NOT_FOUND = "בקשת חתימה {request_id} לא נמצאה"
 INVALID_SIGNING_TOKEN = "שובר חתימה לא חוקי או כבר בשימוש"
-REQUEST_NOT_ACTIONABLE_IN_STATUS = (
-    "בקשה זו נמצאת בסטטוס '{status}' ולא ניתן לאשר או לדחות אותה."
-)
+REQUEST_NOT_ACTIONABLE_IN_STATUS = "בקשה זו נמצאת בסטטוס '{status}' ולא ניתן לאשר או לדחות אותה."
 SIGNATURE_REQUEST_SENT_NOTE = "בקשת חתימה נשלחה. תוקף עד: {expires_at}."
 CANCEL_REQUEST_INVALID_STATUS = "לא ניתן לבטל בקשה במצב '{status}'"
 CANCELED_BY_ADVISOR_NOTE = "בוטל על ידי יועץ."

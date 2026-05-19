@@ -27,9 +27,7 @@ def test_api_scalar_serialization_normalizes_to_string_and_utc():
 def test_openapi_uses_string_contract_for_decimal_and_datetime_fields():
     schema = app.openapi()["components"]["schemas"]
 
-    expected_amount = schema["AdvancePaymentCreateRequest"]["properties"][
-        "turnover_amount"
-    ]
+    expected_amount = schema["AdvancePaymentCreateRequest"]["properties"]["turnover_amount"]
     created_at = schema["ClientRecordResponse"]["properties"]["created_at"]
 
     assert expected_amount["anyOf"][0]["type"] == "string"

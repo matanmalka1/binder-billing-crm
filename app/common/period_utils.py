@@ -47,7 +47,9 @@ def bimonthly_vat_period(reference_date: date) -> tuple[str, str]:
     start_year, start_month = _shift_month(year, end_month, -1)
     label = f"{HEBREW_MONTHS[start_month - 1]}-{HEBREW_MONTHS[end_month - 1]} {year}"
     if start_year != year:
-        label = f"{HEBREW_MONTHS[start_month - 1]} {start_year}-{HEBREW_MONTHS[end_month - 1]} {year}"
+        label = (
+            f"{HEBREW_MONTHS[start_month - 1]} {start_year}-{HEBREW_MONTHS[end_month - 1]} {year}"
+        )
     return _period_key(start_year, start_month), label
 
 
@@ -58,5 +60,7 @@ def bimonthly_advance_payment_period(reference_date: date) -> tuple[str, str]:
     start_year, start_month = _shift_month(year, end_month, -1)
     label = f"{HEBREW_MONTHS[start_month - 1]}-{HEBREW_MONTHS[end_month - 1]} {year}"
     if start_year != year:
-        label = f"{HEBREW_MONTHS[start_month - 1]} {start_year}-{HEBREW_MONTHS[end_month - 1]} {year}"
+        label = (
+            f"{HEBREW_MONTHS[start_month - 1]} {start_year}-{HEBREW_MONTHS[end_month - 1]} {year}"
+        )
     return _period_key(start_year, start_month), label

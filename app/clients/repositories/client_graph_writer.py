@@ -37,9 +37,7 @@ def apply_graph_update(db: Session, client_id: int, **fields) -> dict:
     """
     repo = ClientRecordRepository(db)
     record = repo.get_by_id(client_id)
-    legal_entity = (
-        LegalEntityRepository(db).get_by_id(record.legal_entity_id) if record else None
-    )
+    legal_entity = LegalEntityRepository(db).get_by_id(record.legal_entity_id) if record else None
     if not record or not legal_entity:
         raise NotFoundError(f"לקוח {client_id} לא נמצא", "CLIENT.NOT_FOUND")
     person = PersonRepository(db).get_owner_for_legal_entity(legal_entity.id)

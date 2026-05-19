@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, status
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.reminders.schemas.reminders import ReminderCreateRequest, ReminderResponse
 from app.reminders.services.reminder_service import ReminderService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 create_router = APIRouter()
 

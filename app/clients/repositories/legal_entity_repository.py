@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -18,9 +17,9 @@ class LegalEntityRepository(BaseRepository[LegalEntity]):
         id_number: str,
         id_number_type: IdNumberType,
         official_name: str,
-        entity_type: Optional[EntityType] = None,
-        vat_reporting_frequency: Optional[VatType] = None,
-        advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
+        entity_type: EntityType | None = None,
+        vat_reporting_frequency: VatType | None = None,
+        advance_payment_frequency: AdvancePaymentFrequency | None = None,
         vat_exempt_ceiling=None,
         advance_rate=None,
     ) -> LegalEntity:
@@ -38,10 +37,8 @@ class LegalEntityRepository(BaseRepository[LegalEntity]):
         self.db.flush()
         return entity
 
-    def get_by_id(self, entity_id: int) -> Optional[LegalEntity]:
-        return self.db.scalars(
-            select(LegalEntity).where(LegalEntity.id == entity_id)
-        ).first()
+    def get_by_id(self, entity_id: int) -> LegalEntity | None:
+        return self.db.scalars(select(LegalEntity).where(LegalEntity.id == entity_id)).first()
 
     def list_by_ids(self, ids: list[int]) -> list[LegalEntity]:
         if not ids:
@@ -50,7 +47,7 @@ class LegalEntityRepository(BaseRepository[LegalEntity]):
 
     def get_by_id_number(
         self, id_number_type: IdNumberType, id_number: str
-    ) -> Optional[LegalEntity]:
+    ) -> LegalEntity | None:
         return self.db.scalars(
             select(LegalEntity).where(
                 LegalEntity.id_number_type == id_number_type,

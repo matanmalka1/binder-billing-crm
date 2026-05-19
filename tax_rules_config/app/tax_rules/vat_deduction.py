@@ -116,8 +116,7 @@ VAT_DEDUCTION_RULES: tuple[VatDeductionRule, ...] = (
         rate=0.6667,
         label_he="רכב פרטי",
         condition_he=(
-            "רכב פרטי — 2/3 ניכוי. "
-            "רכב מסחרי/מיוחד עשוי להיות זכאי לניכוי מלא — יש לסווג בנפרד."
+            "רכב פרטי — 2/3 ניכוי. רכב מסחרי/מיוחד עשוי להיות זכאי לניכוי מלא — יש לסווג בנפרד."
         ),
         source_ids=("tax_authority_vat_law_38_41",),
     ),
@@ -181,6 +180,4 @@ VAT_DEDUCTION_RULES: tuple[VatDeductionRule, ...] = (
 )
 
 # lookup מהיר לפי קטגוריה
-VAT_DEDUCTION_RATE_BY_CATEGORY: dict[str, float] = {
-    r.category: r.rate for r in VAT_DEDUCTION_RULES
-}
+VAT_DEDUCTION_RATE_BY_CATEGORY: dict[str, float] = {r.category: r.rate for r in VAT_DEDUCTION_RULES}

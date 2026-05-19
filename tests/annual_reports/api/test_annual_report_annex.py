@@ -1,9 +1,7 @@
 from itertools import count
 
-
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from tests.helpers.identity import seed_client_identity
-
 
 _client_seq = count(1)
 

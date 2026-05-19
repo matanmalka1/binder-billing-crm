@@ -60,13 +60,8 @@ class LocalStorageProvider(StorageProvider):
         within base_path (guards against path-traversal attacks).
         """
         resolved = os.path.realpath(os.path.join(self.base_path, key))
-        if (
-            not resolved.startswith(self.base_path + os.sep)
-            and resolved != self.base_path
-        ):
-            raise ValueError(
-                f"Invalid storage key — path escapes base directory: {key!r}"
-            )
+        if not resolved.startswith(self.base_path + os.sep) and resolved != self.base_path:
+            raise ValueError(f"Invalid storage key — path escapes base directory: {key!r}")
         return resolved
 
     def upload(self, key: str, file_data: BinaryIO, content_type: str) -> str:
@@ -125,8 +120,7 @@ class S3StorageProvider(StorageProvider):
             from botocore.config import Config
         except ImportError as exc:
             raise RuntimeError(
-                "הספרייה boto3 נדרשת עבור S3StorageProvider. "
-                "יש להתקין באמצעות: pip install boto3"
+                "הספרייה boto3 נדרשת עבור S3StorageProvider. יש להתקין באמצעות: pip install boto3"
             ) from exc
 
         self._bucket = bucket_name

@@ -5,11 +5,10 @@ from openpyxl import Workbook, load_workbook
 from sqlalchemy import func, select
 
 from app.clients.models.client_record import ClientRecord
-from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 from app.clients.services.client_excel_service import ClientExcelService
 from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.create_client_service import create_client_identity_only
-from app.common.enums import IdNumberType
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 
 
 def test_client_excel_import_skips_blank_and_collects_errors(test_db):

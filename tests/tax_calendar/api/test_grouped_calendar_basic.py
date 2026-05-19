@@ -1,15 +1,15 @@
+from app.clients.models.client_record import ClientRecord
+from app.utils.time_utils import utcnow
 from tests.tax_calendar.api.grouped_helpers import (
     PATH,
-    add_vat_item,
     add_advance_payment,
     add_annual_report,
+    add_vat_item,
     advance_entry,
     annual_entry,
     headers,
     vat_entry,
 )
-from app.clients.models.client_record import ClientRecord
-from app.utils.time_utils import utcnow
 
 
 def test_empty_calendar_include_empty_false_returns_empty(client, auth_token, test_db):
@@ -57,9 +57,7 @@ def test_obligation_type_filter_works(client, auth_token, test_db):
     )
 
     assert response.status_code == 200
-    assert [row["obligation_type"] for row in response.json()["items"]] == [
-        "annual_report"
-    ]
+    assert [row["obligation_type"] for row in response.json()["items"]] == ["annual_report"]
 
 
 def test_year_range_filter_works(client, auth_token, test_db):
@@ -94,9 +92,7 @@ def test_groups_are_paginated(client, auth_token, test_db):
     assert [row["tax_year"] for row in payload["items"]] == [2026]
 
 
-def test_client_record_id_filter_limits_group_counts(
-    client, auth_token, test_db, test_user
-):
+def test_client_record_id_filter_limits_group_counts(client, auth_token, test_db, test_user):
     entry = vat_entry(test_db)
     first_item = add_vat_item(test_db, entry, test_user.id)
     add_vat_item(test_db, entry, test_user.id)
@@ -133,8 +129,7 @@ def test_soft_deleted_client_rows_are_excluded_from_group_counts(
 
     assert response.status_code == 200
     linked_counts = {
-        row["tax_calendar_entry_id"]: row["linked_count"]
-        for row in response.json()["items"]
+        row["tax_calendar_entry_id"]: row["linked_count"] for row in response.json()["items"]
     }
     assert linked_counts == {
         vat.id: 0,

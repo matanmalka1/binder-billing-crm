@@ -13,9 +13,7 @@ class AdvancePaymentDashboardRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def completion_for_period(
-        self, period: str, period_months_count: int
-    ) -> tuple[int, int]:
+    def completion_for_period(self, period: str, period_months_count: int) -> tuple[int, int]:
         paid_expr = case(
             (AdvancePayment.status == AdvancePaymentStatus.PAID, 1),
             else_=0,

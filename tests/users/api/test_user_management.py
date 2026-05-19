@@ -52,18 +52,14 @@ def test_list_users_supports_is_active_filter(client, advisor_headers, test_db):
     assert active_user.id in all_ids
     assert inactive_user.id in all_ids
 
-    active_response = client.get(
-        "/api/v1/users?is_active=true", headers=advisor_headers
-    )
+    active_response = client.get("/api/v1/users?is_active=true", headers=advisor_headers)
     assert active_response.status_code == 200
     active_body = active_response.json()
     assert active_body["total"] >= 2
     assert all(item["is_active"] is True for item in active_body["items"])
     assert inactive_user.id not in {item["id"] for item in active_body["items"]}
 
-    inactive_response = client.get(
-        "/api/v1/users?is_active=false", headers=advisor_headers
-    )
+    inactive_response = client.get("/api/v1/users?is_active=false", headers=advisor_headers)
     assert inactive_response.status_code == 200
     inactive_body = inactive_response.json()
     assert inactive_body["total"] == 1
@@ -84,9 +80,7 @@ def test_list_users_supports_search_filter(client, advisor_headers, test_db):
     assert name_body["total"] == 1
     assert [item["id"] for item in name_body["items"]] == [name_match.id]
 
-    email_response = client.get(
-        "/api/v1/users?search=mail.findme", headers=advisor_headers
-    )
+    email_response = client.get("/api/v1/users?search=mail.findme", headers=advisor_headers)
     assert email_response.status_code == 200
     email_body = email_response.json()
     assert email_body["total"] == 1
@@ -98,9 +92,7 @@ def test_secretary_cannot_access_user_management(client, secretary_headers):
     assert response.status_code == 403
 
 
-def test_advisor_can_update_and_activate_deactivate_user(
-    client, advisor_headers, test_db
-):
+def test_advisor_can_update_and_activate_deactivate_user(client, advisor_headers, test_db):
     target = _make_user(test_db, "target@example.com")
 
     update_response = client.patch(
@@ -140,8 +132,6 @@ def test_can_update_email_field(client, advisor_headers, test_db):
 
 
 def test_cannot_deactivate_self(client, advisor_headers, test_user):
-    response = client.post(
-        f"/api/v1/users/{test_user.id}/deactivate", headers=advisor_headers
-    )
+    response = client.post(f"/api/v1/users/{test_user.id}/deactivate", headers=advisor_headers)
     assert response.status_code == 403
     assert response.json()["error"] == "USER.FORBIDDEN"

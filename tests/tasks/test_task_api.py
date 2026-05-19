@@ -7,13 +7,10 @@ from app.tasks.repositories.task_repository import TaskRepository
 from app.utils.time_utils import utcnow
 from tests.helpers.task_helpers import create_business, create_charge
 
-
 # ── Create ────────────────────────────────────────────────────────────────────
 
 
-def test_create_standalone_task_is_open_active_and_unlinked(
-    client, test_db, advisor_headers
-):
+def test_create_standalone_task_is_open_active_and_unlinked(client, test_db, advisor_headers):
     resp = client.post(
         "/api/v1/tasks",
         headers=advisor_headers,
@@ -47,11 +44,7 @@ def test_create_standalone_task_appears_in_work_queue_api(client, advisor_header
     assert resp.status_code == 200
     items = resp.json()["items"]
     match = next(
-        (
-            item
-            for item in items
-            if item["source_type"] == "task" and item["source_id"] == task_id
-        ),
+        (item for item in items if item["source_type"] == "task" and item["source_id"] == task_id),
         None,
     )
     assert match is not None
@@ -140,9 +133,7 @@ def test_list_tasks_with_status_filter(client, advisor_headers):
 
 
 def test_get_task(client, advisor_headers):
-    created = client.post(
-        "/api/v1/tasks", headers=advisor_headers, json={"title": "Get Me"}
-    ).json()
+    created = client.post("/api/v1/tasks", headers=advisor_headers, json={"title": "Get Me"}).json()
     resp = client.get(f"/api/v1/tasks/{created['id']}", headers=advisor_headers)
     assert resp.status_code == 200
     assert resp.json()["id"] == created["id"]
@@ -176,9 +167,7 @@ def test_complete_task(client, advisor_headers):
     created = client.post(
         "/api/v1/tasks", headers=advisor_headers, json={"title": "Complete Me"}
     ).json()
-    resp = client.post(
-        f"/api/v1/tasks/{created['id']}/complete", headers=advisor_headers
-    )
+    resp = client.post(f"/api/v1/tasks/{created['id']}/complete", headers=advisor_headers)
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "done"
@@ -294,9 +283,7 @@ def test_secretary_can_manage_tasks(client, secretary_headers):
         == 200
     )
     assert (
-        client.post(
-            f"/api/v1/tasks/{task_id}/complete", headers=secretary_headers
-        ).status_code
+        client.post(f"/api/v1/tasks/{task_id}/complete", headers=secretary_headers).status_code
         == 200
     )
 
@@ -306,9 +293,7 @@ def test_secretary_can_manage_tasks(client, secretary_headers):
         json={"title": "Delete by secretary"},
     ).json()
     assert (
-        client.delete(
-            f"/api/v1/tasks/{deletable['id']}", headers=secretary_headers
-        ).status_code
+        client.delete(f"/api/v1/tasks/{deletable['id']}", headers=secretary_headers).status_code
         == 204
     )
 
@@ -318,9 +303,7 @@ def test_secretary_can_manage_tasks(client, secretary_headers):
 
 def test_list_pagination_total_reflects_all_items(client, advisor_headers):
     for i in range(5):
-        client.post(
-            "/api/v1/tasks", headers=advisor_headers, json={"title": f"Task {i}"}
-        )
+        client.post("/api/v1/tasks", headers=advisor_headers, json={"title": f"Task {i}"})
 
     resp = client.get("/api/v1/tasks?page=1&page_size=3", headers=advisor_headers)
     assert resp.status_code == 200
@@ -335,9 +318,7 @@ def test_list_pagination_total_reflects_all_items(client, advisor_headers):
 
 
 @pytest.mark.parametrize("assigned_role", ["advisor", "secretary"])
-def test_create_task_accepts_valid_assigned_role(
-    client, advisor_headers, assigned_role
-):
+def test_create_task_accepts_valid_assigned_role(client, advisor_headers, assigned_role):
     resp = client.post(
         "/api/v1/tasks",
         headers=advisor_headers,
@@ -357,9 +338,7 @@ def test_create_task_invalid_assigned_role_rejected(client, advisor_headers):
 
 
 def test_update_task_invalid_assigned_role_rejected(client, advisor_headers):
-    created = client.post(
-        "/api/v1/tasks", headers=advisor_headers, json={"title": "Task"}
-    ).json()
+    created = client.post("/api/v1/tasks", headers=advisor_headers, json={"title": "Task"}).json()
     resp = client.patch(
         f"/api/v1/tasks/{created['id']}",
         headers=advisor_headers,
@@ -390,9 +369,7 @@ def test_patch_task_links_valid_source(client, test_db, advisor_headers):
     assert data["source_id"] == charge.id
 
 
-def test_patch_task_relinks_from_one_valid_source_to_another(
-    client, test_db, advisor_headers
-):
+def test_patch_task_relinks_from_one_valid_source_to_another(client, test_db, advisor_headers):
     biz = create_business(test_db)
     first_charge = create_charge(test_db, biz.client_id, biz.id)
     second_charge = create_charge(test_db, biz.client_id, biz.id)
@@ -437,9 +414,7 @@ def test_patch_task_partial_source_link_rejected(client, advisor_headers, payloa
     assert resp.status_code == 400
 
 
-def test_patch_linked_task_partial_source_update_rejected(
-    client, test_db, advisor_headers
-):
+def test_patch_linked_task_partial_source_update_rejected(client, test_db, advisor_headers):
     biz = create_business(test_db)
     charge = create_charge(test_db, biz.client_id, biz.id)
 

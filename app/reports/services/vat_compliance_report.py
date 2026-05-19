@@ -28,9 +28,7 @@ class VatComplianceReportService:
         late_map: dict[tuple[int, str], int] = {}
         for fi in filed_items:
             deadline = fi.due_date_effective
-            filed_date = (
-                fi.filed_at.date() if hasattr(fi.filed_at, "date") else fi.filed_at
-            )
+            filed_date = fi.filed_at.date() if hasattr(fi.filed_at, "date") else fi.filed_at
             is_late = filed_date > deadline
             bucket = late_map if is_late else on_time_map
             period_type = str(fi.period_type.value)
@@ -62,9 +60,7 @@ class VatComplianceReportService:
                     "periods_open": expected - filed,
                     "on_time_count": on_time,
                     "late_count": late,
-                    "compliance_rate": round(filed / expected * 100, 2)
-                    if expected
-                    else 0.0,
+                    "compliance_rate": round(filed / expected * 100, 2) if expected else 0.0,
                 }
             )
 
@@ -99,9 +95,7 @@ class VatComplianceReportService:
         records = self.client_repo.list_by_ids(list(set(client_record_ids)))
         legal_entity_ids = list({record.legal_entity_id for record in records})
         entities = (
-            self.db.scalars(
-                select(LegalEntity).where(LegalEntity.id.in_(legal_entity_ids))
-            ).all()
+            self.db.scalars(select(LegalEntity).where(LegalEntity.id.in_(legal_entity_ids))).all()
             if legal_entity_ids
             else []
         )

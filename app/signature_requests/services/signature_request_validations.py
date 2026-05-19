@@ -26,9 +26,7 @@ def get_or_raise(repo: SignatureRequestRepository, request_id: int) -> Signature
     return req
 
 
-def get_or_raise_for_update(
-    repo: SignatureRequestRepository, request_id: int
-) -> SignatureRequest:
+def get_or_raise_for_update(repo: SignatureRequestRepository, request_id: int) -> SignatureRequest:
     """Fetch with a row-level lock. Use for transition entrypoints."""
     req = repo.get_by_id_for_update(request_id)
     if not req:
@@ -39,9 +37,7 @@ def get_or_raise_for_update(
     return req
 
 
-def get_by_token_or_raise(
-    repo: SignatureRequestRepository, token: str
-) -> SignatureRequest:
+def get_by_token_or_raise(repo: SignatureRequestRepository, token: str) -> SignatureRequest:
     req = repo.get_by_token(token)
     if not req:
         raise AppError(INVALID_SIGNING_TOKEN, "SIGNATURE_REQUEST.TOKEN_INVALID")

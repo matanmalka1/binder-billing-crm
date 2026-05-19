@@ -28,9 +28,7 @@ from app.users.services.user_management_policies import validate_password  # noq
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Create an initial backend user for login."
-    )
+    parser = argparse.ArgumentParser(description="Create an initial backend user for login.")
     parser.add_argument("--full-name", required=True, help="User full name")
     parser.add_argument("--email", required=True, help="User email (login identifier)")
     parser.add_argument("--password", required=True, help="Plain password")

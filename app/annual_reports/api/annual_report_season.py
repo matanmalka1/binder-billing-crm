@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.annual_reports.schemas.annual_report_responses import (
     AnnualReportListResponse,
     DefaultTaxYearResponse,
@@ -9,7 +7,8 @@ from app.annual_reports.schemas.annual_report_responses import (
 )
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.season_service import get_active_annual_report_tax_year
-
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 season_router = APIRouter(
     prefix="/tax-year",
@@ -27,9 +26,7 @@ def list_active_season_reports(
 ):
     tax_year = get_active_annual_report_tax_year()
     service = AnnualReportService(db)
-    items, total = service.list_reports(
-        tax_year=tax_year, page=page, page_size=page_size
-    )
+    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
     return AnnualReportListResponse(
         items=items,
         page=page,
@@ -59,9 +56,7 @@ def list_season_reports(
 ):
     """All reports for a given tax year — the advisor's season dashboard."""
     service = AnnualReportService(db)
-    items, total = service.list_reports(
-        tax_year=tax_year, page=page, page_size=page_size
-    )
+    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
     return AnnualReportListResponse(
         items=items,
         page=page,

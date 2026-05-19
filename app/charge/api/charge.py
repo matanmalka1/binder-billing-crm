@@ -1,9 +1,6 @@
-from typing import Optional
 
 from fastapi import APIRouter, Body, Depends, Header, Query, Response, status
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.charge.schemas.charge import (
     BulkChargeActionRequest,
     BulkChargeActionResponse,
@@ -17,7 +14,8 @@ from app.charge.services.billing_service import BillingService
 from app.charge.services.bulk_billing_service import BulkBillingService
 from app.charge.services.charge_query_service import ChargeQueryService
 from app.charge.services.charge_response_builder import ChargeResponseBuilder
-
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/charges",
@@ -83,9 +81,7 @@ def cancel_charge(
     request: ChargeCancelRequest = Body(default_factory=ChargeCancelRequest),
 ):
     """Cancel a charge (ADVISOR only)."""
-    charge = BillingService(db).cancel_charge(
-        charge_id, actor_id=user.id, reason=request.reason
-    )
+    charge = BillingService(db).cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
     return _response_builder(db).build(charge, UserRole.ADVISOR)
 
 
@@ -97,10 +93,10 @@ def cancel_charge(
 def list_charges(
     db: DBSession,
     user: CurrentUser,
-    business_id: Optional[int] = None,
-    client_record_id: Optional[int] = None,
-    status_filter: Optional[str] = Query(None, alias="status"),
-    charge_type: Optional[str] = None,
+    business_id: int | None = None,
+    client_record_id: int | None = None,
+    status_filter: str | None = Query(None, alias="status"),
+    charge_type: str | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):

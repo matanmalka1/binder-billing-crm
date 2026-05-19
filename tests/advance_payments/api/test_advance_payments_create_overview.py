@@ -9,7 +9,6 @@ from app.advance_payments.repositories.advance_payment_repository import (
 from tests.helpers.identity import seed_business, seed_client_identity
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
-
 _client_seq = count(1)
 
 
@@ -69,9 +68,7 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
     assert isinstance(data["error_meta"]["detail"], str)
 
 
-def test_create_advance_payment_uses_advance_payment_frequency(
-    client, test_db, advisor_headers
-):
+def test_create_advance_payment_uses_advance_payment_frequency(client, test_db, advisor_headers):
     from app.common.enums import AdvancePaymentFrequency
 
     business = _business(test_db)
@@ -113,9 +110,7 @@ def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):
         period_months_count=1,
         due_date=date(2026, 3, 15),
     )
-    repo.update_payment(
-        feb, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("1200")
-    )
+    repo.update_payment(feb, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("1200"))
 
     resp = client.get(
         "/api/v1/advance-payments/overview?year=2026&month=2&status=paid&page=1&page_size=10",
@@ -130,9 +125,7 @@ def test_overview_filters_by_status_and_month(client, test_db, advisor_headers):
     assert item["status"] == "paid"
 
 
-def test_overview_filters_by_due_date_and_client_search(
-    client, test_db, advisor_headers
-):
+def test_overview_filters_by_due_date_and_client_search(client, test_db, advisor_headers):
     first_business = _business(test_db)
     second_business = _business(test_db)
     repo = AdvancePaymentRepository(test_db)

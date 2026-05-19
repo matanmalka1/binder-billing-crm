@@ -5,10 +5,9 @@ import io
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
+from app.annual_reports.services.annual_report_pdf_service import AnnualReportPdfService
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
-from app.annual_reports.services.annual_report_pdf_service import AnnualReportPdfService
-
 
 router = APIRouter(
     prefix="/annual-reports",
@@ -18,9 +17,7 @@ router = APIRouter(
 
 
 @router.get("/{report_id}/export/pdf")
-def export_annual_report_pdf(
-    report_id: int, db: DBSession, user: CurrentUser
-) -> StreamingResponse:
+def export_annual_report_pdf(report_id: int, db: DBSession, user: CurrentUser) -> StreamingResponse:
     """Download a working-draft PDF (טיוטה לעיון) for the annual report."""
     svc = AnnualReportPdfService(db)
     pdf_bytes, tax_year = svc.generate(report_id)

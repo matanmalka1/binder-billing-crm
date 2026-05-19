@@ -2,7 +2,6 @@
 
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -25,14 +24,12 @@ ANONYMOUS_COUNTERPARTY_ID = "999999999"
 class VatInvoiceValidatorMixin(BaseModel):
     """Shared field validators for VAT invoice create and update schemas."""
 
-    counterparty_id: Optional[str] = None
-    counterparty_id_type: Optional[CounterpartyIdType] = None
+    counterparty_id: str | None = None
+    counterparty_id_type: CounterpartyIdType | None = None
 
-    @field_validator(
-        "invoice_number", "counterparty_name", "counterparty_id", check_fields=False
-    )
+    @field_validator("invoice_number", "counterparty_name", "counterparty_id", check_fields=False)
     @classmethod
-    def normalize_optional_strings(cls, v: Optional[str]) -> Optional[str]:
+    def normalize_optional_strings(cls, v: str | None) -> str | None:
         if v is None:
             return None
         normalized = v.strip()
@@ -69,22 +66,16 @@ class VatInvoiceValidatorMixin(BaseModel):
 
 class VatInvoiceCreateRequest(VatInvoiceValidatorMixin):
     invoice_type: InvoiceType
-    business_activity_id: Optional[int] = None
-    invoice_number: Optional[str] = Field(
-        default=None, max_length=MAX_INVOICE_NUMBER_LENGTH
-    )
-    invoice_date: Optional[date] = None  # Date — לא DateTime
-    counterparty_name: Optional[str] = Field(
-        default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH
-    )
+    business_activity_id: int | None = None
+    invoice_number: str | None = Field(default=None, max_length=MAX_INVOICE_NUMBER_LENGTH)
+    invoice_date: date | None = None  # Date — לא DateTime
+    counterparty_name: str | None = Field(default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH)
     gross_amount: ApiDecimal
-    counterparty_id: Optional[str] = Field(
-        default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH
-    )
-    counterparty_id_type: Optional[CounterpartyIdType] = None
-    expense_category: Optional[ExpenseCategory] = None
+    counterparty_id: str | None = Field(default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH)
+    counterparty_id_type: CounterpartyIdType | None = None
+    expense_category: ExpenseCategory | None = None
     rate_type: VatRateType = VatRateType.STANDARD
-    document_type: Optional[DocumentType] = None
+    document_type: DocumentType | None = None
 
     @field_validator("gross_amount")
     @classmethod
@@ -97,17 +88,17 @@ class VatInvoiceCreateRequest(VatInvoiceValidatorMixin):
 class VatInvoiceResponse(BaseModel):
     id: int
     work_item_id: int
-    business_activity_id: Optional[int] = None
+    business_activity_id: int | None = None
     invoice_type: InvoiceType
-    document_type: Optional[DocumentType] = None
+    document_type: DocumentType | None = None
     invoice_number: str
     invoice_date: date  # Date — לא DateTime
     counterparty_name: str
-    counterparty_id: Optional[str] = None
-    counterparty_id_type: Optional[CounterpartyIdType] = None  # קיים במודל
+    counterparty_id: str | None = None
+    counterparty_id_type: CounterpartyIdType | None = None  # קיים במודל
     net_amount: ApiDecimal
     vat_amount: ApiDecimal
-    expense_category: Optional[ExpenseCategory] = None
+    expense_category: ExpenseCategory | None = None
     rate_type: VatRateType
     deduction_rate: ApiDecimal
     is_exceptional: bool

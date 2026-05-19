@@ -7,7 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.common.enums import DeadlineRuleType as DRT, ObligationType
+from app.common.enums import DeadlineRuleType as DRT
+from app.common.enums import ObligationType
 from app.core.exceptions import AppError, ConflictError
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.tax_calendar.services.tax_calendar_entry_service import (
@@ -80,9 +81,7 @@ class TaxCalendarMaterializationService:
 
     def link_vat_work_item(self, item):
         period_type = (
-            item.period_type.value
-            if hasattr(item.period_type, "value")
-            else item.period_type
+            item.period_type.value if hasattr(item.period_type, "value") else item.period_type
         )
         months = 2 if period_type == "bimonthly" else 1
         entry = self.ensure_periodic_entry(ObligationType.VAT, item.period, months)
@@ -158,9 +157,7 @@ class TaxCalendarMaterializationService:
         obligation_type = TaxCalendarMaterializationService._obligation(obligation_type)
         rule_type = _PERIODIC_RULES.get((obligation_type, months))
         if rule_type is None:
-            raise AppError(
-                "תקופת החובה אינה נתמכת", "TAX_CALENDAR.INVALID_PERIOD_FREQUENCY"
-            )
+            raise AppError("תקופת החובה אינה נתמכת", "TAX_CALENDAR.INVALID_PERIOD_FREQUENCY")
         return rule_type
 
     @staticmethod
@@ -168,9 +165,7 @@ class TaxCalendarMaterializationService:
         try:
             return value if isinstance(value, ObligationType) else ObligationType(value)
         except ValueError as exc:
-            raise AppError(
-                "סוג החובה אינו נתמך", "TAX_CALENDAR.INVALID_OBLIGATION_TYPE"
-            ) from exc
+            raise AppError("סוג החובה אינו נתמך", "TAX_CALENDAR.INVALID_OBLIGATION_TYPE") from exc
 
     @staticmethod
     def _parse_period(period: str) -> tuple[int, int]:
@@ -191,9 +186,7 @@ class TaxCalendarMaterializationService:
         try:
             year = int(tax_year)
         except (TypeError, ValueError) as exc:
-            raise AppError(
-                "שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR"
-            ) from exc
+            raise AppError("שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR") from exc
         if year < 1900 or year > 2200:
             raise AppError("שנת המס אינה תקינה", "TAX_CALENDAR.INVALID_TAX_YEAR")
         return year
@@ -205,6 +198,4 @@ class TaxCalendarMaterializationService:
             entity.tax_calendar_entry_id = entry.id
             return
         if int(current) != int(entry.id):
-            raise ConflictError(
-                "רשומת יומן המס אינה תואמת לחובה", "TAX_CALENDAR.LINK_CONFLICT"
-            )
+            raise ConflictError("רשומת יומן המס אינה תואמת לחובה", "TAX_CALENDAR.LINK_CONFLICT")

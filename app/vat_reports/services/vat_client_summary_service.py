@@ -4,8 +4,8 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFoundError
 from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.core.exceptions import NotFoundError
 from app.vat_reports.repositories.vat_client_summary_repository import (
     VatClientSummaryRepository,
 )
@@ -18,9 +18,7 @@ from app.vat_reports.services.messages import VAT_CLIENT_NOT_FOUND
 from app.vat_reports.services.vat_report_queries import get_vat_deadline_fields
 
 
-def get_client_summary(
-    db: Session, *, client_record_id: int
-) -> VatClientSummaryResponse:
+def get_client_summary(db: Session, *, client_record_id: int) -> VatClientSummaryResponse:
     summary_repo = VatClientSummaryRepository(db)
     if not ClientRecordRepository(db).get_by_id(client_record_id):
         raise NotFoundError(

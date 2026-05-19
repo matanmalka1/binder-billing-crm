@@ -11,13 +11,11 @@ from app.vat_reports.models.vat_enums import (
     VatWorkItemStatus,
 )
 from app.vat_reports.services.data_entry_invoices import add_invoice
-from tests.vat_reports.service.test_vat_report_test_utils import make_item, make_invoice
+from tests.vat_reports.service.test_vat_report_test_utils import make_invoice, make_item
 
 
 class TestAddInvoice:
-    def _add_income(
-        self, work_item_repo, invoice_repo, status=VatWorkItemStatus.MATERIAL_RECEIVED
-    ):
+    def _add_income(self, work_item_repo, invoice_repo, status=VatWorkItemStatus.MATERIAL_RECEIVED):
         item = make_item(status=status)
         work_item_repo.get_by_id.return_value = item
         invoice_repo.get_by_number.return_value = None
@@ -42,9 +40,7 @@ class TestAddInvoice:
         invoice_repo = MagicMock()
         self._add_income(work_item_repo, invoice_repo)
 
-        work_item_repo.update_status.assert_called_with(
-            1, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS
-        )
+        work_item_repo.update_status.assert_called_with(1, VatWorkItemStatus.DATA_ENTRY_IN_PROGRESS)
 
     def test_negative_gross_amount_raises(self):
         work_item_repo = MagicMock()
@@ -147,9 +143,7 @@ class TestAddInvoice:
     def test_cannot_add_to_filed_item(self):
         work_item_repo = MagicMock()
         invoice_repo = MagicMock()
-        work_item_repo.get_by_id.return_value = make_item(
-            status=VatWorkItemStatus.FILED
-        )
+        work_item_repo.get_by_id.return_value = make_item(status=VatWorkItemStatus.FILED)
 
         with pytest.raises(AppError) as exc_info:
             add_invoice(

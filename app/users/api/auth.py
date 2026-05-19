@@ -2,15 +2,15 @@ from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, Response, status
 
-from app.users.api.deps import CurrentUser, DBSession
+from app.config import config
 from app.users.api.constants import (
     COOKIE_NAME,
     COOKIE_SAMESITE,
     REMEMBER_ME_TTL_MULTIPLIER,
 )
+from app.users.api.deps import CurrentUser, DBSession
 from app.users.schemas.auth import LoginRequest, LoginResponse, UserResponse
 from app.users.services.auth_service import AuthService
-from app.config import config
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

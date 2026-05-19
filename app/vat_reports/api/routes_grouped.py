@@ -1,18 +1,17 @@
 """Routes: grouped VAT work items by due date."""
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
+from app.common.enums import VatType
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 from app.users.repositories.user_repository import UserRepository
-from app.common.enums import VatType
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.schemas.vat_report import (
     VatWorkItemGroupItemsResponse,
-    VatWorkItemGroupSummary,
     VatWorkItemGroupsResponse,
+    VatWorkItemGroupSummary,
 )
 from app.vat_reports.services import vat_grouped_enrichment
 
@@ -27,10 +26,10 @@ router = APIRouter(prefix="/vat", tags=["vat-reports"])
 def list_work_item_groups(
     db: DBSession,
     current_user: CurrentUser,
-    period_type: Optional[VatType] = Query(None),
-    status_filter: Optional[VatWorkItemStatus] = Query(default=None, alias="status"),
-    client_name: Optional[str] = Query(None),
-    year: Optional[int] = Query(None),
+    period_type: VatType | None = Query(None),
+    status_filter: VatWorkItemStatus | None = Query(default=None, alias="status"),
+    client_name: str | None = Query(None),
+    year: int | None = Query(None),
 ):
     groups = vat_grouped_enrichment.get_groups(
         db,
@@ -39,9 +38,7 @@ def list_work_item_groups(
         status=status_filter,
         year=year,
     )
-    return VatWorkItemGroupsResponse(
-        groups=[VatWorkItemGroupSummary(**g) for g in groups]
-    )
+    return VatWorkItemGroupsResponse(groups=[VatWorkItemGroupSummary(**g) for g in groups])
 
 
 @router.get(
@@ -55,8 +52,8 @@ def list_work_item_group_items(
     current_user: CurrentUser,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=50, ge=1, le=200),
-    status_filter: Optional[VatWorkItemStatus] = Query(default=None, alias="status"),
-    client_name: Optional[str] = Query(None),
+    status_filter: VatWorkItemStatus | None = Query(default=None, alias="status"),
+    client_name: str | None = Query(None),
 ):
     result = vat_grouped_enrichment.get_group_items_enriched(
         db,

@@ -1,10 +1,10 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from itertools import count
 
 from app.businesses.models.business import Business
-from app.common.enums import IdNumberType, VatType
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType, VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.models.vat_enums import (
@@ -16,7 +16,6 @@ from app.vat_reports.models.vat_enums import (
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from tests.helpers.tax_calendar_links import create_linked_vat_work_item
-
 
 _client_seq = count(1)
 
@@ -121,9 +120,7 @@ def test_list_by_work_item_orders_and_filters_by_type(test_db):
     all_for_item = invoice_repo.list_by_work_item(item.id)
     assert [inv.id for inv in all_for_item] == [expense.id, income.id]
 
-    income_only = invoice_repo.list_by_work_item(
-        item.id, invoice_type=InvoiceType.INCOME
-    )
+    income_only = invoice_repo.list_by_work_item(item.id, invoice_type=InvoiceType.INCOME)
     assert [inv.id for inv in income_only] == [income.id]
 
 
@@ -254,7 +251,7 @@ def test_sum_income_net_excludes_soft_deleted_work_items(test_db):
     )
 
     # Soft-delete the second work item directly
-    deleted_item.deleted_at = datetime.now(timezone.utc)
+    deleted_item.deleted_at = datetime.now(UTC)
     test_db.commit()
 
     # Only the active item's invoices should count toward the ceiling
@@ -476,9 +473,9 @@ def test_credit_notes_reduce_grouped_expense_totals(test_db):
         document_type=DocumentType.CREDIT_NOTE,
     )
 
-    assert invoice_repo.sum_expense_net_by_client_year_grouped(
-        client_record_id, 2026
-    ) == {"office": 450.0}
+    assert invoice_repo.sum_expense_net_by_client_year_grouped(client_record_id, 2026) == {
+        "office": 450.0
+    }
 
 
 def test_update_and_delete_return_falsy_for_missing_invoice(test_db):

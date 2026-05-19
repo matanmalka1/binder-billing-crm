@@ -1,18 +1,17 @@
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.actions.charge_actions import get_charge_actions
+from app.businesses.repositories.business_repository import BusinessRepository
 from app.charge.models.charge import Charge
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.charge.schemas.charge import (
     ChargeListResponse,
     ChargeListStats,
-    ChargeStatusStat,
     ChargeResponse,
     ChargeResponseSecretary,
+    ChargeStatusStat,
 )
-from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.repositories.client_record_read_repository import (
     get_full_record,
     get_full_records_bulk,
@@ -27,12 +26,8 @@ class ChargeQueryService:
         self.charge_repo = ChargeRepository(db)
         self.business_repo = BusinessRepository(db)
 
-    def enrich_charge_context(
-        self, charge: Charge
-    ) -> tuple[str | None, str | None, int | None]:
-        client_record = ClientRecordRepository(self.db).get_by_id(
-            charge.client_record_id
-        )
+    def enrich_charge_context(self, charge: Charge) -> tuple[str | None, str | None, int | None]:
+        client_record = ClientRecordRepository(self.db).get_by_id(charge.client_record_id)
         client = get_full_record(self.db, charge.client_record_id)
         client_name = client["full_name"] if client else None
         office_number = client_record.office_client_number if client_record else None
@@ -44,10 +39,10 @@ class ChargeQueryService:
 
     def list_charges(
         self,
-        business_id: Optional[int] = None,
-        client_record_id: Optional[int] = None,
-        status: Optional[str] = None,
-        charge_type: Optional[str] = None,
+        business_id: int | None = None,
+        client_record_id: int | None = None,
+        status: str | None = None,
+        charge_type: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[
@@ -94,9 +89,7 @@ class ChargeQueryService:
             )
 
         business_ids = list({c.business_id for c in items if c.business_id is not None})
-        businesses = (
-            self.business_repo.list_by_ids(business_ids) if business_ids else []
-        )
+        businesses = self.business_repo.list_by_ids(business_ids) if business_ids else []
         business_name_by_id = {c.id: c.full_name for c in businesses}
         client_record_ids = list({c.client_record_id for c in items})
         client_records = (
@@ -109,9 +102,7 @@ class ChargeQueryService:
         client_name_map = {
             c.id: clients.get(c.client_record_id, {}).get("full_name") for c in items
         }
-        business_name_map = {
-            c.id: business_name_by_id.get(c.business_id) for c in items
-        }
+        business_name_map = {c.id: business_name_by_id.get(c.business_id) for c in items}
         office_client_number_map = {
             c.id: record_by_id[c.client_record_id].office_client_number
             if c.client_record_id in record_by_id
@@ -130,10 +121,10 @@ class ChargeQueryService:
     def list_charges_for_role(
         self,
         user_role: UserRole,
-        business_id: Optional[int] = None,
-        client_record_id: Optional[int] = None,
-        status: Optional[str] = None,
-        charge_type: Optional[str] = None,
+        business_id: int | None = None,
+        client_record_id: int | None = None,
+        status: str | None = None,
+        charge_type: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> ChargeListResponse:
@@ -147,11 +138,7 @@ class ChargeQueryService:
                 page_size=page_size,
             )
         )
-        schema = (
-            ChargeResponseSecretary
-            if user_role == UserRole.SECRETARY
-            else ChargeResponse
-        )
+        schema = ChargeResponseSecretary if user_role == UserRole.SECRETARY else ChargeResponse
 
         def _enrich(charge: Charge) -> ChargeResponse | ChargeResponseSecretary:
             data = schema.model_validate(charge).model_dump()
@@ -173,9 +160,7 @@ class ChargeQueryService:
 
         def _stat(key: str) -> ChargeStatusStat:
             d = raw.get(key, {})
-            return ChargeStatusStat(
-                count=d.get("count", 0), amount=d.get("amount", "0")
-            )
+            return ChargeStatusStat(count=d.get("count", 0), amount=d.get("amount", "0"))
 
         stats = ChargeListStats(
             draft=_stat("draft"),

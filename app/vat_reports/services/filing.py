@@ -1,7 +1,6 @@
 """Advisor review and filing flows."""
 
 import json
-from typing import Optional
 
 from app.common.enums import SubmissionMethod
 from app.core.exceptions import AppError, NotFoundError
@@ -29,24 +28,16 @@ def _validate_amendment(
 ) -> None:
     amended_item = work_item_repo.get_by_id(amends_item_id)
     if amended_item is None:
-        raise AppError(
-            AMENDED_ITEM_NOT_FOUND, code="AMENDED_ITEM_NOT_FOUND", status_code=404
-        )
+        raise AppError(AMENDED_ITEM_NOT_FOUND, code="AMENDED_ITEM_NOT_FOUND", status_code=404)
     if amended_item.client_record_id != item.client_record_id:
-        raise AppError(
-            AMENDED_ITEM_WRONG_CLIENT, code="AMENDED_ITEM_WRONG_CLIENT", status_code=400
-        )
+        raise AppError(AMENDED_ITEM_WRONG_CLIENT, code="AMENDED_ITEM_WRONG_CLIENT", status_code=400)
     if amended_item.status != VatWorkItemStatus.FILED:
-        raise AppError(
-            AMENDED_ITEM_NOT_FILED, code="AMENDED_ITEM_NOT_FILED", status_code=400
-        )
+        raise AppError(AMENDED_ITEM_NOT_FILED, code="AMENDED_ITEM_NOT_FILED", status_code=400)
 
     current_item = amended_item
     while current_item is not None:
         if current_item.id == item.id:
-            raise AppError(
-                AMENDMENT_CYCLE_DETECTED, code="AMENDMENT_CYCLE", status_code=400
-            )
+            raise AppError(AMENDMENT_CYCLE_DETECTED, code="AMENDMENT_CYCLE", status_code=400)
         if current_item.amends_item_id is None:
             break
         current_item = work_item_repo.get_by_id(current_item.amends_item_id)
@@ -58,11 +49,11 @@ def file_vat_return(
     item_id: int,
     filed_by: int,
     submission_method: SubmissionMethod,
-    override_amount: Optional[float] = None,
-    override_justification: Optional[str] = None,
-    submission_reference: Optional[str] = None,
+    override_amount: float | None = None,
+    override_justification: str | None = None,
+    submission_reference: str | None = None,
     is_amendment: bool = False,
-    amends_item_id: Optional[int] = None,
+    amends_item_id: int | None = None,
 ):
     item = work_item_repo.get_by_id_for_update(item_id)
     if not item:
@@ -79,9 +70,7 @@ def file_vat_return(
         raise AppError(OVERRIDE_JUSTIFICATION_REQUIRED, "VAT.JUSTIFICATION_REQUIRED")
 
     if item.net_vat is None and override_amount is None:
-        raise AppError(
-            FINAL_VAT_AMOUNT_REQUIRED, code="MISSING_FINAL_AMOUNT", status_code=400
-        )
+        raise AppError(FINAL_VAT_AMOUNT_REQUIRED, code="MISSING_FINAL_AMOUNT", status_code=400)
 
     if is_overridden:
         final_amount = override_amount

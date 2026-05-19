@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import ForbiddenError, NotFoundError
 from app.businesses.models.business import Business, BusinessStatus
 from app.businesses.repositories.business_repository import BusinessRepository
+from app.core.exceptions import ForbiddenError, NotFoundError
 
 
 def get_business_or_raise(db: Session, business_id: int) -> Business:
@@ -34,9 +34,7 @@ def validate_business_for_create(db: Session, business_id: int) -> Business:
     return business
 
 
-def assert_business_belongs_to_legal_entity(
-    business: Business, legal_entity_id: int
-) -> None:
+def assert_business_belongs_to_legal_entity(business: Business, legal_entity_id: int) -> None:
     """Raise NotFoundError if business.legal_entity_id does not match the given legal_entity_id."""
     if business.legal_entity_id != legal_entity_id:
         raise NotFoundError(

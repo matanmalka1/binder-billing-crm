@@ -1,9 +1,6 @@
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.authority_contact.models.authority_contact import ContactType
 from app.authority_contact.schemas.authority_contact import (
     AuthorityContactCreateRequest,
@@ -14,6 +11,8 @@ from app.authority_contact.schemas.authority_contact import (
 from app.authority_contact.services.authority_contact_service import (
     AuthorityContactService,
 )
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/clients",
@@ -60,7 +59,7 @@ def list_authority_contacts(
     client_record_id: int,
     db: DBSession,
     _: CurrentUser,
-    contact_type: Optional[ContactType] = None,
+    contact_type: ContactType | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):

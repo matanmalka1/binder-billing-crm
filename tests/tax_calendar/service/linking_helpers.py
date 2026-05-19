@@ -14,7 +14,6 @@ from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from tests.helpers.identity import seed_business, seed_client_identity
 
-
 seq = count(1)
 
 
@@ -93,9 +92,7 @@ def vat_client(db, vat_type: VatType):
         vat_reporting_frequency=vat_type,
         status=ClientStatus.ACTIVE,
     )
-    seed_business(
-        db, legal_entity_id=client.legal_entity_id, business_name=f"VAT Biz {idx}"
-    )
+    seed_business(db, legal_entity_id=client.legal_entity_id, business_name=f"VAT Biz {idx}")
     db.flush()
     return client
 

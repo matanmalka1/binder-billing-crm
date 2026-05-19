@@ -43,9 +43,7 @@ def test_password_reset_invalidates_old_token(client, advisor_headers, test_db):
     assert protected_response.status_code == 401
 
 
-def test_deactivate_then_activate_does_not_restore_old_token(
-    client, advisor_headers, test_db
-):
+def test_deactivate_then_activate_does_not_restore_old_token(client, advisor_headers, test_db):
     user = _create_managed_user(test_db)
     old_token = _login(client, user.email, "password123")
 

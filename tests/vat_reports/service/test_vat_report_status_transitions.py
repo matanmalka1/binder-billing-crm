@@ -71,9 +71,7 @@ class TestFileVatReturn:
         work_item_repo = MagicMock()
         item = make_item(status=VatWorkItemStatus.READY_FOR_REVIEW, net_vat=500.0)
         work_item_repo.get_by_id_for_update.return_value = item
-        work_item_repo.mark_filed.return_value = make_item(
-            status=VatWorkItemStatus.FILED
-        )
+        work_item_repo.mark_filed.return_value = make_item(status=VatWorkItemStatus.FILED)
 
         result = filing.file_vat_return(
             work_item_repo,
@@ -100,9 +98,7 @@ class TestFileVatReturn:
         work_item_repo = MagicMock()
         item = make_item(status=VatWorkItemStatus.READY_FOR_REVIEW, net_vat=300.0)
         work_item_repo.get_by_id_for_update.return_value = item
-        work_item_repo.mark_filed.return_value = make_item(
-            status=VatWorkItemStatus.FILED
-        )
+        work_item_repo.mark_filed.return_value = make_item(status=VatWorkItemStatus.FILED)
 
         filing.file_vat_return(
             work_item_repo,
@@ -131,9 +127,7 @@ class TestFileVatReturn:
         work_item_repo = MagicMock()
         item = make_item(status=VatWorkItemStatus.READY_FOR_REVIEW, net_vat=300.0)
         work_item_repo.get_by_id_for_update.return_value = item
-        work_item_repo.mark_filed.return_value = make_item(
-            status=VatWorkItemStatus.FILED
-        )
+        work_item_repo.mark_filed.return_value = make_item(status=VatWorkItemStatus.FILED)
 
         filing.file_vat_return(
             work_item_repo,

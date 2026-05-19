@@ -1,19 +1,19 @@
 from datetime import date
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 
+from app.businesses.schemas.business_schemas import BusinessResponse
 from app.clients.enums import ClientStatus
+from app.clients.schemas.impact import ClientCreationImpactResponse
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.core.api_types import ApiDateTime, ApiDecimal
-from app.businesses.schemas.business_schemas import BusinessResponse
-from app.clients.schemas.impact import ClientCreationImpactResponse
 
 TurnoverSource = Literal["reported", "manual", "none"]
 
 
 class AnnualTurnover(BaseModel):
-    amount: Optional[ApiDecimal] = None
+    amount: ApiDecimal | None = None
     source: TurnoverSource
     year: int
 
@@ -22,34 +22,34 @@ class ClientRecordResponse(BaseModel):
     id: int  # ClientRecord.id
     full_name: str  # LegalEntity.official_name / owner Person.full_name
     id_number: str  # LegalEntity.id_number
-    id_number_type: Optional[IdNumberType] = None  # LegalEntity.id_number_type
-    entity_type: Optional[EntityType] = None  # LegalEntity.entity_type
+    id_number_type: IdNumberType | None = None  # LegalEntity.id_number_type
+    entity_type: EntityType | None = None  # LegalEntity.entity_type
     status: ClientStatus = ClientStatus.ACTIVE  # ClientRecord.status
-    office_client_number: Optional[int] = None  # ClientRecord.office_client_number
-    accountant_id: Optional[int] = None  # ClientRecord.accountant_id
-    notes: Optional[str] = None  # ClientRecord.notes
+    office_client_number: int | None = None  # ClientRecord.office_client_number
+    accountant_id: int | None = None  # ClientRecord.accountant_id
+    notes: str | None = None  # ClientRecord.notes
     # ── Tax reporting (LegalEntity) ───────────────────────────────────────────
-    vat_reporting_frequency: Optional[VatType] = None
-    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None
-    vat_exempt_ceiling: Optional[ApiDecimal] = None
-    advance_rate: Optional[ApiDecimal] = None
-    advance_rate_updated_at: Optional[date] = None
-    annual_revenue: Optional[ApiDecimal] = None
+    vat_reporting_frequency: VatType | None = None
+    advance_payment_frequency: AdvancePaymentFrequency | None = None
+    vat_exempt_ceiling: ApiDecimal | None = None
+    advance_rate: ApiDecimal | None = None
+    advance_rate_updated_at: date | None = None
+    annual_revenue: ApiDecimal | None = None
     # ── Contact (Person via PersonLegalEntityLink OWNER) ──────────────────────
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    address_street: Optional[str] = None
-    address_building_number: Optional[str] = None
-    address_apartment: Optional[str] = None
-    address_city: Optional[str] = None
-    address_zip_code: Optional[str] = None
+    phone: str | None = None
+    email: str | None = None
+    address_street: str | None = None
+    address_building_number: str | None = None
+    address_apartment: str | None = None
+    address_city: str | None = None
+    address_zip_code: str | None = None
     # ── Metadata ──────────────────────────────────────────────────────────────
-    created_at: Optional[ApiDateTime] = None  # ClientRecord.created_at
-    updated_at: Optional[ApiDateTime] = None  # ClientRecord.updated_at
-    created_by: Optional[int] = None  # ClientRecord.created_by
+    created_at: ApiDateTime | None = None  # ClientRecord.created_at
+    updated_at: ApiDateTime | None = None  # ClientRecord.updated_at
+    created_by: int | None = None  # ClientRecord.created_by
     # ── Enriched (set by API layer) ───────────────────────────────────────────
-    active_binder_number: Optional[str] = None
-    annual_turnover: Optional[AnnualTurnover] = None
+    active_binder_number: str | None = None
+    annual_turnover: AnnualTurnover | None = None
 
     model_config = {"from_attributes": True}
 

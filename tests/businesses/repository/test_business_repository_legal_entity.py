@@ -74,16 +74,12 @@ def test_all_non_deleted_are_closed_for_legal_entity_true(test_db, repo, legal_e
     assert repo.all_non_deleted_are_closed_for_legal_entity(legal_entity.id) is True
 
 
-def test_all_non_deleted_are_closed_for_legal_entity_false_when_active(
-    test_db, repo, legal_entity
-):
+def test_all_non_deleted_are_closed_for_legal_entity_false_when_active(test_db, repo, legal_entity):
     _make_business(test_db, legal_entity.id, status=BusinessStatus.ACTIVE)
     assert repo.all_non_deleted_are_closed_for_legal_entity(legal_entity.id) is False
 
 
-def test_all_non_deleted_are_closed_for_legal_entity_false_when_empty(
-    repo, legal_entity
-):
+def test_all_non_deleted_are_closed_for_legal_entity_false_when_empty(repo, legal_entity):
     assert repo.all_non_deleted_are_closed_for_legal_entity(legal_entity.id) is False
 
 

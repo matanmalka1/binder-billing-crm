@@ -15,9 +15,7 @@ class TestFiling:
         assert data["submission_method"] == "online"
         assert data["is_overridden"] is False
 
-    def test_cannot_file_without_advisor_role(
-        self, client, secretary_headers, vat_client
-    ):
+    def test_cannot_file_without_advisor_role(self, client, secretary_headers, vat_client):
         response = client.post(
             "/api/v1/vat/work-items/1/file",
             headers=secretary_headers,
@@ -45,9 +43,7 @@ class TestFiling:
         )
         assert response.status_code == 400
 
-    def test_override_with_justification_works(
-        self, client, advisor_headers, vat_client
-    ):
+    def test_override_with_justification_works(self, client, advisor_headers, vat_client):
         item_id = setup_ready_item(client, advisor_headers, vat_client, "2025-02")
         response = client.post(
             f"/api/v1/vat/work-items/{item_id}/file",
@@ -63,9 +59,7 @@ class TestFiling:
         assert data["is_overridden"] is True
         assert data["final_vat_amount"] == "200.0"
 
-    def test_override_without_justification_400(
-        self, client, advisor_headers, vat_client
-    ):
+    def test_override_without_justification_400(self, client, advisor_headers, vat_client):
         item_id = setup_ready_item(client, advisor_headers, vat_client, "2025-03")
         response = client.post(
             f"/api/v1/vat/work-items/{item_id}/file",
@@ -77,12 +71,8 @@ class TestFiling:
     def test_filing_with_submission_reference_and_amendment_fields(
         self, client, advisor_headers, vat_client
     ):
-        amended_item_id = setup_ready_item(
-            client, advisor_headers, vat_client, "2025-04"
-        )
-        original_item_id = setup_ready_item(
-            client, advisor_headers, vat_client, "2025-01"
-        )
+        amended_item_id = setup_ready_item(client, advisor_headers, vat_client, "2025-04")
+        original_item_id = setup_ready_item(client, advisor_headers, vat_client, "2025-01")
         original_file_response = client.post(
             f"/api/v1/vat/work-items/{original_item_id}/file",
             headers=advisor_headers,
@@ -107,9 +97,7 @@ class TestFiling:
         assert data["is_amendment"] is True
         assert data["amends_item_id"] == original_item_id
 
-    def test_file_response_is_enriched(
-        self, client, advisor_headers, vat_client, test_user
-    ):
+    def test_file_response_is_enriched(self, client, advisor_headers, vat_client, test_user):
         item_id = setup_ready_item(client, advisor_headers, vat_client, "2026-08")
 
         response = client.post(

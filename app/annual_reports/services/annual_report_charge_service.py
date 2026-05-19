@@ -5,14 +5,14 @@ Charges are informational only — they do not block report submission.
 
 from sqlalchemy.orm import Session
 
-from app.charge.repositories.charge_annual_report_repository import (
-    ChargeAnnualReportRepository,
-)
 from app.annual_reports.repositories.report_repository import (
     AnnualReportReportRepository,
 )
-from app.core.exceptions import NotFoundError
 from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND
+from app.charge.repositories.charge_annual_report_repository import (
+    ChargeAnnualReportRepository,
+)
+from app.core.exceptions import NotFoundError
 
 
 class AnnualReportChargeService:
@@ -30,11 +30,7 @@ class AnnualReportChargeService:
             )
         return report
 
-    def list_charges(
-        self, report_id: int, page: int = 1, page_size: int = 20
-    ) -> tuple[list, int]:
+    def list_charges(self, report_id: int, page: int = 1, page_size: int = 20) -> tuple[list, int]:
         """Return paginated charges linked to this annual report."""
         self._get_report_or_raise(report_id)
-        return self.charge_repo.list_by_annual_report(
-            report_id, page=page, page_size=page_size
-        )
+        return self.charge_repo.list_by_annual_report(report_id, page=page, page_size=page_size)

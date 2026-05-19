@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -10,8 +10,8 @@ class TimelineEvent(BaseModel):
 
     event_type: str
     timestamp: ApiDateTime
-    binder_id: Optional[int] = None
-    charge_id: Optional[int] = None
+    binder_id: int | None = None
+    charge_id: int | None = None
     description: str
     metadata: dict[str, Any] = Field(default_factory=dict)
 

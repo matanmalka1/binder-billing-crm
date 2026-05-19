@@ -2,7 +2,6 @@
 
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import Field, field_validator
 
@@ -22,26 +21,20 @@ from app.vat_reports.schemas.vat_invoice_schema import (
 
 
 class VatInvoiceUpdateRequest(VatInvoiceValidatorMixin):
-    business_activity_id: Optional[int] = None
-    gross_amount: Optional[ApiDecimal] = None
-    invoice_number: Optional[str] = Field(
-        default=None, max_length=MAX_INVOICE_NUMBER_LENGTH
-    )
-    invoice_date: Optional[date] = None  # Date — לא DateTime
-    counterparty_name: Optional[str] = Field(
-        default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH
-    )
-    counterparty_id: Optional[str] = Field(
-        default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH
-    )
-    counterparty_id_type: Optional[CounterpartyIdType] = None
-    expense_category: Optional[ExpenseCategory] = None
-    rate_type: Optional[VatRateType] = None
-    document_type: Optional[DocumentType] = None
+    business_activity_id: int | None = None
+    gross_amount: ApiDecimal | None = None
+    invoice_number: str | None = Field(default=None, max_length=MAX_INVOICE_NUMBER_LENGTH)
+    invoice_date: date | None = None  # Date — לא DateTime
+    counterparty_name: str | None = Field(default=None, max_length=MAX_COUNTERPARTY_NAME_LENGTH)
+    counterparty_id: str | None = Field(default=None, max_length=MAX_COUNTERPARTY_ID_LENGTH)
+    counterparty_id_type: CounterpartyIdType | None = None
+    expense_category: ExpenseCategory | None = None
+    rate_type: VatRateType | None = None
+    document_type: DocumentType | None = None
 
     @field_validator("gross_amount")
     @classmethod
-    def gross_positive(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+    def gross_positive(cls, v: Decimal | None) -> Decimal | None:
         if v is not None and v <= 0:
             raise ValueError("הסכום הכולל חייב להיות חיובי")
         return v

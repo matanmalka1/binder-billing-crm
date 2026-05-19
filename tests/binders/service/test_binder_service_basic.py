@@ -33,9 +33,7 @@ def _create_binder(db, client_id: int, user_id: int, number: str, status: Binder
 
 def test_delete_binder_soft_deletes_and_returns_true(test_db, test_user):
     client = _create_client(test_db)
-    binder = _create_binder(
-        test_db, client.id, test_user.id, "BIN-002", BinderStatus.IN_OFFICE
-    )
+    binder = _create_binder(test_db, client.id, test_user.id, "BIN-002", BinderStatus.IN_OFFICE)
     service = BinderService(test_db)
 
     deleted = service.delete_binder(binder.id, actor_id=test_user.id)
@@ -52,15 +50,11 @@ def test_delete_binder_missing_returns_false(test_db):
 
 def test_mark_ready_bulk_marks_only_eligible_binders(test_db, test_user):
     client = _create_client(test_db)
-    eligible = _create_binder(
-        test_db, client.id, test_user.id, "BIN-005", BinderStatus.IN_OFFICE
-    )
+    eligible = _create_binder(test_db, client.id, test_user.id, "BIN-005", BinderStatus.IN_OFFICE)
     too_new = _create_binder(
         test_db, client.id, test_user.id, "BIN-006", BinderStatus.CLOSED_IN_OFFICE
     )
-    returned = _create_binder(
-        test_db, client.id, test_user.id, "BIN-007", BinderStatus.RETURNED
-    )
+    returned = _create_binder(test_db, client.id, test_user.id, "BIN-007", BinderStatus.RETURNED)
 
     for binder, month in ((eligible, 1), (too_new, 3)):
         intake = BinderIntake(

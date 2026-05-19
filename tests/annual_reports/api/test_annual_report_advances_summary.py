@@ -15,9 +15,7 @@ from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 def _create_report(db):
-    client = seed_client_identity(
-        db, full_name="Advances Client", id_number="878787878"
-    )
+    client = seed_client_identity(db, full_name="Advances Client", id_number="878787878")
 
     svc = AnnualReportService(db)
     return svc.create_report(
@@ -62,9 +60,7 @@ def test_advances_summary_reports_refund_when_advances_exceed_tax(
         paid_amount=Decimal("100.00"),
         annual_report_id=report.id,
     )
-    repo.update_payment(
-        payment, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("100.00")
-    )
+    repo.update_payment(payment, status=AdvancePaymentStatus.PAID, paid_amount=Decimal("100.00"))
 
     resp = client.get(
         f"/api/v1/annual-reports/{report.id}/advances-summary",
@@ -92,7 +88,5 @@ def test_advances_summary_zero_balance_without_paid_advances(
 
 
 def test_advances_summary_not_found(client, advisor_headers):
-    resp = client.get(
-        "/api/v1/annual-reports/999999/advances-summary", headers=advisor_headers
-    )
+    resp = client.get("/api/v1/annual-reports/999999/advances-summary", headers=advisor_headers)
     assert resp.status_code == 404

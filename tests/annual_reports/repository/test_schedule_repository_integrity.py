@@ -10,9 +10,7 @@ from tests.helpers.identity import seed_client_identity
 
 
 def _create_report(db):
-    crm_client = seed_client_identity(
-        db, full_name="AR Schedule Integrity", id_number="ARSCHED001"
-    )
+    crm_client = seed_client_identity(db, full_name="AR Schedule Integrity", id_number="ARSCHED001")
 
     return AnnualReportService(db).create_report(
         client_record_id=crm_client.id,

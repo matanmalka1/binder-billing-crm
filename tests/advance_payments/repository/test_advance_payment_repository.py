@@ -13,6 +13,9 @@ from app.advance_payments.repositories.advance_payment_repository import (
 )
 from app.businesses.models.business import Business
 from app.common.enums import VatType
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -20,12 +23,8 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories.vat_client_summary_repository import (
     VatClientSummaryRepository,
 )
-from app.tax_calendar.services.materialization_service import (
-    TaxCalendarMaterializationService,
-)
 from tests.helpers.identity import seed_client_identity
 from tests.helpers.tax_calendar_links import create_linked_advance_payment
-
 
 _seq = count(1)
 

@@ -1,12 +1,10 @@
+from app.common.enums import DeadlineRuleType, ObligationType
 from tests.tax_calendar.api.grouped_helpers import PATH, headers
 from tests.tax_calendar.service.linking_helpers import make_entry
-from app.common.enums import DeadlineRuleType, ObligationType
 
 
 def _make_vat(db, period: str, months: int, tax_year: int):
-    rule_type = (
-        DeadlineRuleType.VAT_MONTHLY if months == 1 else DeadlineRuleType.VAT_BIMONTHLY
-    )
+    rule_type = DeadlineRuleType.VAT_MONTHLY if months == 1 else DeadlineRuleType.VAT_BIMONTHLY
     return make_entry(
         db,
         obligation_type=ObligationType.VAT,
@@ -19,9 +17,7 @@ def _make_vat(db, period: str, months: int, tax_year: int):
 
 def _make_advance(db, period: str, months: int, tax_year: int):
     rule_type = (
-        DeadlineRuleType.ADVANCE_MONTHLY
-        if months == 1
-        else DeadlineRuleType.ADVANCE_BIMONTHLY
+        DeadlineRuleType.ADVANCE_MONTHLY if months == 1 else DeadlineRuleType.ADVANCE_BIMONTHLY
     )
     return make_entry(
         db,

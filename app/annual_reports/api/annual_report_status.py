@@ -1,10 +1,5 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.core.api_types import PaginatedResponse
-
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
-from app.core.exceptions import NotFoundError
 from app.annual_reports.schemas.annual_report_requests import (
     DeadlineUpdateRequest,
     StatusTransitionRequest,
@@ -16,7 +11,10 @@ from app.annual_reports.schemas.annual_report_responses import (
     StatusHistoryResponse,
 )
 from app.annual_reports.services.annual_report_service import AnnualReportService
-
+from app.core.api_types import PaginatedResponse
+from app.core.exceptions import NotFoundError
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/annual-reports",
@@ -50,9 +48,7 @@ def transition_status(
         changed_by_name=user.full_name,
         note=body.note,
         ita_reference=body.ita_reference,
-        assessment_amount=float(body.assessment_amount)
-        if body.assessment_amount
-        else None,
+        assessment_amount=float(body.assessment_amount) if body.assessment_amount else None,
         refund_due=float(body.refund_due) if body.refund_due else None,
         tax_due=float(body.tax_due) if body.tax_due else None,
     )
@@ -79,9 +75,7 @@ def submit_report(
         note=body.note,
         ita_reference=body.ita_reference,
         submitted_at=body.submitted_at,
-        submission_method=body.submission_method.value
-        if body.submission_method
-        else None,
+        submission_method=body.submission_method.value if body.submission_method else None,
     )
     detail = service.get_detail_report(report_id)
     if detail is None:
@@ -117,9 +111,7 @@ def update_deadline(
     return report
 
 
-@router.get(
-    "/{report_id}/history", response_model=PaginatedResponse[StatusHistoryResponse]
-)
+@router.get("/{report_id}/history", response_model=PaginatedResponse[StatusHistoryResponse])
 def get_status_history(
     report_id: int,
     db: DBSession,

@@ -10,7 +10,6 @@ from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from tests.helpers.identity import seed_client_with_business
 
-
 _client_seq = count(1)
 
 

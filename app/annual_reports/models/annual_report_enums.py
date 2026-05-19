@@ -19,7 +19,9 @@ class ClientAnnualFilingType(str, PyEnum):
     PUBLIC_INSTITUTION = "public_institution"  # מלכ"ר / מוסד ציבורי → form 1215
     PARTNERSHIP = "partnership"  # שותף בשותפות → usually form 1301 + 1504
     CONTROL_HOLDER = "control_holder"  # בעל שליטה → 1301 with company-like deadline
-    EXEMPT_DEALER = "exempt_dealer"  # עוסק פטור / זעיר שחייב בדוח מלא; 0135 נשאר מחוץ לזרימת הדוח הראשי
+    EXEMPT_DEALER = (
+        "exempt_dealer"  # עוסק פטור / זעיר שחייב בדוח מלא; 0135 נשאר מחוץ לזרימת הדוח הראשי
+    )
 
 
 class PrimaryAnnualReportForm(str, PyEnum):

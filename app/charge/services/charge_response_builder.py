@@ -12,14 +12,10 @@ class ChargeResponseBuilder:
     def build(
         self, charge: Charge, user_role: UserRole
     ) -> ChargeResponse | ChargeResponseSecretary:
-        schema = (
-            ChargeResponseSecretary
-            if user_role == UserRole.SECRETARY
-            else ChargeResponse
-        )
+        schema = ChargeResponseSecretary if user_role == UserRole.SECRETARY else ChargeResponse
         data = schema.model_validate(charge).model_dump()
-        client_name, business_name, office_client_number = (
-            self.query_service.enrich_charge_context(charge)
+        client_name, business_name, office_client_number = self.query_service.enrich_charge_context(
+            charge
         )
         data["client_name"] = client_name
         data["business_name"] = business_name

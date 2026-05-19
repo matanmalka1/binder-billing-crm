@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -57,7 +57,7 @@ def test_send_client_reminder_rejects_missing_report(monkeypatch):
 
 def test_send_client_reminder_enforces_cooldown(monkeypatch):
     report = SimpleNamespace(id=6, status=AnnualReportStatus.PENDING_CLIENT)
-    last = SimpleNamespace(created_at=datetime.now(timezone.utc) - timedelta(days=1))
+    last = SimpleNamespace(created_at=datetime.now(UTC) - timedelta(days=1))
     service, _ = _service(monkeypatch, report, last=last)
 
     with pytest.raises(AppError) as exc:

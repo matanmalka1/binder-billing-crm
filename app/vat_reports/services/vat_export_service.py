@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import os
 import tempfile
-from typing import Dict
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import NotFoundError
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.core.exceptions import NotFoundError
 from app.vat_reports.repositories.vat_client_summary_repository import (
     VatClientSummaryRepository,
 )
@@ -35,12 +34,8 @@ def _load(db: Session, client_record_id: int, year: int):
             "VAT.NOT_FOUND",
         )
     legal_entity = LegalEntityRepository(db).get_by_id(client_record.legal_entity_id)
-    display_name = (
-        legal_entity.official_name if legal_entity else f"לקוח #{client_record_id}"
-    )
-    all_periods = VatClientSummaryRepository(db).get_periods_for_client(
-        client_record_id
-    )
+    display_name = legal_entity.official_name if legal_entity else f"לקוח #{client_record_id}"
+    all_periods = VatClientSummaryRepository(db).get_periods_for_client(client_record_id)
     periods = [
         VatPeriodRow(
             work_item_id=r.id,
@@ -62,18 +57,14 @@ def _load(db: Session, client_record_id: int, year: int):
     return display_name, periods
 
 
-def export_to_excel(db: Session, client_record_id: int, year: int) -> Dict[str, object]:
+def export_to_excel(db: Session, client_record_id: int, year: int) -> dict[str, object]:
     display_name, periods = _load(db, client_record_id, year)
-    return export_vat_to_excel(
-        display_name, client_record_id, year, periods, _get_export_dir()
-    )
+    return export_vat_to_excel(display_name, client_record_id, year, periods, _get_export_dir())
 
 
-def export_to_pdf(db: Session, client_record_id: int, year: int) -> Dict[str, object]:
+def export_to_pdf(db: Session, client_record_id: int, year: int) -> dict[str, object]:
     display_name, periods = _load(db, client_record_id, year)
-    return export_vat_to_pdf(
-        display_name, client_record_id, year, periods, _get_export_dir()
-    )
+    return export_vat_to_pdf(display_name, client_record_id, year, periods, _get_export_dir())
 
 
 _MEDIA_TYPES = {
@@ -84,7 +75,7 @@ _MEDIA_TYPES = {
 
 def export(
     db: Session, client_record_id: int, year: int, fmt: str
-) -> tuple[Dict[str, object], str]:
+) -> tuple[dict[str, object], str]:
     """Dispatch export by format. Returns (result_dict, media_type)."""
     if fmt == "excel":
         result = export_to_excel(db, client_record_id, year)

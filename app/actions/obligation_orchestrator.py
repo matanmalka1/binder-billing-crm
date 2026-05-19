@@ -1,20 +1,19 @@
 import logging
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_enums import ClientAnnualFilingType
 from app.annual_reports.services.annual_report_service import AnnualReportService
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.common.enums import EntityType
-from app.core.exceptions import ConflictError, NotFoundError
 from app.clients.constants import (
     CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH,
     CLIENT_OBLIGATION_TRIGGER_FIELDS,
     ENTITY_TYPE_TO_REPORT_CLIENT_TYPE,
 )
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.common.enums import EntityType
+from app.core.exceptions import ConflictError, NotFoundError
 
 _log = logging.getLogger(__name__)
 
@@ -29,11 +28,9 @@ class ObligationResult:
         return self.reports_created
 
 
-def _years_to_generate(reference_date: Optional[date] = None) -> list[int]:
+def _years_to_generate(reference_date: date | None = None) -> list[int]:
     if not 2 <= CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH <= 12:
-        raise ValueError(
-            "CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH must be between 2 and 12"
-        )
+        raise ValueError("CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH must be between 2 and 12")
     today = reference_date or date.today()
     years = [today.year]
     if today.month >= CLIENT_OBLIGATION_NEXT_YEAR_START_MONTH:
@@ -41,7 +38,7 @@ def _years_to_generate(reference_date: Optional[date] = None) -> list[int]:
     return years
 
 
-def _derive_client_type(entity_type: Optional[EntityType]) -> ClientAnnualFilingType:
+def _derive_client_type(entity_type: EntityType | None) -> ClientAnnualFilingType:
     if entity_type is None or entity_type not in ENTITY_TYPE_TO_REPORT_CLIENT_TYPE:
         raise ValueError("סוג ישות לא נתמך ליצירת דוח שנתי")
     return ENTITY_TYPE_TO_REPORT_CLIENT_TYPE[entity_type]
@@ -50,10 +47,10 @@ def _derive_client_type(entity_type: Optional[EntityType]) -> ClientAnnualFiling
 def generate_client_obligations(
     db: Session,
     client_record_id: int,
-    actor_id: Optional[int] = None,
-    actor_name: Optional[str] = None,
-    entity_type: Optional[EntityType] = None,
-    reference_date: Optional[date] = None,
+    actor_id: int | None = None,
+    actor_name: str | None = None,
+    entity_type: EntityType | None = None,
+    reference_date: date | None = None,
     best_effort: bool = False,
 ) -> int:
     return generate_client_obligations_result(
@@ -70,10 +67,10 @@ def generate_client_obligations(
 def generate_client_obligations_result(
     db: Session,
     client_record_id: int,
-    actor_id: Optional[int] = None,
-    actor_name: Optional[str] = None,
-    entity_type: Optional[EntityType] = None,
-    reference_date: Optional[date] = None,
+    actor_id: int | None = None,
+    actor_name: str | None = None,
+    entity_type: EntityType | None = None,
+    reference_date: date | None = None,
     best_effort: bool = False,
 ) -> ObligationResult:
     """
@@ -123,9 +120,7 @@ def generate_client_obligations_result(
             sp.rollback()  # דוח קיים — מדלגים; חייבים לסיים את ה-savepoint
         except Exception:
             sp.rollback()  # ROLLBACK TO SAVEPOINT בלבד
-            _log.exception(
-                "שגיאה ביצירת דוח שנתי ללקוח %s שנה %s", client_record_id, year
-            )
+            _log.exception("שגיאה ביצירת דוח שנתי ללקוח %s שנה %s", client_record_id, year)
             if not best_effort:
                 raise
             result.errors.append(f"annual_report_creation_failed:{year}")

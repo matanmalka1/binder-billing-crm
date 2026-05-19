@@ -2,6 +2,13 @@
 
 from dataclasses import dataclass
 
+from tax_rules.statutory import (
+    DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE,
+)
+from tax_rules.statutory import (
+    DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS,
+)
+
 from app.annual_reports.integrations.tax_rules_registry import (
     get_credit_point_annual_value,
     get_default_resident_credit_points,
@@ -10,10 +17,6 @@ from app.annual_reports.integrations.tax_rules_registry import (
 )
 from app.annual_reports.services.messages import UNSUPPORTED_TAX_YEAR_ERROR
 from app.core.exceptions import AppError
-from tax_rules.statutory import (
-    DONATION_CREDIT_RATE as _DONATION_CREDIT_RATE,
-    DONATION_MINIMUM_ILS as _DONATION_MINIMUM_ILS,
-)
 
 try:
     _BASE_RESIDENT_CREDIT_POINTS: float = float(

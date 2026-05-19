@@ -36,9 +36,7 @@ def mark_ready_for_review(
             "VAT.INVALID_TRANSITION",
         )
 
-    updated = work_item_repo.update_status(
-        item_id, VatWorkItemStatus.READY_FOR_REVIEW, item=item
-    )
+    updated = work_item_repo.update_status(item_id, VatWorkItemStatus.READY_FOR_REVIEW, item=item)
 
     work_item_repo.append_audit(
         work_item_id=item_id,

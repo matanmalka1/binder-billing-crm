@@ -4,7 +4,6 @@ from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from tests.helpers.identity import seed_client_identity
 
-
 _client_seq = count(1)
 
 
@@ -15,9 +14,7 @@ def _client(db):
     )
 
 
-def _create_report(
-    service: AnnualReportService, client_id: int, tax_year: int, created_by: int
-):
+def _create_report(service: AnnualReportService, client_id: int, tax_year: int, created_by: int):
     return service.create_report(
         client_record_id=client_id,
         tax_year=tax_year,

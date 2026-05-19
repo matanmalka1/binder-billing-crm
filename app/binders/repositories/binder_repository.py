@@ -1,15 +1,14 @@
 import datetime as _dt
 from datetime import date
-from typing import Optional
 
 from sqlalchemy import asc, desc, extract, func, nullslast, or_, select
 from sqlalchemy.orm import Session
 
+from app.binders.models.binder import Binder, BinderStatus
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
-from app.binders.models.binder import Binder, BinderStatus
 from app.utils.time_utils import utcnow
 
 
@@ -23,9 +22,7 @@ class BinderRepository(BaseRepository[Binder]):
 
     @staticmethod
     def _order_by_period_start(query, descending: bool):
-        order_expr = (
-            Binder.period_start.desc() if descending else Binder.period_start.asc()
-        )
+        order_expr = Binder.period_start.desc() if descending else Binder.period_start.asc()
         return query.order_by(
             nullslast(order_expr), Binder.id.desc() if descending else Binder.id.asc()
         )
@@ -37,23 +34,19 @@ class BinderRepository(BaseRepository[Binder]):
         self,
         stmt,
         *,
-        client_record_id: Optional[int] = None,
-        status: Optional[str] = None,
+        client_record_id: int | None = None,
+        status: str | None = None,
         include_returned: bool = True,
-        query: Optional[str] = None,
-        client_name_filter: Optional[str] = None,
-        binder_number: Optional[str] = None,
-        year: Optional[int] = None,
+        query: str | None = None,
+        client_name_filter: str | None = None,
+        binder_number: str | None = None,
+        year: int | None = None,
         include_legal_entity: bool = False,
     ):
         needs_legal_entity = include_legal_entity or bool(query or client_name_filter)
-        stmt = scope_to_active_clients_stmt(stmt, Binder).where(
-            Binder.deleted_at.is_(None)
-        )
+        stmt = scope_to_active_clients_stmt(stmt, Binder).where(Binder.deleted_at.is_(None))
         if needs_legal_entity:
-            stmt = stmt.outerjoin(
-                LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id
-            )
+            stmt = stmt.outerjoin(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
 
         if client_record_id:
             stmt = stmt.where(Binder.client_record_id == client_record_id)
@@ -71,9 +64,7 @@ class BinderRepository(BaseRepository[Binder]):
                 )
             )
         if client_name_filter:
-            stmt = stmt.where(
-                LegalEntity.official_name.ilike(f"%{client_name_filter.strip()}%")
-            )
+            stmt = stmt.where(LegalEntity.official_name.ilike(f"%{client_name_filter.strip()}%"))
         if binder_number:
             stmt = stmt.where(Binder.binder_number.ilike(f"%{binder_number.strip()}%"))
         if year:
@@ -110,9 +101,9 @@ class BinderRepository(BaseRepository[Binder]):
         self,
         client_record_id: int,
         binder_number: str,
-        period_start: Optional[date],
+        period_start: date | None,
         created_by: int,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> Binder:
         """Create new binder."""
         binder = Binder(
@@ -127,7 +118,7 @@ class BinderRepository(BaseRepository[Binder]):
         self.db.flush()
         return binder
 
-    def get_active_by_number(self, binder_number: str) -> Optional[Binder]:
+    def get_active_by_number(self, binder_number: str) -> Binder | None:
         """Get active (non-returned) binder by number (excludes soft-deleted)."""
         return self.db.scalars(
             select(Binder).where(
@@ -139,9 +130,9 @@ class BinderRepository(BaseRepository[Binder]):
 
     def list_active(
         self,
-        client_record_id: Optional[int] = None,
-        status: Optional[str] = None,
-        binder_number: Optional[str] = None,
+        client_record_id: int | None = None,
+        status: str | None = None,
+        binder_number: str | None = None,
         sort_by: str = "period_start",
         sort_dir: str = "desc",
         page: int = 1,
@@ -188,13 +179,13 @@ class BinderRepository(BaseRepository[Binder]):
     def list_active_paginated(
         self,
         *,
-        client_record_id: Optional[int] = None,
-        status: Optional[str] = None,
+        client_record_id: int | None = None,
+        status: str | None = None,
         include_returned: bool = True,
-        query: Optional[str] = None,
-        client_name_filter: Optional[str] = None,
-        binder_number: Optional[str] = None,
-        year: Optional[int] = None,
+        query: str | None = None,
+        client_name_filter: str | None = None,
+        binder_number: str | None = None,
+        year: int | None = None,
         sort_by: str = "period_start",
         sort_dir: str = "desc",
         page: int = 1,
@@ -227,11 +218,11 @@ class BinderRepository(BaseRepository[Binder]):
     def count_by_status_filtered(
         self,
         *,
-        client_record_id: Optional[int] = None,
-        query: Optional[str] = None,
-        client_name_filter: Optional[str] = None,
-        binder_number: Optional[str] = None,
-        year: Optional[int] = None,
+        client_record_id: int | None = None,
+        query: str | None = None,
+        client_name_filter: str | None = None,
+        binder_number: str | None = None,
+        year: int | None = None,
     ) -> dict[str, int]:
         stmt = self._filtered_active_stmt(
             select(Binder.status, func.count(Binder.id)),
@@ -251,13 +242,11 @@ class BinderRepository(BaseRepository[Binder]):
 
     def count_active(
         self,
-        client_record_id: Optional[int] = None,
-        status: Optional[str] = None,
+        client_record_id: int | None = None,
+        status: str | None = None,
     ) -> int:
         """Count active binders with optional filters."""
-        stmt = scope_to_active_clients_stmt(
-            select(func.count(Binder.id)), Binder
-        ).where(
+        stmt = scope_to_active_clients_stmt(select(func.count(Binder.id)), Binder).where(
             Binder.status != BinderStatus.RETURNED,
             Binder.deleted_at.is_(None),
         )
@@ -286,9 +275,7 @@ class BinderRepository(BaseRepository[Binder]):
 
     def count_open_binders(self) -> int:
         """Count open binders (not soft-deleted)."""
-        stmt = scope_to_active_clients_stmt(
-            select(func.count(Binder.id)), Binder
-        ).where(
+        stmt = scope_to_active_clients_stmt(select(func.count(Binder.id)), Binder).where(
             Binder.status != BinderStatus.RETURNED,
             Binder.deleted_at.is_(None),
         )
@@ -298,18 +285,18 @@ class BinderRepository(BaseRepository[Binder]):
         self,
         binder_id: int,
         new_status: BinderStatus,
-        binder: Optional[Binder] = None,
+        binder: Binder | None = None,
         **additional_fields,
-    ) -> Optional[Binder]:
+    ) -> Binder | None:
         """Update binder status and optional fields."""
         binder = binder or self.get_by_id(binder_id)
         return self._update_status(binder, new_status, **additional_fields)
 
     def count_by_status(self, status: BinderStatus) -> int:
         """Count binders by status."""
-        stmt = scope_to_active_clients_stmt(
-            select(func.count(Binder.id)), Binder
-        ).where(Binder.status == status, Binder.deleted_at.is_(None))
+        stmt = scope_to_active_clients_stmt(select(func.count(Binder.id)), Binder).where(
+            Binder.status == status, Binder.deleted_at.is_(None)
+        )
         return self.db.scalar(stmt)
 
     def list_by_client_record(self, client_record_id: int) -> list[Binder]:
@@ -355,7 +342,7 @@ class BinderRepository(BaseRepository[Binder]):
             )
         )
 
-    def get_active_by_client_record(self, client_record_id: int) -> Optional[Binder]:
+    def get_active_by_client_record(self, client_record_id: int) -> Binder | None:
         """Return the single open (IN_OFFICE) non-deleted binder for a client_record."""
         stmt = self._active_client_stmt().where(
             Binder.client_record_id == client_record_id,
@@ -381,9 +368,7 @@ class BinderRepository(BaseRepository[Binder]):
 
     def count_by_client(self, client_record_id: int) -> int:
         """Count binders for a client (not soft-deleted)."""
-        stmt = scope_to_active_clients_stmt(
-            select(func.count(Binder.id)), Binder
-        ).where(
+        stmt = scope_to_active_clients_stmt(select(func.count(Binder.id)), Binder).where(
             Binder.client_record_id == client_record_id,
             Binder.deleted_at.is_(None),
         )
@@ -392,14 +377,10 @@ class BinderRepository(BaseRepository[Binder]):
     def count_all_by_client(self, client_record_id: int) -> int:
         """Count ALL binders for a client (including soft-deleted) for monotonic label seq."""
         return self.db.scalar(
-            select(func.count(Binder.id)).where(
-                Binder.client_record_id == client_record_id
-            )
+            select(func.count(Binder.id)).where(Binder.client_record_id == client_record_id)
         )
 
-    def map_active_by_clients(
-        self, client_record_ids: list[int]
-    ) -> dict[int, "Binder"]:
+    def map_active_by_clients(self, client_record_ids: list[int]) -> dict[int, "Binder"]:
         """Return {client_record_id: binder} for the open (IN_OFFICE) binder of each client."""
         if not client_record_ids:
             return {}
@@ -427,9 +408,7 @@ class BinderRepository(BaseRepository[Binder]):
             self.db.flush()
         return len(rows)
 
-    def list_overdue_pickup(
-        self, overdue_days: int = 30, limit: int = 50
-    ) -> list[Binder]:
+    def list_overdue_pickup(self, overdue_days: int = 30, limit: int = 50) -> list[Binder]:
         """Return READY_FOR_PICKUP binders where ready_for_pickup_at is older than overdue_days."""
         cutoff = utcnow() - _dt.timedelta(days=overdue_days)
         stmt = (

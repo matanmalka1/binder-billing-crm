@@ -72,12 +72,8 @@ class BaseRepository(Generic[ModelType]):
         stmt = select(self.model)
         return stmt if include_deleted else _apply_not_deleted(stmt, self.model)
 
-    def get(
-        self, entity_id: int, /, *, include_deleted: bool = False
-    ) -> ModelType | None:
-        stmt = self.select_base(include_deleted=include_deleted).where(
-            self.model.id == entity_id
-        )
+    def get(self, entity_id: int, /, *, include_deleted: bool = False) -> ModelType | None:
+        stmt = self.select_base(include_deleted=include_deleted).where(self.model.id == entity_id)
         return self.db.scalars(stmt).first()
 
     def get_by_id(self, entity_id: int, /) -> ModelType | None:
@@ -170,9 +166,7 @@ class BaseRepository(Generic[ModelType]):
         self.db.flush()
         return True
 
-    def _soft_delete_entity(
-        self, entity_id: int, /, deleted_by: int | None = None
-    ) -> bool:
+    def _soft_delete_entity(self, entity_id: int, /, deleted_by: int | None = None) -> bool:
         return BaseRepository.soft_delete(self, entity_id, deleted_by)
 
     def delete(

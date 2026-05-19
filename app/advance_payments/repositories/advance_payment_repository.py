@@ -2,15 +2,14 @@
 
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy import exists, func, select
 
-from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import (
     AdvancePayment,
     AdvancePaymentStatus,
 )
+from app.common.repositories.base_repository import BaseRepository
 
 
 class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
@@ -25,11 +24,11 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
         period_months_count: int,
         due_date: date,
         expected_amount=None,
-        paid_amount: Optional[Decimal] = None,
+        paid_amount: Decimal | None = None,
         payment_method=None,
-        annual_report_id: Optional[int] = None,
-        tax_calendar_entry_id: Optional[int] = None,
-        notes: Optional[str] = None,
+        annual_report_id: int | None = None,
+        tax_calendar_entry_id: int | None = None,
+        notes: str | None = None,
         advance_rate=None,
         turnover_amount=None,
         calculated_amount=None,
@@ -58,7 +57,7 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
 
     def get_by_id_for_client_record(
         self, payment_id: int, client_record_id: int
-    ) -> Optional[AdvancePayment]:
+    ) -> AdvancePayment | None:
         return self.db.scalars(
             select(AdvancePayment).where(
                 AdvancePayment.id == payment_id,
@@ -71,7 +70,7 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
         self,
         client_record_id: int,
         year: int,
-        status: Optional[list[AdvancePaymentStatus]] = None,
+        status: list[AdvancePaymentStatus] | None = None,
         page: int = 1,
         page_size: int = 50,
     ) -> tuple[list[AdvancePayment], int]:
@@ -83,11 +82,7 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
         if status:
             base_where.append(AdvancePayment.status.in_(status))
         total = self.db.scalar(select(func.count(AdvancePayment.id)).where(*base_where))
-        stmt = (
-            select(AdvancePayment)
-            .where(*base_where)
-            .order_by(AdvancePayment.period.asc())
-        )
+        stmt = select(AdvancePayment).where(*base_where).order_by(AdvancePayment.period.asc())
         stmt = self.apply_pagination(stmt, page, page_size)
         items = list(self.db.scalars(stmt).all())
         return items, total
@@ -105,9 +100,7 @@ class AdvancePaymentRepository(BaseRepository[AdvancePayment]):
             )
         )
 
-    def get_by_period(
-        self, client_record_id: int, period: str
-    ) -> Optional[AdvancePayment]:
+    def get_by_period(self, client_record_id: int, period: str) -> AdvancePayment | None:
         return self.db.scalars(
             select(AdvancePayment).where(
                 AdvancePayment.client_record_id == client_record_id,

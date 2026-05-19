@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
@@ -25,12 +24,12 @@ def list_audit_logs(
     user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    action: Optional[AuditAction] = None,
-    target_user_id: Optional[int] = None,
-    actor_user_id: Optional[int] = None,
-    email: Optional[str] = None,
-    from_ts: Optional[datetime] = Query(None, alias="from"),
-    to_ts: Optional[datetime] = Query(None, alias="to"),
+    action: AuditAction | None = None,
+    target_user_id: int | None = None,
+    actor_user_id: int | None = None,
+    email: str | None = None,
+    from_ts: datetime | None = Query(None, alias="from"),
+    to_ts: datetime | None = Query(None, alias="to"),
 ):
     service = AuditLogService(db)
     items, total = service.list_logs(

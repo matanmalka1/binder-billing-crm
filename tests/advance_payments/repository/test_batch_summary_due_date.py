@@ -6,13 +6,12 @@ from itertools import count
 from app.advance_payments.repositories.advance_payment_batch_repository import (
     AdvancePaymentBatchRepository,
 )
-from app.common.enums import AdvancePaymentFrequency, DeadlineRuleType, ObligationType
-from tests.helpers.identity import seed_business, seed_client_identity
 from app.advance_payments.repositories.advance_payment_repository import (
     AdvancePaymentRepository,
 )
+from app.common.enums import AdvancePaymentFrequency, DeadlineRuleType, ObligationType
+from tests.helpers.identity import seed_business, seed_client_identity
 from tests.tax_calendar.service.linking_helpers import make_entry
-
 
 _seq = count(1)
 

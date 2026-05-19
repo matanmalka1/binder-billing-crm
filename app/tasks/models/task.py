@@ -3,13 +3,13 @@ from __future__ import annotations
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
+    JSON,
     Column,
     Date,
     DateTime,
     ForeignKey,
     Index,
     Integer,
-    JSON,
     String,
     Text,
 )
@@ -41,9 +41,7 @@ class Task(Base):
     description = Column(Text, nullable=True)
     # pg_enum uses values_callable so DB stores lowercase values ("open", "done", ...)
     # matching the taskstatus / taskpriority PostgreSQL enum types created in migration 0004_tasks.
-    status = Column(
-        pg_enum(TaskStatus, name="taskstatus"), nullable=False, default=TaskStatus.OPEN
-    )
+    status = Column(pg_enum(TaskStatus, name="taskstatus"), nullable=False, default=TaskStatus.OPEN)
     priority = Column(
         pg_enum(TaskPriority, name="taskpriority"),
         nullable=False,
@@ -51,9 +49,7 @@ class Task(Base):
     )
     due_date = Column(Date, nullable=True)
     assigned_to_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    assigned_role = Column(
-        pg_enum(UserRole, name="userrole", create_type=False), nullable=True
-    )
+    assigned_role = Column(pg_enum(UserRole, name="userrole", create_type=False), nullable=True)
     source_domain = Column(String(100), nullable=True)
     source_id = Column(Integer, nullable=True)
     action_key = Column(String(100), nullable=True)

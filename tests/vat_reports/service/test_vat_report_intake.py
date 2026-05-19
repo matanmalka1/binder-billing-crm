@@ -6,7 +6,7 @@ from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services import intake
-from tests.helpers.identity import seed_client_identity, seed_business
+from tests.helpers.identity import seed_business, seed_client_identity
 from tests.vat_reports.service.test_vat_report_test_utils import make_item
 
 
@@ -118,9 +118,7 @@ class TestMarkMaterialsComplete:
             status=VatWorkItemStatus.MATERIAL_RECEIVED
         )
 
-        result = intake.mark_materials_complete(
-            work_item_repo, item_id=1, performed_by=1
-        )
+        result = intake.mark_materials_complete(work_item_repo, item_id=1, performed_by=1)
         assert result.status == VatWorkItemStatus.MATERIAL_RECEIVED
 
     def test_wrong_status_raises(self):

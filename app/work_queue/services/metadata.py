@@ -57,9 +57,7 @@ def _period_label(period: str, months_count: int) -> str:
 
 
 def vat_work_item_metadata(item, due_date: date) -> dict[str, Any]:
-    months_count = (
-        2 if _enum_value(getattr(item, "period_type", None)) == "bimonthly" else 1
-    )
+    months_count = 2 if _enum_value(getattr(item, "period_type", None)) == "bimonthly" else 1
     return {
         "period": item.period,
         "period_label": _period_label(item.period, months_count),

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal, InvalidOperation
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -55,7 +54,7 @@ def _href(item: WorkQueueItem) -> str:
     return "/"
 
 
-def _reason(item: WorkQueueItem) -> Optional[str]:
+def _reason(item: WorkQueueItem) -> str | None:
     st = item.source_type
     metadata = item.metadata or {}
     if st == WorkQueueSourceType.VAT_WORK_ITEM:
@@ -76,7 +75,7 @@ def _reason(item: WorkQueueItem) -> Optional[str]:
     return None
 
 
-def _format_ils(value: str) -> Optional[str]:
+def _format_ils(value: str) -> str | None:
     try:
         d = Decimal(str(value))
         formatted = f"{d:,.2f}".rstrip("0").rstrip(".")
@@ -85,7 +84,7 @@ def _format_ils(value: str) -> Optional[str]:
         return None
 
 
-def _amount(item: WorkQueueItem) -> Optional[str]:
+def _amount(item: WorkQueueItem) -> str | None:
     if item.source_type == WorkQueueSourceType.CHARGE:
         raw = (item.metadata or {}).get("amount")
         if raw:
@@ -123,8 +122,8 @@ class DashboardAttentionService:
 
     def build(
         self,
-        user_role: Optional[UserRole] = None,
-        reference_date: Optional[date] = None,
+        user_role: UserRole | None = None,
+        reference_date: date | None = None,
     ) -> list[dict]:
         if user_role != UserRole.ADVISOR:
             return []

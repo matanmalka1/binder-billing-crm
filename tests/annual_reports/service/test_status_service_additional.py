@@ -11,9 +11,7 @@ from tests.helpers.identity import seed_client_identity
 
 
 def _create_report(db):
-    crm_client = seed_client_identity(
-        db, full_name="AR Status Additional", id_number="ARSTAT001"
-    )
+    crm_client = seed_client_identity(db, full_name="AR Status Additional", id_number="ARSTAT001")
     business = Business(
         legal_entity_id=crm_client.legal_entity_id,
         business_name=crm_client.full_name,
@@ -59,8 +57,8 @@ def test_transition_submitted_requires_readiness(test_db, monkeypatch):
         def list_pending_by_annual_report(self, report_id):
             return []
 
-    import app.signature_requests.services.signature_request_service as sig_service_mod
     import app.signature_requests.repositories.signature_request_repository as sig_repo_mod
+    import app.signature_requests.services.signature_request_service as sig_service_mod
 
     monkeypatch.setattr(sig_service_mod, "SignatureRequestService", _SigSvc)
     monkeypatch.setattr(sig_repo_mod, "SignatureRequestRepository", _SigRepo)
@@ -112,8 +110,8 @@ def test_pending_client_transition_calls_signature_hooks(test_db, monkeypatch):
         def list_pending_by_annual_report(self, report_id):
             return [SimpleNamespace(id=10)]
 
-    import app.signature_requests.services.signature_request_service as sig_service_mod
     import app.signature_requests.repositories.signature_request_repository as sig_repo_mod
+    import app.signature_requests.services.signature_request_service as sig_service_mod
 
     monkeypatch.setattr(sig_service_mod, "SignatureRequestService", _SigSvc)
     monkeypatch.setattr(sig_repo_mod, "SignatureRequestRepository", _SigRepo)
@@ -156,9 +154,9 @@ def test_transition_from_pending_client_cancels_requests(test_db, monkeypatch):
         def list_pending_by_annual_report(self, report_id):
             return [SimpleNamespace(id=9)]
 
-    import app.signature_requests.services.signature_request_service as sig_service_mod
-    import app.signature_requests.repositories.signature_request_repository as sig_repo_mod
     import app.annual_reports.services.financial_service as fin_mod
+    import app.signature_requests.repositories.signature_request_repository as sig_repo_mod
+    import app.signature_requests.services.signature_request_service as sig_service_mod
 
     monkeypatch.setattr(sig_service_mod, "SignatureRequestService", _SigSvc)
     monkeypatch.setattr(sig_repo_mod, "SignatureRequestRepository", _SigRepo)

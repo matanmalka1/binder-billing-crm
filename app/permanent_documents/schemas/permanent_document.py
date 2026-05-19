@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -13,27 +12,27 @@ from app.permanent_documents.models.permanent_document import (
 class PermanentDocumentResponse(BaseModel):
     id: int
     client_record_id: int
-    client_name: Optional[str] = None
-    business_id: Optional[int] = None  # nullable — CLIENT scope
+    client_name: str | None = None
+    business_id: int | None = None  # nullable — CLIENT scope
     scope: DocumentScope
     document_type: DocumentType
     storage_key: str
-    original_filename: Optional[str] = None
-    file_size_bytes: Optional[int] = None
-    mime_type: Optional[str] = None
-    tax_year: Optional[int] = None
+    original_filename: str | None = None
+    file_size_bytes: int | None = None
+    mime_type: str | None = None
+    tax_year: int | None = None
     is_present: bool
     is_deleted: bool
     status: DocumentStatus
     version: int
-    superseded_by: Optional[int] = None
-    annual_report_id: Optional[int] = None
+    superseded_by: int | None = None
+    annual_report_id: int | None = None
     uploaded_by: int
     uploaded_at: ApiDateTime
-    approved_by: Optional[int] = None
-    approved_at: Optional[ApiDateTime] = None
-    rejected_by: Optional[int] = None
-    rejected_at: Optional[ApiDateTime] = None
+    approved_by: int | None = None
+    approved_at: ApiDateTime | None = None
+    rejected_by: int | None = None
+    rejected_at: ApiDateTime | None = None
 
     model_config = {"from_attributes": True}
 

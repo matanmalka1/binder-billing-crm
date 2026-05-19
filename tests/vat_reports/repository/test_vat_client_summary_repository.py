@@ -2,9 +2,9 @@ from datetime import date
 from itertools import count
 
 from app.businesses.models.business import Business
-from app.common.enums import IdNumberType, VatType
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType, VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -13,7 +13,6 @@ from app.vat_reports.repositories.vat_client_summary_repository import (
 )
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from tests.helpers.tax_calendar_links import create_linked_vat_work_item
-
 
 _seq = count(1)
 

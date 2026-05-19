@@ -1,11 +1,10 @@
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AppError
 from app.charge.schemas.charge import BulkChargeFailedItem
 from app.charge.services.billing_service import BillingService
 from app.charge.services.messages import BULK_ACTION_INTERNAL_ERROR
+from app.core.exceptions import AppError
 
 
 class BulkBillingService:
@@ -18,8 +17,8 @@ class BulkBillingService:
         self,
         charge_ids: list[int],
         action: str,
-        actor_id: Optional[int] = None,
-        cancellation_reason: Optional[str] = None,
+        actor_id: int | None = None,
+        cancellation_reason: str | None = None,
     ) -> tuple[list[int], list[BulkChargeFailedItem]]:
         """
         Apply action to multiple charges.
@@ -45,8 +44,6 @@ class BulkBillingService:
             except AppError as exc:
                 failed.append(BulkChargeFailedItem(id=charge_id, error=exc.message))
             except Exception:
-                failed.append(
-                    BulkChargeFailedItem(id=charge_id, error=BULK_ACTION_INTERNAL_ERROR)
-                )
+                failed.append(BulkChargeFailedItem(id=charge_id, error=BULK_ACTION_INTERNAL_ERROR))
 
         return succeeded, failed

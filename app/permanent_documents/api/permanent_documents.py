@@ -1,9 +1,7 @@
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.permanent_documents.schemas.permanent_document import (
     DocumentDownloadUrlResponse,
     OperationalSignalsResponse,
@@ -16,6 +14,8 @@ from app.permanent_documents.services.permanent_document_service import (
 from app.permanent_documents.services.response_builder import (
     PermanentDocumentResponseBuilder,
 )
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/documents",
@@ -35,9 +35,9 @@ def upload_permanent_document(
     file: Annotated[UploadFile, File(...)],
     db: DBSession,
     user: CurrentUser,
-    business_id: Annotated[Optional[int], Form()] = None,
-    tax_year: Annotated[Optional[int], Form()] = None,
-    annual_report_id: Annotated[Optional[int], Form()] = None,
+    business_id: Annotated[int | None, Form()] = None,
+    tax_year: Annotated[int | None, Form()] = None,
+    annual_report_id: Annotated[int | None, Form()] = None,
 ):
     """Upload permanent document (ADVISOR and SECRETARY)."""
     service = PermanentDocumentService(db)
@@ -64,7 +64,7 @@ def list_client_documents(
     client_record_id: int,
     db: DBSession,
     user: CurrentUser,
-    tax_year: Optional[int] = Query(default=None),
+    tax_year: int | None = Query(default=None),
 ):
     """List permanent documents for a client."""
     service = PermanentDocumentService(db)
@@ -86,9 +86,7 @@ def get_operational_signals(
     user: CurrentUser,
 ):
     """Get operational signals for a client (advisory indicators)."""
-    signals = PermanentDocumentService(db).get_client_operational_signals(
-        client_record_id
-    )
+    signals = PermanentDocumentService(db).get_client_operational_signals(client_record_id)
     return OperationalSignalsResponse(**signals)
 
 

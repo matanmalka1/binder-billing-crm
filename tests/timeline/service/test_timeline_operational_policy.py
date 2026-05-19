@@ -27,9 +27,7 @@ from tests.helpers.tax_calendar_links import create_tax_calendar_entry_for_annua
 
 
 def _business(test_db):
-    client = seed_client_identity(
-        test_db, full_name="Timeline Policy", id_number="TP100"
-    )
+    client = seed_client_identity(test_db, full_name="Timeline Policy", id_number="TP100")
     business = seed_business(
         test_db,
         legal_entity_id=client.legal_entity_id,
@@ -63,9 +61,7 @@ def test_timeline_excludes_scheduler_reminder_with_source_reference(test_db):
 
     assert "client_created" in _event_types(events)
     assert "reminder_created" not in _event_types(events)
-    assert all(
-        event.get("metadata", {}).get("source_domain") is None for event in events
-    )
+    assert all(event.get("metadata", {}).get("source_domain") is None for event in events)
 
 
 def test_timeline_excludes_noisy_notification_events(test_db):

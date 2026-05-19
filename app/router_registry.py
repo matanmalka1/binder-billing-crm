@@ -1,10 +1,9 @@
 from fastapi import FastAPI
 
 import app.model_registry  # noqa: F401 — ensures all ORM models are loaded before mappers configure  # pylint: disable=unused-import
-
 from app.advance_payments.api.routers import router as advance_payments_router
-from app.audit.api.routes import router as audit_router
 from app.annual_reports.api.routers import router as annual_reports_router
+from app.audit.api.routes import router as audit_router
 from app.authority_contact.api.routers import router as authority_contact_router
 from app.binders.api.routers import router as binders_router
 from app.businesses.api.routers import router as businesses_router
@@ -13,18 +12,18 @@ from app.clients.api.routers import router as clients_router
 from app.correspondence.api.routers import router as correspondence_router
 from app.dashboard.api.routers import router as dashboard_router
 from app.health.api.routers import router as health_router
+from app.notes.api.routers import router as notes_router
 from app.notification.api.routers import router as notification_router
 from app.permanent_documents.api.routers import router as permanent_documents_router
+from app.reminders.api import routers as reminders
 from app.reports.api.routers import router as reports_router
 from app.search.api.routers import router as search_router
 from app.signature_requests.api import routers as signature_requests_routers
-from app.reminders.api import routers as reminders
+from app.tasks.api.routes import router as tasks_router
 from app.tax_calendar.api.routers import router as tax_calendar_router
 from app.timeline.api.routers import router as timeline_router
 from app.users.api.routers import router as users_router
-from app.notes.api.routers import router as notes_router
 from app.vat_reports.api.routers import router as vat_reports_router
-from app.tasks.api.routes import router as tasks_router
 from app.work_queue.api.routes import router as work_queue_router
 
 

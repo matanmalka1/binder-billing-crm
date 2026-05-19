@@ -1,6 +1,5 @@
 """Repository operations for annual report schedules."""
 
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,7 +21,7 @@ class AnnualReportScheduleRepository(BaseRepository[AnnualReportScheduleEntry]):
         annual_report_id: int,
         schedule: AnnualReportSchedule,
         is_required: bool = True,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> AnnualReportScheduleEntry:
         entry = AnnualReportScheduleEntry(
             annual_report_id=annual_report_id,
@@ -43,7 +42,7 @@ class AnnualReportScheduleRepository(BaseRepository[AnnualReportScheduleEntry]):
 
     def mark_schedule_complete(
         self, annual_report_id: int, schedule: AnnualReportSchedule
-    ) -> Optional[AnnualReportScheduleEntry]:
+    ) -> AnnualReportScheduleEntry | None:
         entry = self.db.scalars(
             select(AnnualReportScheduleEntry).where(
                 AnnualReportScheduleEntry.annual_report_id == annual_report_id,

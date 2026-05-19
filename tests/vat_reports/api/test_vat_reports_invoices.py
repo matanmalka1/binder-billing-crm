@@ -65,9 +65,7 @@ class TestInvoices:
             headers=advisor_headers,
             json=income_payload("INV-002"),
         )
-        r = client.get(
-            f"/api/v1/vat/work-items/{item_id}/invoices", headers=advisor_headers
-        )
+        r = client.get(f"/api/v1/vat/work-items/{item_id}/invoices", headers=advisor_headers)
         assert r.status_code == 200
         assert len(r.json()["items"]) == 2
 

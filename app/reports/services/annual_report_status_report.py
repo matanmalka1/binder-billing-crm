@@ -28,9 +28,7 @@ class AnnualReportStatusReportService:
                     if hasattr(report.filing_deadline, "date")
                     else report.filing_deadline
                 )
-            days_until = (
-                (filing_deadline_date - today).days if filing_deadline_date else None
-            )
+            days_until = (filing_deadline_date - today).days if filing_deadline_date else None
 
             grouped[report.status.value].append(
                 {

@@ -1,11 +1,10 @@
 """Period options logic for VAT work item creation UI."""
 
 from datetime import date
-from typing import Optional
 
-from app.common.enums import VatType
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.common.enums import VatType
 from app.core.exceptions import AppError, NotFoundError
 from app.vat_reports.repositories.vat_work_item_write_repository import (
     VatWorkItemWriteRepository as VatWorkItemRepository,
@@ -25,8 +24,8 @@ def get_period_options(
     db,
     *,
     client_record_id: int,
-    year: Optional[int] = None,
-    period_type_override: Optional[VatType] = None,
+    year: int | None = None,
+    period_type_override: VatType | None = None,
 ):
     """Return period options for UI selection based on client VAT frequency."""
     client_record = ClientRecordRepository(db).get_by_id(client_record_id)

@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -27,10 +26,10 @@ class NotificationRepository(BaseRepository[Notification]):
         channel: NotificationChannel,
         recipient: str,
         content_snapshot: str,
-        business_id: Optional[int] = None,
-        binder_id: Optional[int] = None,
-        annual_report_id: Optional[int] = None,
-        triggered_by: Optional[int] = None,
+        business_id: int | None = None,
+        binder_id: int | None = None,
+        annual_report_id: int | None = None,
+        triggered_by: int | None = None,
         severity: NotificationSeverity = NotificationSeverity.INFO,
     ) -> Notification:
         notification = Notification(
@@ -50,7 +49,7 @@ class NotificationRepository(BaseRepository[Notification]):
         self.db.flush()
         return notification
 
-    def mark_sent(self, notification_id: int) -> Optional[Notification]:
+    def mark_sent(self, notification_id: int) -> Notification | None:
         notification = self.get_by_id(notification_id)
         if not notification:
             return None
@@ -59,9 +58,7 @@ class NotificationRepository(BaseRepository[Notification]):
         self.db.flush()
         return notification
 
-    def mark_failed(
-        self, notification_id: int, error_message: str
-    ) -> Optional[Notification]:
+    def mark_failed(self, notification_id: int, error_message: str) -> Notification | None:
         notification = self.get_by_id(notification_id)
         if not notification:
             return None
@@ -71,7 +68,7 @@ class NotificationRepository(BaseRepository[Notification]):
         self.db.flush()
         return notification
 
-    def get_by_id(self, notification_id: int) -> Optional[Notification]:
+    def get_by_id(self, notification_id: int) -> Notification | None:
         return self.db.scalars(
             select(Notification).where(Notification.id == notification_id)
         ).first()
@@ -82,22 +79,18 @@ class NotificationRepository(BaseRepository[Notification]):
         self,
         page: int = 1,
         page_size: int = 20,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-        status: Optional[NotificationStatus] = None,
-        trigger: Optional[NotificationTrigger] = None,
-        channel: Optional[NotificationChannel] = None,
+        client_record_id: int | None = None,
+        business_id: int | None = None,
+        status: NotificationStatus | None = None,
+        trigger: NotificationTrigger | None = None,
+        channel: NotificationChannel | None = None,
     ) -> tuple[list[Notification], int]:
         """Return paginated notifications and total count."""
         count_stmt = select(func.count(Notification.id))
         list_stmt = select(Notification)
         if client_record_id is not None:
-            count_stmt = count_stmt.where(
-                Notification.client_record_id == client_record_id
-            )
-            list_stmt = list_stmt.where(
-                Notification.client_record_id == client_record_id
-            )
+            count_stmt = count_stmt.where(Notification.client_record_id == client_record_id)
+            list_stmt = list_stmt.where(Notification.client_record_id == client_record_id)
         if business_id is not None:
             count_stmt = count_stmt.where(Notification.business_id == business_id)
             list_stmt = list_stmt.where(Notification.business_id == business_id)
@@ -120,8 +113,8 @@ class NotificationRepository(BaseRepository[Notification]):
 
     def count_by_status(
         self,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
+        client_record_id: int | None = None,
+        business_id: int | None = None,
     ) -> dict[str, int]:
         """Returns {pending, sent, failed, total} — absent statuses always 0."""
         stmt = select(Notification.status, func.count(Notification.id)).group_by(
@@ -135,18 +128,14 @@ class NotificationRepository(BaseRepository[Notification]):
         result: dict[str, int] = {s.value: 0 for s in NotificationStatus}
         result["total"] = 0
         for status_val, count in rows:
-            key = (
-                status_val.value
-                if isinstance(status_val, NotificationStatus)
-                else status_val
-            )
+            key = status_val.value if isinstance(status_val, NotificationStatus) else status_val
             result[key] = count
             result["total"] += count
         return result
 
     def get_last_for_binder_trigger(
         self, binder_id: int, trigger: NotificationTrigger
-    ) -> Optional[Notification]:
+    ) -> Notification | None:
         return self.db.scalars(
             select(Notification)
             .where(Notification.binder_id == binder_id, Notification.trigger == trigger)
@@ -155,7 +144,7 @@ class NotificationRepository(BaseRepository[Notification]):
 
     def get_last_for_annual_report_trigger(
         self, annual_report_id: int, trigger: NotificationTrigger
-    ) -> Optional[Notification]:
+    ) -> Notification | None:
         return self.db.scalars(
             select(Notification)
             .where(

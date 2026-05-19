@@ -10,11 +10,11 @@ class AnnualReportSignatureHelper(AnnualReportBaseService):
     def _cancel_pending_signature_requests(
         self, report_id: int, actor_id: int, actor_name: str, reason: str
     ) -> None:
-        from app.signature_requests.services.signature_request_service import (
-            SignatureRequestService,
-        )
         from app.signature_requests.repositories.signature_request_repository import (
             SignatureRequestRepository,
+        )
+        from app.signature_requests.services.signature_request_service import (
+            SignatureRequestService,
         )
 
         sig_repo = SignatureRequestRepository(self.db)
@@ -30,15 +30,13 @@ class AnnualReportSignatureHelper(AnnualReportBaseService):
                 reason=reason,
             )
 
-    def _trigger_signature_request(
-        self, report, created_by: int, created_by_name: str
-    ) -> None:
-        from app.signature_requests.services.signature_request_service import (
-            SignatureRequestService,
-        )
-        from app.signature_requests.models.signature_request import SignatureRequestType
+    def _trigger_signature_request(self, report, created_by: int, created_by_name: str) -> None:
         from app.clients.repositories.client_record_repository import (
             ClientRecordRepository,
+        )
+        from app.signature_requests.models.signature_request import SignatureRequestType
+        from app.signature_requests.services.signature_request_service import (
+            SignatureRequestService,
         )
 
         record = ClientRecordRepository(self.db).get_by_id(report.client_record_id)

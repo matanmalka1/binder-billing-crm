@@ -36,9 +36,7 @@ def _contact(db, client_id: int, name: str) -> AuthorityContact:
     return contact
 
 
-def test_update_entry_forbidden_when_contact_belongs_to_other_client(
-    test_db, test_user
-):
+def test_update_entry_forbidden_when_contact_belongs_to_other_client(test_db, test_user):
     b1 = _business(test_db, "700000001")
     b2 = _business(test_db, "700000002")
     foreign_contact = _contact(test_db, b2.client_id, "Foreign Contact")

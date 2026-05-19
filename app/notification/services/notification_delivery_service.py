@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from typing import Optional
-
-from app.core.logging_config import get_logger
 from app.clients.models.person import Person
+from app.core.logging_config import get_logger
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
 from app.notification.models.notification import (
     NotificationChannel,
@@ -35,21 +33,17 @@ class NotificationDeliveryService:
         subject: str,
         preferred_channel: NotificationChannel,
         severity: NotificationSeverity,
-        business_id: Optional[int],
-        binder_id: Optional[int],
-        annual_report_id: Optional[int],
-        triggered_by: Optional[int],
+        business_id: int | None,
+        binder_id: int | None,
+        annual_report_id: int | None,
+        triggered_by: int | None,
         log_ctx: str,
     ) -> bool:
         """WhatsApp → email fallback. Persists attempt records."""
         phone = person.phone
         email_addr = person.email
 
-        if (
-            preferred_channel == NotificationChannel.WHATSAPP
-            and self.whatsapp.enabled
-            and phone
-        ):
+        if preferred_channel == NotificationChannel.WHATSAPP and self.whatsapp.enabled and phone:
             n = self.repo.create(
                 client_record_id=client_record_id,
                 business_id=business_id,

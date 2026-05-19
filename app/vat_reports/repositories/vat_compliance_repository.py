@@ -77,8 +77,7 @@ class VatComplianceRepository(BaseRepository[VatWorkItem]):
                     ]
                 ),
                 VatWorkItem.deleted_at.is_(None),
-                func.substr(VatWorkItem.period, 1, 7)
-                < reference_date.strftime("%Y-%m"),
+                func.substr(VatWorkItem.period, 1, 7) < reference_date.strftime("%Y-%m"),
             )
             .order_by(VatWorkItem.period.asc())
         )

@@ -1,20 +1,21 @@
 import tempfile
+from collections.abc import Iterable
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
 from app.clients.constants import (
     CLIENT_EXCEL_FREEZE_PANES,
     CLIENT_EXCEL_SHEET_TITLE,
+    CLIENT_EXPORT_COLUMNS,
     CLIENT_IMPORT_DEFAULT_ADVANCE_PAYMENT_FREQUENCY,
     CLIENT_IMPORT_DEFAULT_ENTITY_TYPE,
     CLIENT_IMPORT_DEFAULT_VAT_REPORTING_FREQUENCY,
-    CLIENT_EXPORT_COLUMNS,
-    MAX_CLIENT_IMPORT_UPLOAD_SIZE,
     CLIENT_TEMPLATE_COLUMNS,
     CLIENT_TEMPLATE_SAMPLE_ROW,
+    MAX_CLIENT_IMPORT_UPLOAD_SIZE,
 )
 from app.clients.create_policy import derive_id_number_type
 from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
@@ -50,9 +51,7 @@ class ClientExcelService:
                 )
 
         adjust_column_widths(ws)
-        return save_workbook_to_temp(
-            wb, prefix="clients_export", export_dir=self.export_dir
-        )
+        return save_workbook_to_temp(wb, prefix="clients_export", export_dir=self.export_dir)
 
     def generate_template(self) -> dict:
         """Create a client import template that includes helper headers."""
@@ -61,18 +60,14 @@ class ClientExcelService:
             ws.cell(row=2, column=col_index, value=value)
 
         adjust_column_widths(ws)
-        return save_workbook_to_temp(
-            wb, prefix="clients_template", export_dir=self.export_dir
-        )
+        return save_workbook_to_temp(wb, prefix="clients_template", export_dir=self.export_dir)
 
     def _create_workbook_with_columns(self, columns: list[tuple[str, str]]):
         try:
             from openpyxl import Workbook
             from openpyxl.styles import Alignment, Font
         except ImportError as exc:
-            raise ImportError(
-                "הספרייה openpyxl נדרשת לצורך ייצוא לקוחות לאקסל"
-            ) from exc
+            raise ImportError("הספרייה openpyxl נדרשת לצורך ייצוא לקוחות לאקסל") from exc
 
         wb = Workbook()
         ws = wb.active
@@ -98,9 +93,7 @@ class ClientExcelService:
         created = 0
         errors: list[dict] = []
 
-        for row_index, row in enumerate(
-            worksheet.iter_rows(min_row=2, values_only=True), start=2
-        ):
+        for row_index, row in enumerate(worksheet.iter_rows(min_row=2, values_only=True), start=2):
             if not any(cell is not None and str(cell).strip() for cell in row):
                 continue
 

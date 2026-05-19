@@ -34,9 +34,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import CheckConstraint
-from app.utils.enum_utils import pg_enum
 
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
 
@@ -79,12 +79,8 @@ class PermanentDocument(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
 
     # ── Ownership ─────────────────────────────────────────────────────────────
-    client_record_id = Column(
-        Integer, ForeignKey("client_records.id"), nullable=False, index=True
-    )
-    business_id = Column(
-        Integer, ForeignKey("businesses.id"), nullable=True, index=True
-    )
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
+    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
     scope = Column(pg_enum(DocumentScope), nullable=False)
 
     # ── Document identity ─────────────────────────────────────────────────────
@@ -98,9 +94,7 @@ class PermanentDocument(Base):
     # ── Status ────────────────────────────────────────────────────────────────
     is_present = Column(Boolean, default=True, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    status = Column(
-        pg_enum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False
-    )
+    status = Column(pg_enum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False)
 
     # ── Versioning ────────────────────────────────────────────────────────────
     version = Column(Integer, default=1, nullable=False, server_default="1")

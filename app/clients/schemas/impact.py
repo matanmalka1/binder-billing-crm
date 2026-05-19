@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -13,5 +12,5 @@ class CreationImpactItem(BaseModel):
 class ClientCreationImpactResponse(BaseModel):
     items: list[CreationImpactItem]
     years_scope: int
-    note: Optional[str] = None
-    vat_exempt_ceiling: Optional[ApiDecimal] = None
+    note: str | None = None
+    vat_exempt_ceiling: ApiDecimal | None = None

@@ -11,9 +11,7 @@ class TestCreateWorkItem:
     def test_duplicate_period_400(self, client, advisor_headers, vat_client):
         payload = {"client_record_id": vat_client.id, "period": "2026-02"}
         client.post("/api/v1/vat/work-items", headers=advisor_headers, json=payload)
-        response = client.post(
-            "/api/v1/vat/work-items", headers=advisor_headers, json=payload
-        )
+        response = client.post("/api/v1/vat/work-items", headers=advisor_headers, json=payload)
         assert response.status_code == 409
         assert response.json()["error"] == "VAT.CONFLICT"
 
@@ -25,9 +23,7 @@ class TestCreateWorkItem:
         )
         assert response.status_code == 422
 
-    def test_pending_materials_requires_note_400(
-        self, client, advisor_headers, vat_client
-    ):
+    def test_pending_materials_requires_note_400(self, client, advisor_headers, vat_client):
         response = client.post(
             "/api/v1/vat/work-items",
             headers=advisor_headers,
@@ -77,6 +73,4 @@ class TestCreateWorkItem:
         assert body["client_record_id"] == vat_client.id
         assert body["assigned_to_name"] == "VAT Assignee"
         assert body["submission_deadline"] == "2026-06-15"
-        assert [action["key"] for action in body["available_actions"]] == [
-            "add_invoice"
-        ]
+        assert [action["key"] for action in body["available_actions"]] == ["add_invoice"]

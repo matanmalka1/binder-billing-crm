@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.common.services.base_service import BaseService
+from app.common.source_types import normalize_source_domain
 from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.tasks.models.task import Task, TaskPriority, TaskStatus
 from app.tasks.repositories.task_repository import TaskRepository
 from app.tasks.schemas.task import TaskCreateRequest, TaskUpdateRequest
-from app.utils.time_utils import utcnow
-from app.common.source_types import normalize_source_domain
 from app.tasks.services.source_validator import source_exists
+from app.utils.time_utils import utcnow
 
 _TERMINAL = {TaskStatus.DONE, TaskStatus.CANCELED}
 
@@ -25,9 +25,7 @@ class TaskService(BaseService):
         super().__init__(db)
         self.repo = TaskRepository(db)
 
-    def create(
-        self, data: TaskCreateRequest, created_by_user_id: Optional[int]
-    ) -> Task:
+    def create(self, data: TaskCreateRequest, created_by_user_id: int | None) -> Task:
         self._validate_source(data.source_domain, data.source_id)
         with self.transaction():
             return self.repo.create(
@@ -46,12 +44,12 @@ class TaskService(BaseService):
 
     def list(
         self,
-        status: Optional[TaskStatus] = None,
-        priority: Optional[TaskPriority] = None,
-        assigned_to_user_id: Optional[int] = None,
-        assigned_role: Optional[str] = None,
-        source_domain: Optional[str] = None,
-        source_id: Optional[int] = None,
+        status: TaskStatus | None = None,
+        priority: TaskPriority | None = None,
+        assigned_to_user_id: int | None = None,
+        assigned_role: str | None = None,
+        source_domain: str | None = None,
+        source_id: int | None = None,
         due_before=None,
         due_after=None,
         page: int = 1,
@@ -106,7 +104,7 @@ class TaskService(BaseService):
         updates["source_id"] = new_id
         return updates
 
-    def complete(self, task_id: int, completed_by_user_id: Optional[int]) -> Task:
+    def complete(self, task_id: int, completed_by_user_id: int | None) -> Task:
         task = self.get(task_id)
         if task.status == TaskStatus.CANCELED:
             raise ConflictError("לא ניתן להשלים משימה שבוטלה", _CONFLICT)
@@ -119,7 +117,7 @@ class TaskService(BaseService):
             task.updated_at = utcnow()
         return task
 
-    def cancel(self, task_id: int, canceled_by_user_id: Optional[int] = None) -> Task:
+    def cancel(self, task_id: int, canceled_by_user_id: int | None = None) -> Task:
         task = self.get(task_id)
         if task.status == TaskStatus.DONE:
             raise ConflictError("לא ניתן לבטל משימה שהושלמה", _CONFLICT)
@@ -144,9 +142,7 @@ class TaskService(BaseService):
             raise NotFoundError(f"משימה {task_id} לא נמצאה", _NOT_FOUND)
         return task
 
-    def _validate_source(
-        self, source_domain: Optional[str], source_id: Optional[int]
-    ) -> None:
+    def _validate_source(self, source_domain: str | None, source_id: int | None) -> None:
         if source_domain is None and source_id is None:
             return
         if not source_domain or source_id is None:

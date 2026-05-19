@@ -26,9 +26,7 @@ def test_service_sign_request_triggers_auto_advance_and_audit(monkeypatch, test_
     monkeypatch.setattr(
         service,
         "_auto_advance_annual_report",
-        lambda annual_report_id, now: captured.__setitem__(
-            "advanced_id", annual_report_id
-        ),
+        lambda annual_report_id, now: captured.__setitem__("advanced_id", annual_report_id),
     )
 
     out = service.sign_request(token="abc")
@@ -38,9 +36,7 @@ def test_service_sign_request_triggers_auto_advance_and_audit(monkeypatch, test_
     assert captured["advanced_id"] == 88
 
 
-def test_service_sign_request_without_annual_report_skips_auto_advance(
-    monkeypatch, test_db
-):
+def test_service_sign_request_without_annual_report_skips_auto_advance(monkeypatch, test_db):
     service = SignatureRequestService(test_db)
     signed_req = SimpleNamespace(id=2, signer_name="Client", status="signed")
 
@@ -53,9 +49,7 @@ def test_service_sign_request_without_annual_report_skips_auto_advance(
     monkeypatch.setattr(
         service.repo,
         "append_audit_event",
-        lambda **kwargs: captured.__setitem__(
-            "audit_calls", captured["audit_calls"] + 1
-        ),
+        lambda **kwargs: captured.__setitem__("audit_calls", captured["audit_calls"] + 1),
     )
     monkeypatch.setattr(
         service,
@@ -77,9 +71,7 @@ def test_auto_advance_noop_when_report_not_pending_client(monkeypatch, test_db):
         def __init__(self, db):
             self.db = db
             self.repo = SimpleNamespace(
-                get_by_id=lambda _id: SimpleNamespace(
-                    status=AnnualReportStatus.SUBMITTED
-                )
+                get_by_id=lambda _id: SimpleNamespace(status=AnnualReportStatus.SUBMITTED)
             )
 
         def transition_status(self, **kwargs):  # pragma: no cover - should not execute
@@ -100,9 +92,7 @@ def test_auto_advance_noop_when_report_not_pending_client(monkeypatch, test_db):
         _DetailRepo,
     )
 
-    SignatureRequestService(test_db)._auto_advance_annual_report(
-        annual_report_id=10, now=object()
-    )
+    SignatureRequestService(test_db)._auto_advance_annual_report(annual_report_id=10, now=object())
 
 
 def test_auto_advance_transitions_and_sets_client_approved_at(monkeypatch, test_db):
@@ -112,9 +102,7 @@ def test_auto_advance_transitions_and_sets_client_approved_at(monkeypatch, test_
         def __init__(self, db):
             self.db = db
             self.repo = SimpleNamespace(
-                get_by_id=lambda _id: SimpleNamespace(
-                    status=AnnualReportStatus.PENDING_CLIENT
-                )
+                get_by_id=lambda _id: SimpleNamespace(status=AnnualReportStatus.PENDING_CLIENT)
             )
 
         def transition_status(self, **kwargs):
@@ -136,9 +124,7 @@ def test_auto_advance_transitions_and_sets_client_approved_at(monkeypatch, test_
     )
 
     now_obj = object()
-    SignatureRequestService(test_db)._auto_advance_annual_report(
-        annual_report_id=10, now=now_obj
-    )
+    SignatureRequestService(test_db)._auto_advance_annual_report(annual_report_id=10, now=now_obj)
 
     assert calls["transition"] is not None
     assert calls["transition"]["new_status"] == AnnualReportStatus.SUBMITTED.value
@@ -153,6 +139,4 @@ def test_auto_advance_swallows_internal_exceptions(monkeypatch, test_db):
     import app.annual_reports.services.annual_report_service as svc_mod
 
     monkeypatch.setattr(svc_mod, "AnnualReportService", _Svc)
-    SignatureRequestService(test_db)._auto_advance_annual_report(
-        annual_report_id=10, now=object()
-    )
+    SignatureRequestService(test_db)._auto_advance_annual_report(annual_report_id=10, now=object())

@@ -9,18 +9,18 @@ from app.annual_reports.services.annual_report_service import AnnualReportServic
 from app.common.enums import DeadlineRuleType, ObligationType, VatType
 from app.core.exceptions import AppError, ConflictError
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
+from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
+from app.tax_calendar.services.grouped_service import list_groups_paginated
 from app.tax_calendar.services.link_diagnostics import (
     find_active_null_tax_calendar_links,
 )
 from app.tax_calendar.services.materialization_service import (
     TaxCalendarMaterializationService,
 )
-from app.tax_calendar.services.grouped_service import list_groups_paginated
-from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
+from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from app.vat_reports.services.intake import create_work_item
-from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 from tests.tax_calendar.service.linking_helpers import (
     advance_client,
     annual_client,
@@ -325,8 +325,7 @@ def test_grouped_tax_calendar_sees_newly_materialized_rows(test_db):
     )
 
     assert any(
-        group.tax_calendar_entry_id == item.tax_calendar_entry_id
-        and group.linked_count == 1
+        group.tax_calendar_entry_id == item.tax_calendar_entry_id and group.linked_count == 1
         for group in result.items
     )
 

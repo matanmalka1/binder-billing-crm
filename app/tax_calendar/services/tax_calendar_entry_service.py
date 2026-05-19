@@ -77,14 +77,9 @@ def _clamp_day(year: int, month: int, day: int) -> int:
 
 def periodic_due_date(rule: DeadlineRule, period_year: int, period_month: int) -> date:
     due_year, due_month = _shift_month(period_year, period_month, rule.offset_months)
-    base = date(
-        due_year, due_month, _clamp_day(due_year, due_month, rule.due_day_of_month)
-    )
+    base = date(due_year, due_month, _clamp_day(due_year, due_month, rule.due_day_of_month))
     rule_type = DeadlineRuleType(rule.rule_type)
-    return (
-        get_registry_due_date(rule_type, period_year, period_month, rule.offset_months)
-        or base
-    )
+    return get_registry_due_date(rule_type, period_year, period_month, rule.offset_months) or base
 
 
 def annual_due_date(rule: DeadlineRule, tax_year: int) -> date:
@@ -102,10 +97,7 @@ def _resolve_rule(
         select(DeadlineRule)
         .where(DeadlineRule.rule_type == rule_type.value)
         .where(DeadlineRule.effective_from <= on_date)
-        .where(
-            (DeadlineRule.effective_to.is_(None))
-            | (DeadlineRule.effective_to >= on_date)
-        )
+        .where((DeadlineRule.effective_to.is_(None)) | (DeadlineRule.effective_to >= on_date))
         .order_by(DeadlineRule.effective_from.desc())
         .limit(1)
     )

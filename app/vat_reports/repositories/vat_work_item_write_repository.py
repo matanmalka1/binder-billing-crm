@@ -1,7 +1,6 @@
 """Write operations and audit delegation for VatWorkItem entities."""
 
 from datetime import date
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -30,12 +29,10 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
 
     def get_by_client_record_period(
         self, client_record_id: int, period: str
-    ) -> Optional[VatWorkItem]:
+    ) -> VatWorkItem | None:
         return self._query.get_by_client_record_period(client_record_id, period)
 
-    def list_by_client_record(
-        self, client_record_id: int, limit: int = 200
-    ) -> list[VatWorkItem]:
+    def list_by_client_record(self, client_record_id: int, limit: int = 200) -> list[VatWorkItem]:
         return self._query.list_by_client_record(client_record_id, limit=limit)
 
     def list_by_business_activity(
@@ -61,14 +58,10 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
     def sum_net_vat_by_client_record_year(self, client_record_id: int, tax_year: int):
         return self._query.sum_net_vat_by_client_record_year(client_record_id, tax_year)
 
-    def list_not_filed_for_period(
-        self, period: str, limit: int = 3
-    ) -> list[VatWorkItem]:
+    def list_not_filed_for_period(self, period: str, limit: int = 3) -> list[VatWorkItem]:
         return self._query.list_not_filed_for_period(period, limit=limit)
 
-    def list_open_up_to_period(
-        self, up_to_period: str, limit: int = 50
-    ) -> list[VatWorkItem]:
+    def list_open_up_to_period(self, up_to_period: str, limit: int = 50) -> list[VatWorkItem]:
         return self._query.list_open_up_to_period(up_to_period, limit=limit)
 
     def create(
@@ -79,29 +72,18 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
         period_type=None,
         created_by: int,
         status: VatWorkItemStatus = VatWorkItemStatus.MATERIAL_RECEIVED,
-        pending_materials_note: Optional[str] = None,
-        assigned_to: Optional[int] = None,
+        pending_materials_note: str | None = None,
+        assigned_to: int | None = None,
         tax_calendar_entry_id: int,
         due_date_original: date,
         due_date_effective: date,
     ) -> VatWorkItem:
-        if (
-            tax_calendar_entry_id is None
-            or due_date_original is None
-            or due_date_effective is None
-        ):
+        if tax_calendar_entry_id is None or due_date_original is None or due_date_effective is None:
             raise TypeError(
                 "tax_calendar_entry_id, due_date_original, and due_date_effective are required"
             )
-        if (
-            client_record_id is None
-            or period is None
-            or period_type is None
-            or created_by is None
-        ):
-            raise TypeError(
-                "client_record_id, period, period_type, and created_by are required"
-            )
+        if client_record_id is None or period is None or period_type is None or created_by is None:
+            raise TypeError("client_record_id, period, period_type, and created_by are required")
         return self.build_and_add(
             client_record_id=client_record_id,
             period=period,
@@ -119,9 +101,9 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
         self,
         item_id: int,
         new_status: VatWorkItemStatus,
-        item: Optional[VatWorkItem] = None,
+        item: VatWorkItem | None = None,
         **extra_fields,
-    ) -> Optional[VatWorkItem]:
+    ) -> VatWorkItem | None:
         """Update status. Pass a pre-fetched (optionally locked) ``item`` to
         avoid a second SELECT and keep the lock from get_by_id_for_update() alive."""
         item = item or self.get_by_id(item_id)
@@ -157,7 +139,7 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
         total_input_vat,
         total_output_net,
         total_input_net,
-    ) -> Optional[VatWorkItem]:
+    ) -> VatWorkItem | None:
         from decimal import Decimal
 
         item = self.get_by_id(item_id)
@@ -179,12 +161,12 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
         submission_method: SubmissionMethod,
         filed_by: int,
         is_overridden: bool = False,
-        override_justification: Optional[str] = None,
-        submission_reference: Optional[str] = None,
+        override_justification: str | None = None,
+        submission_reference: str | None = None,
         is_amendment: bool = False,
-        amends_item_id: Optional[int] = None,
-        item: Optional[VatWorkItem] = None,
-    ) -> Optional[VatWorkItem]:
+        amends_item_id: int | None = None,
+        item: VatWorkItem | None = None,
+    ) -> VatWorkItem | None:
         """File the work item. Pass a pre-fetched (optionally locked) ``item`` to
         avoid a second SELECT and keep the lock from get_by_id_for_update() alive."""
         item = item or self.get_by_id(item_id)
@@ -210,7 +192,5 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
     def count_audit_trail(self, work_item_id: int) -> int:
         return self._audit.count_audit_trail(work_item_id)
 
-    def get_audit_trail(
-        self, work_item_id: int, limit: int, offset: int
-    ) -> list[VatAuditLog]:
+    def get_audit_trail(self, work_item_id: int, limit: int, offset: int) -> list[VatAuditLog]:
         return self._audit.get_audit_trail(work_item_id, limit, offset)

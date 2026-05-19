@@ -1,7 +1,6 @@
 """Grouped/due-date-level queries for VatWorkItem."""
 
 from datetime import date
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -24,10 +23,10 @@ def _base_stmt():
 def list_due_date_groups(
     db: Session,
     *,
-    period_type: Optional[VatType] = None,
-    client_record_ids: Optional[list[int]] = None,
-    status: Optional[VatWorkItemStatus] = None,
-    year: Optional[int] = None,
+    period_type: VatType | None = None,
+    client_record_ids: list[int] | None = None,
+    status: VatWorkItemStatus | None = None,
+    year: int | None = None,
 ) -> list[dict]:
     """One summary dict per operational due date."""
     stmt = apply_vat_work_item_filters(
@@ -95,8 +94,8 @@ def list_by_due_date_paginated(
     *,
     page: int = 1,
     page_size: int = 50,
-    client_record_ids: Optional[list[int]] = None,
-    status: Optional[VatWorkItemStatus] = None,
+    client_record_ids: list[int] | None = None,
+    status: VatWorkItemStatus | None = None,
 ) -> tuple[list[VatWorkItem], int]:
     count_stmt = apply_vat_work_item_filters(
         scope_to_active_clients_stmt(select(func.count(VatWorkItem.id)), VatWorkItem),

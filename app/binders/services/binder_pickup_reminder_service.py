@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime as _dt
-from datetime import timezone
 
 from sqlalchemy.orm import Session
 
@@ -26,9 +25,7 @@ class BinderPickupReminderService:
     def send_pickup_reminder(self, binder_id: int, triggered_by: int) -> None:
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
-            raise NotFoundError(
-                BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND"
-            )
+            raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
 
         if binder.status not in (
             BinderStatus.READY_FOR_PICKUP,
@@ -41,8 +38,7 @@ class BinderPickupReminderService:
         )
         if last:
             days_since = (
-                _dt.datetime.now(timezone.utc)
-                - last.created_at.replace(tzinfo=timezone.utc)
+                _dt.datetime.now(_dt.UTC) - last.created_at.replace(tzinfo=_dt.UTC)
             ).days
             if days_since < PICKUP_REMINDER_COOLDOWN_DAYS:
                 raise AppError(

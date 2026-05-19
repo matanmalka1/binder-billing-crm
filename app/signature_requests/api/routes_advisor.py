@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from app.users.models.user import UserRole
+
 from app.signature_requests.schemas.signature_request import (
     CancelRequest,
-    SignatureRequestCreateRequest,
     SignatureRequestCreatedResponse,
+    SignatureRequestCreateRequest,
     SignatureRequestListResponse,
     SignatureRequestResponse,
     SignatureRequestWithAuditResponse,
@@ -17,7 +17,7 @@ from app.signature_requests.services.signature_request_service import (
     SignatureRequestService,
 )
 from app.users.api.deps import CurrentUser, DBSession, require_role
-
+from app.users.models.user import UserRole
 
 advisor_router = APIRouter(
     prefix="/signature-requests",
@@ -80,9 +80,7 @@ def get_signature_request(request_id: int, db: DBSession, user: CurrentUser):
     service = SignatureRequestService(db)
     req = service.get_request(request_id)
     if not req:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="בקשת החתימה לא נמצאה"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="בקשת החתימה לא נמצאה")
 
     audit_events = service.get_audit_trail(request_id)
     return SignatureRequestResponseBuilder(db).build_with_audit(req, audit_events)

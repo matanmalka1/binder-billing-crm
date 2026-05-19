@@ -45,8 +45,9 @@ from sqlalchemy import (
     String,
     text,
 )
-from app.utils.enum_utils import pg_enum
+
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
 
@@ -75,18 +76,12 @@ class AdvancePayment(Base):
     __tablename__ = "advance_payments"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    client_record_id = Column(
-        Integer, ForeignKey("client_records.id"), nullable=False, index=True
-    )
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
 
     # ── Period ────────────────────────────────────────────────────────────────
     period = Column(String(7), nullable=False)  # "YYYY-MM" — first month in period
-    period_months_count = Column(
-        Integer, nullable=False, default=1
-    )  # 1=monthly, 2=bi-monthly
-    due_date = Column(
-        Date, nullable=False
-    )  # Usually the 15th of the month after the period
+    period_months_count = Column(Integer, nullable=False, default=1)  # 1=monthly, 2=bi-monthly
+    due_date = Column(Date, nullable=False)  # Usually the 15th of the month after the period
     due_date_original = Column(Date, nullable=True)
     due_date_effective = Column(Date, nullable=True)
     due_date_override_reason = Column(String(500), nullable=True)
@@ -111,9 +106,7 @@ class AdvancePayment(Base):
     payment_method = Column(pg_enum(PaymentMethod), nullable=True)
 
     # ── Cross-domain links ────────────────────────────────────────────────────
-    annual_report_id = Column(
-        Integer, ForeignKey("annual_reports.id"), nullable=True, index=True
-    )
+    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True, index=True)
     tax_calendar_entry_id = Column(
         Integer,
         ForeignKey("tax_calendar_entries.id", ondelete="RESTRICT"),
@@ -159,4 +152,6 @@ class AdvancePayment(Base):
         )
 
 
-from app.advance_payments.models import due_date_snapshot_events  # noqa: E402,F401  # pylint: disable=unused-import
+from app.advance_payments.models import (
+    due_date_snapshot_events,  # noqa: E402,F401  # pylint: disable=unused-import
+)

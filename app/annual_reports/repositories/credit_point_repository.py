@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -9,7 +8,6 @@ from app.annual_reports.models.annual_report_credit_point_reason import (
     CreditPointReason,
 )
 from app.common.repositories.base_repository import BaseRepository
-
 
 _ZERO = Decimal("0")
 _TUITION_REASONS = frozenset(
@@ -35,7 +33,7 @@ class AnnualReportCreditPointRepository(BaseRepository[AnnualReportCreditPoint])
         annual_report_id: int,
         reason: CreditPointReason,
         points: Decimal,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> AnnualReportCreditPoint:
         row = AnnualReportCreditPoint(
             annual_report_id=annual_report_id,

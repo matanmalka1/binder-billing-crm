@@ -7,11 +7,7 @@ from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 
 
 def _value(obligation_type: ObligationType | str) -> str:
-    return (
-        obligation_type.value
-        if isinstance(obligation_type, ObligationType)
-        else obligation_type
-    )
+    return obligation_type.value if isinstance(obligation_type, ObligationType) else obligation_type
 
 
 def find_periodic_entry_id(

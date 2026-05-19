@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.annual_reports.schemas.annual_report_detail import (
     AnnualReportDetailUpdateRequest,
     ReportDetailResponse,
 )
-from app.annual_reports.services.detail_service import AnnualReportDetailService
 from app.annual_reports.services.annual_report_service import AnnualReportService
+from app.annual_reports.services.detail_service import AnnualReportDetailService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/annual-reports",
@@ -26,9 +26,7 @@ def _enrich_detail_response(response: ReportDetailResponse, db) -> ReportDetailR
         response.tax_refund_amount = (
             float(report.refund_due) if report.refund_due is not None else None
         )
-        response.tax_due_amount = (
-            float(report.tax_due) if report.tax_due is not None else None
-        )
+        response.tax_due_amount = float(report.tax_due) if report.tax_due is not None else None
     return response
 
 

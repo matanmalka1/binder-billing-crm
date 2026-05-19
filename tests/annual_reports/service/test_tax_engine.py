@@ -1,6 +1,7 @@
 import pytest
-from app.core.exceptions import AppError
+
 from app.annual_reports.services.tax_engine import calculate_tax
+from app.core.exceptions import AppError
 
 
 def test_calculate_tax_applies_pension_and_donation_credits():

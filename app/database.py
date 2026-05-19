@@ -5,7 +5,6 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 from app.config import config
 
-
 if config.APP_ENV == "production" and config.DATABASE_URL.startswith("sqlite"):
     raise RuntimeError("SQLite אינו מותר בסביבת ייצור")
 

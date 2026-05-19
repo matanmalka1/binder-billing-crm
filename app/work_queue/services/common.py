@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import date
-from typing import Dict, Iterable, NamedTuple, Optional
+from typing import NamedTuple
 
 from sqlalchemy.orm import Session
 
@@ -73,7 +74,7 @@ STATUS_LABELS = {
 
 class ClientWorkQueueProfile(NamedTuple):
     name: str
-    office_number: Optional[int]
+    office_number: int | None
 
 
 def urgency(due_date: date, today: date) -> WorkQueueUrgency:
@@ -91,9 +92,7 @@ def source_key(source_type: WorkQueueSourceType, source_id: int) -> tuple[str, i
     return (source_type.value, source_id)
 
 
-def display_status_label(
-    source_type: WorkQueueSourceType, status: str | None
-) -> str | None:
+def display_status_label(source_type: WorkQueueSourceType, status: str | None) -> str | None:
     if status is None:
         return None
     return STATUS_LABELS.get(source_type, {}).get(status, status)
@@ -101,7 +100,7 @@ def display_status_label(
 
 def load_client_profiles(
     db: Session, client_record_ids: Iterable[int]
-) -> Dict[int, ClientWorkQueueProfile]:
+) -> dict[int, ClientWorkQueueProfile]:
     """Fetch dashboard identity fields only for the client ids present in the result set."""
     return {
         client_id: ClientWorkQueueProfile(
@@ -119,7 +118,7 @@ class WorkQueueContext:
         self.db = db
         self.today = today
         self.resolve_client_identity = resolve_client_identity
-        self._client_profiles: Optional[Dict[int, ClientWorkQueueProfile]] = None
+        self._client_profiles: dict[int, ClientWorkQueueProfile] | None = None
         self._pending_ids: set[int] = set()
 
     def register_client_id(self, client_record_id: int) -> None:
@@ -136,7 +135,7 @@ class WorkQueueContext:
             self.register_client_id(client_record_id)
         self._resolve_profiles()
 
-    def _resolve_profiles(self) -> Dict[int, ClientWorkQueueProfile]:
+    def _resolve_profiles(self) -> dict[int, ClientWorkQueueProfile]:
         missing = self._pending_ids - set(self._client_profiles or {})
         if missing:
             new_profiles = load_client_profiles(self.db, missing)
@@ -154,20 +153,18 @@ class WorkQueueContext:
         source_id: int,
         title: str,
         due_date: date,
-        client_record_id: Optional[int],
+        client_record_id: int | None,
         *,
-        business_id: Optional[int] = None,
-        item_urgency: Optional[WorkQueueUrgency] = None,
-        status_label: Optional[str] = None,
-        description: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        business_id: int | None = None,
+        item_urgency: WorkQueueUrgency | None = None,
+        status_label: str | None = None,
+        description: str | None = None,
+        metadata: dict | None = None,
     ) -> WorkQueueItem:
         if client_record_id is not None:
             self.register_client_id(client_record_id)
         client_profile = (
-            self._resolve_profiles().get(client_record_id)
-            if client_record_id is not None
-            else None
+            self._resolve_profiles().get(client_record_id) if client_record_id is not None else None
         )
         return WorkQueueItem(
             id=f"{source_type.value}:{source_id}",
@@ -181,9 +178,7 @@ class WorkQueueContext:
             urgency=item_urgency or urgency(due_date, self.today),
             client_record_id=client_record_id,
             client_name=client_profile.name if client_profile else None,
-            office_client_number=(
-                client_profile.office_number if client_profile else None
-            ),
+            office_client_number=(client_profile.office_number if client_profile else None),
             business_id=business_id,
             source_summary=WorkQueueSourceSummary(
                 source_type=source_type.value,
@@ -194,9 +189,7 @@ class WorkQueueContext:
             metadata=metadata,
         )
 
-    def attach_client_identity(
-        self, item: WorkQueueItem, client_record_id: Optional[int]
-    ) -> None:
+    def attach_client_identity(self, item: WorkQueueItem, client_record_id: int | None) -> None:
         """Populate client identity fields on an item whose client was derived later."""
         item.client_record_id = client_record_id
         if client_record_id is None:

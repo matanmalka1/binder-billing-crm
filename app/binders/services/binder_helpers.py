@@ -1,9 +1,8 @@
 import calendar
 from datetime import date
-from typing import Optional
 
-from app.core.exceptions import AppError
 from app.binders.models.binder import Binder, BinderStatus
+from app.core.exceptions import AppError
 
 
 def validate_ready_transition(binder: Binder) -> None:
@@ -18,9 +17,7 @@ def validate_ready_transition(binder: Binder) -> None:
         )
 
 
-def validate_return_transition(
-    binder: Binder, pickup_person_name: Optional[str]
-) -> None:
+def validate_return_transition(binder: Binder, pickup_person_name: str | None) -> None:
     """Validate binder can be returned."""
     if not pickup_person_name or not pickup_person_name.strip():
         raise AppError("שם האיש המאסף הוא שדה חובה", "BINDER.MISSING_PICKUP_PERSON")
@@ -41,7 +38,7 @@ def validate_revert_ready_transition(binder: Binder) -> None:
         )
 
 
-def parse_period_to_date(period: str) -> Optional[date]:
+def parse_period_to_date(period: str) -> date | None:
     """
     Convert a period description string to a closing date.
       "2026-03"       → 2026-03-31  (monthly)

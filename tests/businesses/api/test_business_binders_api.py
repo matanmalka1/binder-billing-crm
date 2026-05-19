@@ -2,9 +2,9 @@ from datetime import date
 
 from app.binders.models.binder import Binder
 from app.businesses.models.business import Business
-from app.common.enums import IdNumberType
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType
 
 
 def _seed_client_business_and_binder(test_db, *, user_id: int):
@@ -45,9 +45,7 @@ def _seed_client_business_and_binder(test_db, *, user_id: int):
     return business, binder, client_record.id
 
 
-def test_list_business_binders_returns_client_binders(
-    client, test_db, test_user, advisor_headers
-):
+def test_list_business_binders_returns_client_binders(client, test_db, test_user, advisor_headers):
     business, binder, client_record_id = _seed_client_business_and_binder(
         test_db, user_id=test_user.id
     )

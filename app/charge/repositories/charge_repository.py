@@ -1,13 +1,12 @@
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
+from app.charge.models.charge import Charge, ChargeStatus
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
-from app.charge.models.charge import Charge, ChargeStatus
 
 
 class ChargeRepository(BaseRepository[Charge]):
@@ -23,10 +22,10 @@ class ChargeRepository(BaseRepository[Charge]):
         client_record_id: int,
         amount: float,
         charge_type: str,
-        business_id: Optional[int] = None,
-        period: Optional[str] = None,
+        business_id: int | None = None,
+        period: str | None = None,
         months_covered: int = 1,
-        created_by: Optional[int] = None,
+        created_by: int | None = None,
     ) -> Charge:
         """Create new charge in draft status."""
         charge = Charge(
@@ -45,12 +44,12 @@ class ChargeRepository(BaseRepository[Charge]):
 
     def _base_stmt(
         self,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-        business_ids: Optional[list[int]] = None,
-        status: Optional[str] = None,
-        charge_type: Optional[str] = None,
-    ) -> Optional[object]:
+        client_record_id: int | None = None,
+        business_id: int | None = None,
+        business_ids: list[int] | None = None,
+        status: str | None = None,
+        charge_type: str | None = None,
+    ) -> object | None:
         """
         Shared filter builder for list and count queries.
 
@@ -87,18 +86,16 @@ class ChargeRepository(BaseRepository[Charge]):
 
     def list_charges(
         self,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-        business_ids: Optional[list[int]] = None,
-        status: Optional[str] = None,
-        charge_type: Optional[str] = None,
+        client_record_id: int | None = None,
+        business_id: int | None = None,
+        business_ids: list[int] | None = None,
+        status: str | None = None,
+        charge_type: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Charge]:
         """List charges with optional filters and pagination."""
-        stmt = self._base_stmt(
-            client_record_id, business_id, business_ids, status, charge_type
-        )
+        stmt = self._base_stmt(client_record_id, business_id, business_ids, status, charge_type)
         if stmt is None:
             return []
         stmt = stmt.order_by(Charge.created_at.desc())
@@ -108,9 +105,9 @@ class ChargeRepository(BaseRepository[Charge]):
     def list_charges_by_client_record(
         self,
         client_record_id: int,
-        business_id: Optional[int] = None,
-        status: Optional[str] = None,
-        charge_type: Optional[str] = None,
+        business_id: int | None = None,
+        status: str | None = None,
+        charge_type: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Charge]:
@@ -125,17 +122,17 @@ class ChargeRepository(BaseRepository[Charge]):
 
     def count_charges(
         self,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-        business_ids: Optional[list[int]] = None,
-        status: Optional[str] = None,
-        charge_type: Optional[str] = None,
+        client_record_id: int | None = None,
+        business_id: int | None = None,
+        business_ids: list[int] | None = None,
+        status: str | None = None,
+        charge_type: str | None = None,
     ) -> int:
         """Count charges with optional filters."""
         # Build a count-specific stmt reusing same filter logic
-        count_stmt = scope_to_active_clients_stmt(
-            select(func.count(Charge.id)), Charge
-        ).where(Charge.deleted_at.is_(None))
+        count_stmt = scope_to_active_clients_stmt(select(func.count(Charge.id)), Charge).where(
+            Charge.deleted_at.is_(None)
+        )
 
         if client_record_id is not None:
             count_stmt = count_stmt.where(Charge.client_record_id == client_record_id)
@@ -157,9 +154,9 @@ class ChargeRepository(BaseRepository[Charge]):
     def count_charges_by_client_record(
         self,
         client_record_id: int,
-        business_id: Optional[int] = None,
-        status: Optional[str] = None,
-        charge_type: Optional[str] = None,
+        business_id: int | None = None,
+        status: str | None = None,
+        charge_type: str | None = None,
     ) -> int:
         return self.count_charges(
             client_record_id=client_record_id,
@@ -168,11 +165,9 @@ class ChargeRepository(BaseRepository[Charge]):
             charge_type=charge_type,
         )
 
-    def sum_open_charges_amount(self) -> Optional[Decimal]:
+    def sum_open_charges_amount(self) -> Decimal | None:
         """Sum all issued (open) charges for active clients. Returns None if no open charges."""
-        stmt = scope_to_active_clients_stmt(
-            select(func.sum(Charge.amount)), Charge
-        ).where(
+        stmt = scope_to_active_clients_stmt(select(func.sum(Charge.amount)), Charge).where(
             Charge.deleted_at.is_(None),
             Charge.status == ChargeStatus.ISSUED.value,
         )
@@ -183,9 +178,9 @@ class ChargeRepository(BaseRepository[Charge]):
         self,
         charge_id: int,
         new_status: ChargeStatus,
-        charge: Optional[Charge] = None,
+        charge: Charge | None = None,
         **additional_fields,
-    ) -> Optional[Charge]:
+    ) -> Charge | None:
         """Update charge status and additional fields.
 
         Pass a pre-fetched (optionally locked) ``charge`` entity to avoid a second
@@ -196,8 +191,8 @@ class ChargeRepository(BaseRepository[Charge]):
 
     def stats_by_status(
         self,
-        client_record_id: Optional[int] = None,
-        charge_type: Optional[str] = None,
+        client_record_id: int | None = None,
+        charge_type: str | None = None,
     ) -> dict[str, dict]:
         """Return count and total amount per status, ignoring status filter."""
         stmt = scope_to_active_clients_stmt(
@@ -231,15 +226,13 @@ class ChargeRepository(BaseRepository[Charge]):
             scope_to_active_clients_stmt(
                 select(
                     Charge.client_record_id,
-                    func.sum(
-                        case((issued_date >= str(cut_30), Charge.amount), else_=0)
-                    ).label("current"),
+                    func.sum(case((issued_date >= str(cut_30), Charge.amount), else_=0)).label(
+                        "current"
+                    ),
                     func.sum(
                         case(
                             (
-                                issued_date.between(
-                                    str(cut_60), str(cut_30 - timedelta(days=1))
-                                ),
+                                issued_date.between(str(cut_60), str(cut_30 - timedelta(days=1))),
                                 Charge.amount,
                             ),
                             else_=0,
@@ -248,17 +241,15 @@ class ChargeRepository(BaseRepository[Charge]):
                     func.sum(
                         case(
                             (
-                                issued_date.between(
-                                    str(cut_90), str(cut_60 - timedelta(days=1))
-                                ),
+                                issued_date.between(str(cut_90), str(cut_60 - timedelta(days=1))),
                                 Charge.amount,
                             ),
                             else_=0,
                         )
                     ).label("days_60"),
-                    func.sum(
-                        case((issued_date < str(cut_90), Charge.amount), else_=0)
-                    ).label("days_90_plus"),
+                    func.sum(case((issued_date < str(cut_90), Charge.amount), else_=0)).label(
+                        "days_90_plus"
+                    ),
                     func.sum(Charge.amount).label("total"),
                     func.min(Charge.issued_at).label("oldest_issued_at"),
                 ),

@@ -36,17 +36,11 @@ def _binder(repo, client_id: int, user_id: int, number: str, days_waiting: int, 
 def test_list_overdue_pickup_returns_only_old_ready_binders(test_db):
     repo = BinderRepository(test_db)
     user = _user(test_db)
-    client = seed_client_identity(
-        test_db, full_name="Pickup Client", id_number="PICK001"
-    )
-    old_ready = _binder(
-        repo, client.id, user.id, "PICK-1", 40, BinderStatus.READY_FOR_PICKUP
-    )
+    client = seed_client_identity(test_db, full_name="Pickup Client", id_number="PICK001")
+    old_ready = _binder(repo, client.id, user.id, "PICK-1", 40, BinderStatus.READY_FOR_PICKUP)
     _binder(repo, client.id, user.id, "PICK-2", 10, BinderStatus.READY_FOR_PICKUP)
     _binder(repo, client.id, user.id, "PICK-3", 45, BinderStatus.IN_OFFICE)
-    deleted = _binder(
-        repo, client.id, user.id, "PICK-4", 50, BinderStatus.READY_FOR_PICKUP
-    )
+    deleted = _binder(repo, client.id, user.id, "PICK-4", 50, BinderStatus.READY_FOR_PICKUP)
     deleted.deleted_at = utcnow()
     test_db.commit()
 

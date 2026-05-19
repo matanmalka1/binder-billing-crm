@@ -199,9 +199,7 @@ def test_restore_raises_when_not_deleted(test_db):
 
 
 def test_restore_raises_when_active_duplicate_exists(test_db):
-    deleted = _create_client(
-        test_db, full_name="Old", id_number="660000001", deleted=True
-    )
+    deleted = _create_client(test_db, full_name="Old", id_number="660000001", deleted=True)
     active = ClientRecord(legal_entity_id=deleted.legal_entity_id, created_by=1)
     test_db.add(active)
     test_db.commit()

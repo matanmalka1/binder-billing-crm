@@ -59,9 +59,7 @@ def test_readiness_incomplete_required_schedule_issue_present(test_db):
     c = _client(test_db, "C")
     service = AnnualReportService(test_db)
     financial = AnnualReportFinancialService(test_db)
-    report = service.create_report(
-        c.id, 2026, "corporation", 1, "A", has_rental_income=True
-    )
+    report = service.create_report(c.id, 2026, "corporation", 1, "A", has_rental_income=True)
 
     # required schedule exists and incomplete -> explicit issue
     readiness = financial.get_readiness_check(report.id)

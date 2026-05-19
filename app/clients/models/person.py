@@ -7,10 +7,11 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from app.database import Base
-from app.utils.time_utils import utcnow
+
 from app.common.enums import IdNumberType
+from app.database import Base
 from app.utils.enum_utils import pg_enum
+from app.utils.time_utils import utcnow
 
 
 class Person(Base):

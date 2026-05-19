@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import DBSession, require_role
-from app.users.models.user import UserRole
 from app.timeline.schemas.timeline import ClientTimelineResponse, TimelineEvent
 from app.timeline.services.timeline_service import TimelineService
+from app.users.api.deps import DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/clients",

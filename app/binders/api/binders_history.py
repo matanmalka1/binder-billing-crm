@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.binders.schemas.binder import BinderHistoryResponse, BinderIntakeListResponse
 from app.binders.services.binder_history_service import BinderHistoryService
 from app.binders.services.messages import BINDER_NOT_FOUND
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/binders",

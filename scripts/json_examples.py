@@ -298,9 +298,7 @@ def get_example_from_schema(
     if "allOf" in schema:
         merged: dict[str, Any] = {}
         for part in schema["allOf"]:
-            part_example = get_example_from_schema(
-                part, all_schemas, ref_stack, depth + 1
-            )
+            part_example = get_example_from_schema(part, all_schemas, ref_stack, depth + 1)
             if isinstance(part_example, dict):
                 merged.update(part_example)
             elif part_example is not None and not merged:
@@ -312,9 +310,7 @@ def get_example_from_schema(
         if isinstance(variants, list) and variants:
             chosen = _pick_non_null_variant(variants)
             if chosen is not None:
-                return get_example_from_schema(
-                    chosen, all_schemas, ref_stack, depth + 1
-                )
+                return get_example_from_schema(chosen, all_schemas, ref_stack, depth + 1)
 
     schema_type = schema.get("type")
     if isinstance(schema_type, list):
@@ -350,9 +346,7 @@ def get_example_from_schema(
 
     if schema_type == "array":
         item_schema = schema.get("items", {})
-        item_example = get_example_from_schema(
-            item_schema, all_schemas, ref_stack, depth + 1
-        )
+        item_example = get_example_from_schema(item_schema, all_schemas, ref_stack, depth + 1)
         if item_example is None:
             return []
         return [item_example]
@@ -371,18 +365,14 @@ def get_example_from_schema(
     return {}
 
 
-def _example_from_content(
-    content_obj: dict[str, Any], all_schemas: dict[str, Any]
-) -> Any:
+def _example_from_content(content_obj: dict[str, Any], all_schemas: dict[str, Any]) -> Any:
     explicit = _extract_explicit_example(content_obj)
     if explicit is not None:
         return explicit
     return get_example_from_schema(content_obj.get("schema", {}), all_schemas)
 
 
-def _write_binary_response_example(
-    file_obj, status: str, metadata: dict[str, Any]
-) -> None:
+def _write_binary_response_example(file_obj, status: str, metadata: dict[str, Any]) -> None:
     variants = metadata.get("variants", [])
     file_obj.write(f"### 📤 Success Response ({status})\n")
     file_obj.write("```text\n")
@@ -400,9 +390,7 @@ def _write_binary_response_example(
     file_obj.write("```\n\n")
 
 
-def generate_enhanced_contract(
-    app: FastAPI, filename: str = "JSON_EXAMPLES.md"
-) -> None:
+def generate_enhanced_contract(app: FastAPI, filename: str = "JSON_EXAMPLES.md") -> None:
     openapi_data = app.openapi()
     paths = openapi_data.get("paths", {})
     all_schemas = openapi_data.get("components", {}).get("schemas", {})
@@ -417,13 +405,9 @@ def generate_enhanced_contract(
                 f.write(f"**Summary:** {details.get('summary', 'N/A')}\n\n")
 
                 request_body = details.get("requestBody", {})
-                request_content = request_body.get("content", {}).get(
-                    "application/json"
-                )
+                request_content = request_body.get("content", {}).get("application/json")
                 if request_content:
-                    request_example = _example_from_content(
-                        request_content, all_schemas
-                    )
+                    request_example = _example_from_content(request_content, all_schemas)
                     f.write("### 📥 Request Body (JSON)\n")
                     f.write(
                         f"```json\n{json.dumps(request_example, indent=2, ensure_ascii=False)}\n```\n\n"
@@ -431,20 +415,14 @@ def generate_enhanced_contract(
 
                 responses = details.get("responses", {})
                 raw_success_status = _first_success_status(responses)
-                binary_override = MANUAL_BINARY_SUCCESS_OVERRIDES.get(
-                    (method.upper(), path)
-                )
+                binary_override = MANUAL_BINARY_SUCCESS_OVERRIDES.get((method.upper(), path))
                 if binary_override is not None:
-                    status = (
-                        binary_override.get("status") or raw_success_status or "200"
-                    )
+                    status = binary_override.get("status") or raw_success_status or "200"
                     _write_binary_response_example(f, status, binary_override)
                     f.write("---\n\n")
                     continue
 
-                success_status, success_content = _first_success_status_with_json(
-                    responses
-                )
+                success_status, success_content = _first_success_status_with_json(responses)
                 override_example = MANUAL_SUCCESS_OVERRIDES.get((method.upper(), path))
                 if override_example is not None:
                     status = success_status or "200"
@@ -453,9 +431,7 @@ def generate_enhanced_contract(
                         f"```json\n{json.dumps(override_example, indent=2, ensure_ascii=False)}\n```\n\n"
                     )
                 elif success_status and success_content:
-                    response_example = _example_from_content(
-                        success_content, all_schemas
-                    )
+                    response_example = _example_from_content(success_content, all_schemas)
                     f.write(f"### 📤 Success Response ({success_status})\n")
                     f.write(
                         f"```json\n{json.dumps(response_example, indent=2, ensure_ascii=False)}\n```\n\n"

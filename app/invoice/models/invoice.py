@@ -1,17 +1,14 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 
-from app.utils.time_utils import utcnow
-
 from app.database import Base
+from app.utils.time_utils import utcnow
 
 
 class Invoice(Base):
     __tablename__ = "invoices"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    charge_id = Column(
-        Integer, ForeignKey("charges.id"), nullable=False, unique=True, index=True
-    )
+    charge_id = Column(Integer, ForeignKey("charges.id"), nullable=False, unique=True, index=True)
     provider = Column(String, nullable=False)
     external_invoice_id = Column(String, nullable=False)
     document_url = Column(String, nullable=True)

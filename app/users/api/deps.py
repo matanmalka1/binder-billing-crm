@@ -66,7 +66,9 @@ def get_current_user(
 def require_role(*allowed_roles: UserRole):
     """Dependency factory for role-based access control."""
 
-    def role_checker(current_user: Annotated[AuthSubject, Depends(get_current_user)]) -> AuthSubject:
+    def role_checker(
+        current_user: Annotated[AuthSubject, Depends(get_current_user)],
+    ) -> AuthSubject:
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

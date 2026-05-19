@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -19,7 +18,7 @@ class BinderIntakeRepository(BaseRepository[BinderIntake]):
         binder_id: int,
         received_at: date,
         received_by: int,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> BinderIntake:
         """Create a new intake record for a binder."""
         intake = BinderIntake(
@@ -32,13 +31,11 @@ class BinderIntakeRepository(BaseRepository[BinderIntake]):
         self.db.flush()
         return intake
 
-    def get_by_id(self, intake_id: int) -> Optional[BinderIntake]:
+    def get_by_id(self, intake_id: int) -> BinderIntake | None:
         """Get a single intake by ID."""
-        return self.db.scalars(
-            select(BinderIntake).where(BinderIntake.id == intake_id)
-        ).first()
+        return self.db.scalars(select(BinderIntake).where(BinderIntake.id == intake_id)).first()
 
-    def get_first_by_binder(self, binder_id: int) -> Optional[BinderIntake]:
+    def get_first_by_binder(self, binder_id: int) -> BinderIntake | None:
         """Get the earliest intake for a binder (first material received)."""
         return self.db.scalars(
             select(BinderIntake)

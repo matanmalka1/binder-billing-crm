@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import Dict
 
 from app.reports.constants import (
     AGING_EXPORT_FILENAME_PREFIX,
@@ -11,7 +10,7 @@ from app.reports.constants import (
 )
 
 
-def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, object]:
+def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> dict[str, object]:
     """
     Build a PDF file for the aging report.
     Returns download metadata.
@@ -33,18 +32,14 @@ def export_aging_report_to_pdf(report_data: dict, export_dir: str) -> Dict[str, 
             "הספרייה reportlab נדרשת לצורך ייצוא ל-PDF. יש להתקין באמצעות: pip install reportlab"
         ) from exc
 
-    filename = (
-        f"{AGING_EXPORT_FILENAME_PREFIX}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    )
+    filename = f"{AGING_EXPORT_FILENAME_PREFIX}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     filepath = os.path.join(export_dir, filename)
 
     doc = SimpleDocTemplate(filepath, pagesize=landscape(A4))
     elements = []
     styles = getSampleStyleSheet()
 
-    title = Paragraph(
-        f"<b>דוח חובות ללקוחות - {report_data['report_date']}</b>", styles["Title"]
-    )
+    title = Paragraph(f"<b>דוח חובות ללקוחות - {report_data['report_date']}</b>", styles["Title"])
     elements.append(title)
     elements.append(Spacer(1, 0.5 * cm))
 

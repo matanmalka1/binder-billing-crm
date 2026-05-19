@@ -1,7 +1,10 @@
 """Service mixin for annex (schedule) data lines."""
 
-from typing import Optional
 
+from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
+from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
+from app.annual_reports.schemas.annex_schemas import SCHEDULE_VALIDATORS
+from app.annual_reports.schemas.annual_report_annex import AnnexDataLineResponse
 from app.audit.constants import (
     ACTION_ANNEX_LINE_ADDED,
     ACTION_ANNEX_LINE_DELETED,
@@ -10,10 +13,7 @@ from app.audit.constants import (
 )
 from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.core.exceptions import AppError, NotFoundError
-from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
-from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
-from app.annual_reports.schemas.annual_report_annex import AnnexDataLineResponse
-from app.annual_reports.schemas.annex_schemas import SCHEDULE_VALIDATORS
+
 from .base import AnnualReportBaseService
 from .messages import ANNEX_LINE_NOT_FOUND, ANNEX_VALIDATION_ERROR
 
@@ -59,14 +59,12 @@ class AnnualReportAnnexService(AnnualReportBaseService):  # pylint: disable=no-m
         report_id: int,
         schedule: AnnualReportSchedule,
         data: dict,
-        notes: Optional[str] = None,
-        actor_id: Optional[int] = None,
+        notes: str | None = None,
+        actor_id: int | None = None,
     ) -> AnnexDataLineResponse:
         self._get_or_raise(report_id)
         data = self._validate_annex_data(schedule, data)
-        schedule_entry = self.annex_repo.get_or_create_schedule_entry(
-            report_id, schedule
-        )  # type: ignore[attr-defined]
+        schedule_entry = self.annex_repo.get_or_create_schedule_entry(report_id, schedule)  # type: ignore[attr-defined]
         line_number = self.annex_repo.next_line_number(schedule_entry.id)  # type: ignore[attr-defined]
         row = self.annex_repo.add_line(schedule_entry.id, line_number, data, notes)  # type: ignore[attr-defined]
         self._record_annex_audit(
@@ -79,8 +77,8 @@ class AnnualReportAnnexService(AnnualReportBaseService):  # pylint: disable=no-m
         report_id: int,
         line_id: int,
         data: dict,
-        notes: Optional[str] = None,
-        actor_id: Optional[int] = None,
+        notes: str | None = None,
+        actor_id: int | None = None,
     ) -> AnnexDataLineResponse:
         self._get_or_raise(report_id)
         existing = self.annex_repo.get_by_id(line_id)  # type: ignore[attr-defined]
@@ -107,7 +105,7 @@ class AnnualReportAnnexService(AnnualReportBaseService):  # pylint: disable=no-m
         return AnnexDataLineResponse.model_validate(row)
 
     def delete_annex_line(
-        self, report_id: int, line_id: int, actor_id: Optional[int] = None
+        self, report_id: int, line_id: int, actor_id: int | None = None
     ) -> None:
         self._get_or_raise(report_id)
         existing = self.annex_repo.get_by_id(line_id)  # type: ignore[attr-defined]
@@ -127,7 +125,7 @@ class AnnualReportAnnexService(AnnualReportBaseService):  # pylint: disable=no-m
         )
 
     def _record_annex_audit(
-        self, report_id: int, actor_id: Optional[int], action: str, **values
+        self, report_id: int, actor_id: int | None, action: str, **values
     ) -> None:
         EntityAuditWriter(self.db).append(
             entity_type=ENTITY_ANNUAL_REPORT,

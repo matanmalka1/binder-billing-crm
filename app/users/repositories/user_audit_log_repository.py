@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -19,11 +18,11 @@ class UserAuditLogRepository(BaseRepository):
         self,
         action: AuditAction,
         status: AuditStatus,
-        actor_user_id: Optional[int] = None,
-        target_user_id: Optional[int] = None,
-        email: Optional[str] = None,
-        reason: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        actor_user_id: int | None = None,
+        target_user_id: int | None = None,
+        email: str | None = None,
+        reason: str | None = None,
+        metadata: dict | None = None,
     ) -> UserAuditLog:
         log = UserAuditLog(
             action=action,
@@ -42,12 +41,12 @@ class UserAuditLogRepository(BaseRepository):
         self,
         page: int = 1,
         page_size: int = 20,
-        action: Optional[AuditAction] = None,
-        target_user_id: Optional[int] = None,
-        actor_user_id: Optional[int] = None,
-        email: Optional[str] = None,
-        from_ts: Optional[datetime] = None,
-        to_ts: Optional[datetime] = None,
+        action: AuditAction | None = None,
+        target_user_id: int | None = None,
+        actor_user_id: int | None = None,
+        email: str | None = None,
+        from_ts: datetime | None = None,
+        to_ts: datetime | None = None,
     ) -> list[UserAuditLog]:
         stmt = self._build_query(
             action=action,
@@ -62,12 +61,12 @@ class UserAuditLogRepository(BaseRepository):
 
     def count(
         self,
-        action: Optional[AuditAction] = None,
-        target_user_id: Optional[int] = None,
-        actor_user_id: Optional[int] = None,
-        email: Optional[str] = None,
-        from_ts: Optional[datetime] = None,
-        to_ts: Optional[datetime] = None,
+        action: AuditAction | None = None,
+        target_user_id: int | None = None,
+        actor_user_id: int | None = None,
+        email: str | None = None,
+        from_ts: datetime | None = None,
+        to_ts: datetime | None = None,
         *,
         include_deleted: bool = False,
     ) -> int:
@@ -84,17 +83,15 @@ class UserAuditLogRepository(BaseRepository):
 
     def _build_query(
         self,
-        action: Optional[AuditAction],
-        target_user_id: Optional[int],
-        actor_user_id: Optional[int],
-        email: Optional[str],
-        from_ts: Optional[datetime],
-        to_ts: Optional[datetime],
+        action: AuditAction | None,
+        target_user_id: int | None,
+        actor_user_id: int | None,
+        email: str | None,
+        from_ts: datetime | None,
+        to_ts: datetime | None,
         count_only: bool = False,
     ):
-        stmt = (
-            select(func.count(UserAuditLog.id)) if count_only else select(UserAuditLog)
-        )
+        stmt = select(func.count(UserAuditLog.id)) if count_only else select(UserAuditLog)
         if action is not None:
             stmt = stmt.where(UserAuditLog.action == action)
         if target_user_id is not None:

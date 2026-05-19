@@ -1,12 +1,10 @@
 from datetime import date
-from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
 from app.businesses.models.business import BusinessStatus
 from app.core.action_schemas import ActionDescriptor
 from app.core.api_types import ApiDateTime, PaginatedResponse
-
 
 # ─── Requests ────────────────────────────────────────────────────────────────
 
@@ -17,9 +15,9 @@ class BusinessCreateRequest(BaseModel):
     client_id מועבר ב-URL: POST /clients/{client_id}/businesses
     """
 
-    opened_at: Optional[date] = None
+    opened_at: date | None = None
     business_name: str = Field(..., max_length=100)
-    notes: Optional[str] = None
+    notes: str | None = None
 
     @field_validator("business_name")
     @classmethod
@@ -36,9 +34,9 @@ class ClientBusinessCreateRequest(BaseModel):
     שם העסק נדרש לפתיחת פעילות ראשונה.
     """
 
-    opened_at: Optional[date] = None
+    opened_at: date | None = None
     business_name: str = Field(..., max_length=100)
-    notes: Optional[str] = None
+    notes: str | None = None
 
     @field_validator("business_name")
     @classmethod
@@ -52,9 +50,9 @@ class ClientBusinessCreateRequest(BaseModel):
 class BusinessUpdateRequest(BaseModel):
     """עדכון פרטי עסק."""
 
-    business_name: Optional[str] = None
-    status: Optional[BusinessStatus] = None  # enum
-    closed_at: Optional[date] = None
+    business_name: str | None = None
+    status: BusinessStatus | None = None  # enum
+    closed_at: date | None = None
 
 
 # ─── Responses ────────────────────────────────────────────────────────────────
@@ -64,13 +62,13 @@ class BusinessResponse(BaseModel):
     """תגובת עסק."""
 
     id: int
-    client_id: Optional[int] = None
-    business_name: Optional[str] = None
+    client_id: int | None = None
+    business_name: str | None = None
     status: BusinessStatus
     opened_at: date
-    closed_at: Optional[date] = None
-    notes: Optional[str] = None
-    created_at: Optional[ApiDateTime] = None
+    closed_at: date | None = None
+    notes: str | None = None
+    created_at: ApiDateTime | None = None
     available_actions: list[ActionDescriptor] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}

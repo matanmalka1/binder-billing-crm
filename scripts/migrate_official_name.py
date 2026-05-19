@@ -44,9 +44,7 @@ def run() -> None:
             text("SELECT id, id_number FROM legal_entities WHERE official_name IS NULL")
         ).fetchall()
         if missing:
-            print(
-                f"WARNING: {len(missing)} legal_entities still have no official_name:"
-            )
+            print(f"WARNING: {len(missing)} legal_entities still have no official_name:")
             for row in missing:
                 print(f"  id={row.id}, id_number={row.id_number}")
         else:

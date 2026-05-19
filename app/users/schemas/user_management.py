@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
@@ -11,16 +10,16 @@ from app.users.services.user_management_service import MIN_PASSWORD_LENGTH
 class UserCreateRequest(BaseModel):
     full_name: str
     email: EmailStr
-    phone: Optional[str] = None
+    phone: str | None = None
     role: UserRole
     password: str = Field(min_length=MIN_PASSWORD_LENGTH)
 
 
 class UserUpdateRequest(BaseModel):
-    full_name: Optional[str] = None
-    phone: Optional[str] = None
-    role: Optional[UserRole] = None
-    email: Optional[EmailStr] = None
+    full_name: str | None = None
+    phone: str | None = None
+    role: UserRole | None = None
+    email: EmailStr | None = None
 
     @model_validator(mode="after")
     def require_at_least_one(self) -> "UserUpdateRequest":
@@ -37,11 +36,11 @@ class UserManagementResponse(BaseModel):
     id: int
     full_name: str
     email: EmailStr
-    phone: Optional[str] = None
+    phone: str | None = None
     role: UserRole
     is_active: bool
     created_at: ApiDateTime
-    last_login_at: Optional[ApiDateTime] = None
+    last_login_at: ApiDateTime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -52,12 +51,12 @@ UserManagementListResponse = PaginatedResponse[UserManagementResponse]
 class UserAuditLogResponse(BaseModel):
     id: int
     action: AuditAction
-    actor_user_id: Optional[int] = None
-    target_user_id: Optional[int] = None
-    email: Optional[str] = None
+    actor_user_id: int | None = None
+    target_user_id: int | None = None
+    email: str | None = None
     status: AuditStatus
-    reason: Optional[str] = None
-    metadata: Optional[dict] = None
+    reason: str | None = None
+    metadata: dict | None = None
     created_at: ApiDateTime
 
     model_config = {"from_attributes": True}

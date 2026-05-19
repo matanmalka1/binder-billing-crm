@@ -1,6 +1,6 @@
 """Repository for client-level VAT summary queries."""
 
-from sqlalchemy import case, func, Integer, cast, select
+from sqlalchemy import Integer, case, cast, func, select
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
@@ -87,9 +87,9 @@ class VatClientSummaryRepository(BaseRepository[VatWorkItem]):
                 func.sum(VatWorkItem.total_input_vat).label("total_input_vat"),
                 func.sum(VatWorkItem.net_vat).label("net_vat"),
                 func.count(VatWorkItem.id).label("periods_count"),
-                func.sum(
-                    case((VatWorkItem.status == VatWorkItemStatus.FILED, 1), else_=0)
-                ).label("filed_count"),
+                func.sum(case((VatWorkItem.status == VatWorkItemStatus.FILED, 1), else_=0)).label(
+                    "filed_count"
+                ),
             )
             .where(
                 VatWorkItem.client_record_id == client_record_id,

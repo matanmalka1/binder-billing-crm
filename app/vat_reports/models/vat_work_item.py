@@ -29,30 +29,25 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.orm import relationship
-from app.common.enums import SubmissionMethod
-from app.utils.enum_utils import pg_enum
 
+from app.common.enums import SubmissionMethod, VatType
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.common.enums import VatType
 
 
 class VatWorkItem(Base):
     __tablename__ = "vat_work_items"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    client_record_id = Column(
-        Integer, ForeignKey("client_records.id"), nullable=False, index=True
-    )
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # Period identity
     period = Column(String(7), nullable=False)  # "YYYY-MM"
-    period_type = Column(
-        pg_enum(VatType), nullable=False
-    )  # snapshot at creation — immutable
+    period_type = Column(pg_enum(VatType), nullable=False)  # snapshot at creation — immutable
 
     # Status lifecycle
     status = Column(
@@ -76,9 +71,7 @@ class VatWorkItem(Base):
     final_vat_amount = Column(Numeric(12, 2), nullable=True)
     is_overridden = Column(Boolean, nullable=False, default=False)
     override_justification = Column(Text, nullable=True)
-    submission_method = Column(
-        pg_enum(SubmissionMethod), nullable=True
-    )  # replaces filing_method
+    submission_method = Column(pg_enum(SubmissionMethod), nullable=True)  # replaces filing_method
     filed_at = Column(DateTime, nullable=True)
     filed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     submission_reference = Column(String(100), nullable=True)
@@ -145,4 +138,6 @@ class VatWorkItem(Base):
         )
 
 
-from app.vat_reports.models import due_date_snapshot_events  # noqa: E402,F401  # pylint: disable=unused-import
+from app.vat_reports.models import (
+    due_date_snapshot_events,  # noqa: E402,F401  # pylint: disable=unused-import
+)

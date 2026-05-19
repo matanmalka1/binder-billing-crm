@@ -27,9 +27,7 @@ def _user(db):
 def test_grouped_due_date_uses_due_date_effective_not_online_extension(test_db):
     """Group key must equal due_date_effective (statutory), not due_date_effective + 4 days."""
     user = _user(test_db)
-    client = seed_client_identity(
-        test_db, full_name="Grouped Client", id_number="GC001"
-    )
+    client = seed_client_identity(test_db, full_name="Grouped Client", id_number="GC001")
 
     item = create_linked_vat_work_item(
         test_db,

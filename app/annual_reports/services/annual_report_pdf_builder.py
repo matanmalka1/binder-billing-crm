@@ -5,12 +5,17 @@ from __future__ import annotations
 import io
 import os
 from datetime import datetime
-from typing import Optional
 
 from app.annual_reports.services.labels import (
     CLIENT_TYPE_LABELS as _CLIENT_TYPE_LABELS,
+)
+from app.annual_reports.services.labels import (
     EXPENSE_LABELS as _EXPENSE_LABELS,
+)
+from app.annual_reports.services.labels import (
     INCOME_LABELS as _INCOME_LABELS,
+)
+from app.annual_reports.services.labels import (
     STATUS_LABELS as _STATUS_LABELS,
 )
 
@@ -25,7 +30,7 @@ _C_TEXT_DARK = "#1A1A2E"
 _C_FOOTER_BG = "#F0F0F0"
 
 
-def _fmt(value: Optional[float]) -> str:
+def _fmt(value: float | None) -> str:
     if value is None:
         return "—"
     return f"₪{value:,.2f}"
@@ -160,9 +165,7 @@ def build_pdf(report, client_name: str, summary, tax, detail) -> bytes:  # noqa:
         ]
         for i in range(1, n - 1):
             if i % 2 == 0:
-                style_cmds.append(
-                    ("BACKGROUND", (0, i), (-1, i), colors.HexColor(_C_ALT))
-                )
+                style_cmds.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor(_C_ALT)))
         t.setStyle(TableStyle(style_cmds))
         return t
 
@@ -184,12 +187,8 @@ def build_pdf(report, client_name: str, summary, tax, detail) -> bytes:  # noqa:
 
     elems: list = []
     now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
-    form_label = _CLIENT_TYPE_LABELS.get(
-        report.client_type or "", report.client_type or ""
-    )
-    status_val = (
-        report.status.value if hasattr(report.status, "value") else str(report.status)
-    )
+    form_label = _CLIENT_TYPE_LABELS.get(report.client_type or "", report.client_type or "")
+    status_val = report.status.value if hasattr(report.status, "value") else str(report.status)
     status_label = _STATUS_LABELS.get(status_val, status_val)
 
     elems.append(p("יועץ מס — טיוטה לעיון בלבד", s_title))
@@ -201,9 +200,7 @@ def build_pdf(report, client_name: str, summary, tax, detail) -> bytes:  # noqa:
     )
     elems.append(p(f"הופק: {now_str}", s_meta))
     elems.append(
-        HRFlowable(
-            width="100%", thickness=1.5, color=colors.HexColor(_C_ACCENT), spaceAfter=8
-        )
+        HRFlowable(width="100%", thickness=1.5, color=colors.HexColor(_C_ACCENT), spaceAfter=8)
     )
 
     elems += section_heading("פרטי הדוח")
@@ -216,11 +213,7 @@ def build_pdf(report, client_name: str, summary, tax, detail) -> bytes:  # noqa:
     elems += section_heading("הכנסות")
     rows2 = [["מקור הכנסה", "סכום"]]
     for line in summary.income_lines:
-        src = (
-            line.source_type
-            if isinstance(line.source_type, str)
-            else line.source_type.value
-        )
+        src = line.source_type if isinstance(line.source_type, str) else line.source_type.value
         rows2.append([_INCOME_LABELS.get(src, src), _fmt(line.amount)])
     rows2.append(['סה"כ הכנסות', _fmt(summary.total_income)])
     elems.append(make_table(rows2))

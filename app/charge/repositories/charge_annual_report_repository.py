@@ -3,8 +3,8 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.common.repositories.base_repository import BaseRepository
 from app.charge.models.charge import Charge
+from app.common.repositories.base_repository import BaseRepository
 
 
 class ChargeAnnualReportRepository(BaseRepository):

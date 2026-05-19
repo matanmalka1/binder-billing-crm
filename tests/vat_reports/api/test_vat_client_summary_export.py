@@ -1,6 +1,6 @@
+import io
 from datetime import date, datetime
 from decimal import Decimal
-import io
 
 import openpyxl
 import pytest
@@ -69,9 +69,7 @@ def test_vat_client_summary_returns_periods_and_annual(
 ):
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
-    resp = client.get(
-        f"/api/v1/vat/clients/{vat_client.id}/summary", headers=advisor_headers
-    )
+    resp = client.get(f"/api/v1/vat/clients/{vat_client.id}/summary", headers=advisor_headers)
     assert resp.status_code == 200
     payload = resp.json()
     assert payload["client_record_id"] == vat_client.id
@@ -85,9 +83,7 @@ def test_vat_client_summary_returns_periods_and_annual(
     assert payload["annual"][0]["filed_count"] == 1
 
 
-def test_vat_client_work_items_endpoint(
-    client, test_db, advisor_headers, vat_client, test_user
-):
+def test_vat_client_work_items_endpoint(client, test_db, advisor_headers, vat_client, test_user):
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
     resp = client.get(
@@ -104,9 +100,7 @@ def test_vat_client_work_items_endpoint(
     assert payload["items"][1]["filed_by_name"] == test_user.full_name
 
 
-def test_vat_client_export_excel(
-    client, test_db, advisor_headers, vat_client, test_user
-):
+def test_vat_client_export_excel(client, test_db, advisor_headers, vat_client, test_user):
     _seed_work_items(test_db, vat_client.id, test_user.id)
 
     resp = client.get(
@@ -143,9 +137,7 @@ def test_vat_client_export_import_error_returns_detail(
 ):
     monkeypatch.setattr(
         "app.vat_reports.api.routes_client_summary.export",
-        lambda *_args, **_kwargs: (_ for _ in ()).throw(
-            ImportError("openpyxl missing")
-        ),
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(ImportError("openpyxl missing")),
     )
 
     with pytest.raises(ImportError, match="openpyxl missing"):

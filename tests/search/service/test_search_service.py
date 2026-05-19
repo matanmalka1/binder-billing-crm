@@ -40,14 +40,10 @@ def test_search_service_mixed_client_and_binder_filters(monkeypatch, test_db):
     )
     monkeypatch.setattr(
         "app.search.services.search_service.DocumentSearchService",
-        lambda db: SimpleNamespace(
-            search_documents=lambda query, filename=None: [{"id": 10}]
-        ),
+        lambda db: SimpleNamespace(search_documents=lambda query, filename=None: [{"id": 10}]),
     )
 
-    items, total, docs = svc.search(
-        query="alpha", binder_number="B-", page=1, page_size=10
-    )
+    items, total, docs = svc.search(query="alpha", binder_number="B-", page=1, page_size=10)
     assert docs == [{"id": 10}]
     assert total >= 1
     assert any(i["result_type"] == "binder" for i in items)

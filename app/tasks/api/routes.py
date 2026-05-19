@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response
 
@@ -26,14 +25,14 @@ router = APIRouter(
 @router.get("", response_model=TaskListResponse)
 def list_tasks(
     db: DBSession,
-    status: Optional[TaskStatus] = Query(None),
-    priority: Optional[TaskPriority] = Query(None),
-    assigned_to_user_id: Optional[int] = Query(None),
-    assigned_role: Optional[str] = Query(None),
-    source_domain: Optional[str] = Query(None),
-    source_id: Optional[int] = Query(None),
-    due_before: Optional[date] = Query(None),
-    due_after: Optional[date] = Query(None),
+    status: TaskStatus | None = Query(None),
+    priority: TaskPriority | None = Query(None),
+    assigned_to_user_id: int | None = Query(None),
+    assigned_role: str | None = Query(None),
+    source_domain: str | None = Query(None),
+    source_id: int | None = Query(None),
+    due_before: date | None = Query(None),
+    due_after: date | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):

@@ -83,8 +83,6 @@ def test_expired_token_rejected_in_api(client, test_user):
     expired_token = jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
 
     # Try to use expired token
-    response = client.get(
-        "/api/v1/clients", headers={"Authorization": f"Bearer {expired_token}"}
-    )
+    response = client.get("/api/v1/clients", headers={"Authorization": f"Bearer {expired_token}"})
 
     assert response.status_code == 401

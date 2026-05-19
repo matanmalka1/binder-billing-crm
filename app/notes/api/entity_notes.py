@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, Query, Response, status
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.notes.schemas.entity_note import (
     EntityNoteCreateRequest,
     EntityNoteListResponse,
@@ -9,6 +7,8 @@ from app.notes.schemas.entity_note import (
     EntityNoteUpdateRequest,
 )
 from app.notes.services.entity_note_service import EntityNoteService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/clients/{client_id}/notes",

@@ -2,10 +2,6 @@
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.core.api_types import PaginatedResponse
-
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.schemas.annual_report_annex import (
     AnnexDataAddRequest,
@@ -13,7 +9,9 @@ from app.annual_reports.schemas.annual_report_annex import (
     AnnexDataUpdateRequest,
 )
 from app.annual_reports.services.annual_report_service import AnnualReportService
-
+from app.core.api_types import PaginatedResponse
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/annual-reports",
@@ -55,9 +53,7 @@ def add_annex_line(
     user: CurrentUser,
 ):
     svc = AnnualReportService(db)
-    return svc.add_annex_line(
-        report_id, schedule, body.data, body.notes, actor_id=user.id
-    )
+    return svc.add_annex_line(report_id, schedule, body.data, body.notes, actor_id=user.id)
 
 
 @router.patch(
@@ -73,9 +69,7 @@ def update_annex_line(
     user: CurrentUser,
 ):
     svc = AnnualReportService(db)
-    return svc.update_annex_line(
-        report_id, line_id, body.data, body.notes, actor_id=user.id
-    )
+    return svc.update_annex_line(report_id, line_id, body.data, body.notes, actor_id=user.id)
 
 
 @router.delete(

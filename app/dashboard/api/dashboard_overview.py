@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.dashboard.schemas.dashboard_extended import DashboardOverviewResponse
 from app.dashboard.services.dashboard_overview_service import DashboardOverviewService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/dashboard",

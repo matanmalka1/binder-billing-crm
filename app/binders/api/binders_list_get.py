@@ -1,12 +1,11 @@
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.binders.schemas.binder import BinderListResponse, BinderResponse
 from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_service import BinderService
-from app.core.exceptions import NotFoundError
 from app.binders.services.messages import BINDER_NOT_FOUND
+from app.core.exceptions import NotFoundError
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 
@@ -21,15 +20,15 @@ router = APIRouter(
 def list_binders(
     db: DBSession,
     user: CurrentUser,
-    status_filter: Optional[str] = Query(None, alias="status"),
-    client_record_id: Optional[int] = None,
-    query: Optional[str] = None,
-    client_name: Optional[str] = None,
-    binder_number: Optional[str] = None,
-    year: Optional[int] = None,
+    status_filter: str | None = Query(None, alias="status"),
+    client_record_id: int | None = None,
+    query: str | None = None,
+    client_name: str | None = None,
+    binder_number: str | None = None,
+    year: int | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    sort_by: Optional[str] = Query(None),
+    sort_by: str | None = Query(None),
     sort_dir: str = Query("desc"),
 ):
     """List active binders with optional filters, sorting, and pagination."""
@@ -61,9 +60,7 @@ def get_binder(binder_id: int, db: DBSession, user: CurrentUser):
     service = BinderListService(db)
     binder_response = service.get_binder_with_client_name(binder_id)
     if not binder_response:
-        raise NotFoundError(
-            BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND"
-        )
+        raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
     return binder_response
 
 
@@ -77,7 +74,5 @@ def delete_binder(binder_id: int, db: DBSession, user: CurrentUser):
     service = BinderService(db)
     deleted = service.delete_binder(binder_id, actor_id=user.id)
     if not deleted:
-        raise NotFoundError(
-            BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND"
-        )
+        raise NotFoundError(BINDER_NOT_FOUND.format(binder_id=binder_id), "BINDER.NOT_FOUND")
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -77,9 +77,7 @@ def list_advance_payments_overview(
             calculated_amount=row.payment.calculated_amount,
             override_amount=row.payment.override_amount,
             live_turnover=row.live_turnover,
-            missing_turnover=(
-                row.payment.turnover_amount is None and row.live_turnover is None
-            ),
+            missing_turnover=(row.payment.turnover_amount is None and row.live_turnover is None),
             advance_rate=row.advance_rate,
         )
         for row in rows
@@ -106,9 +104,7 @@ def list_advance_payment_batches(
     for r in rows:
         total_expected = float(r.total_expected)
         total_paid = float(r.total_paid)
-        collection_rate = (
-            round(total_paid / total_expected * 100, 2) if total_expected > 0 else 0.0
-        )
+        collection_rate = round(total_paid / total_expected * 100, 2) if total_expected > 0 else 0.0
         result.append(
             MonthBatchSummary(
                 year=int(r.year),

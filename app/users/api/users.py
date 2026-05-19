@@ -1,5 +1,5 @@
+
 from fastapi import APIRouter, Depends, Query, status
-from typing import Optional
 
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
@@ -19,9 +19,7 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "", response_model=UserManagementResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("", response_model=UserManagementResponse, status_code=status.HTTP_201_CREATED)
 def create_user(request: UserCreateRequest, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
     return service.create_user(
@@ -41,8 +39,8 @@ def list_users(
     user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    is_active: Optional[bool] = Query(None),
-    search: Optional[str] = Query(None),
+    is_active: bool | None = Query(None),
+    search: str | None = Query(None),
 ):
     service = UserManagementService(db)
     items, total = service.list_users(
@@ -52,9 +50,7 @@ def list_users(
         is_active=is_active,
         search=search,
     )
-    return UserManagementListResponse(
-        items=items, page=page, page_size=page_size, total=total
-    )
+    return UserManagementListResponse(items=items, page=page, page_size=page_size, total=total)
 
 
 @router.get("/{user_id}", response_model=UserManagementResponse)
@@ -64,9 +60,7 @@ def get_user(user_id: int, db: DBSession, user: CurrentUser):
 
 
 @router.patch("/{user_id}", response_model=UserManagementResponse)
-def update_user(
-    user_id: int, request: UserUpdateRequest, db: DBSession, user: CurrentUser
-):
+def update_user(user_id: int, request: UserUpdateRequest, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
     update_data = request.model_dump(exclude_unset=True, exclude_none=True)
     return service.update_user(
@@ -98,9 +92,7 @@ def deactivate_user(user_id: int, db: DBSession, user: CurrentUser):
 
 
 @router.post("/{user_id}/reset-password", response_model=UserManagementResponse)
-def reset_password(
-    user_id: int, request: PasswordResetRequest, db: DBSession, user: CurrentUser
-):
+def reset_password(user_id: int, request: PasswordResetRequest, db: DBSession, user: CurrentUser):
     service = UserManagementService(db)
     return service.reset_password(
         actor_user_id=user.id,

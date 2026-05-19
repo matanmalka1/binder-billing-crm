@@ -10,10 +10,10 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
-from app.utils.enum_utils import pg_enum
 
-from app.database import Base
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
+from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
 

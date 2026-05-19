@@ -3,7 +3,6 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.users.models.user import UserRole
 from app.signature_requests.schemas.signature_request import (
     SignatureRequestListResponse,
     SignatureRequestResponse,
@@ -12,6 +11,7 @@ from app.signature_requests.services.signature_request_service import (
     SignatureRequestService,
 )
 from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 client_router = APIRouter(
     tags=["signature-requests"],
@@ -48,9 +48,7 @@ def list_client_signature_requests(
     return SignatureRequestListResponse(
         items=[
             SignatureRequestResponse.model_validate(r).model_copy(
-                update={
-                    "office_client_number": office_number_map.get(r.client_record_id)
-                }
+                update={"office_client_number": office_number_map.get(r.client_record_id)}
             )
             for r in items
         ],

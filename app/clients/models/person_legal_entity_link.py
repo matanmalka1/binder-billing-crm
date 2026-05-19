@@ -2,9 +2,10 @@ from enum import Enum as PyEnum
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, UniqueConstraint
 from sqlalchemy.orm import relationship
+
 from app.database import Base
-from app.utils.time_utils import utcnow
 from app.utils.enum_utils import pg_enum
+from app.utils.time_utils import utcnow
 
 
 class PersonLegalEntityRole(str, PyEnum):
@@ -30,9 +31,7 @@ class PersonLegalEntityLink(Base):
 
     created_at = Column(DateTime, default=utcnow, nullable=False)
 
-    person = relationship(
-        "Person", foreign_keys=[person_id], lazy="select", viewonly=True
-    )
+    person = relationship("Person", foreign_keys=[person_id], lazy="select", viewonly=True)
 
     __table_args__ = (
         UniqueConstraint(

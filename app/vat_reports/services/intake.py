@@ -1,11 +1,13 @@
 """Work item creation and material intake flows."""
 
 import json
-from typing import Optional
 
-from app.common.enums import ObligationType, VatType
 from app.clients.enums import ClientStatus
+from app.common.enums import ObligationType, VatType
 from app.core.exceptions import AppError, ConflictError, NotFoundError
+from app.tax_calendar.services.materialization_service import (
+    TaxCalendarMaterializationService,
+)
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_write_repository import (
     VatWorkItemWriteRepository as VatWorkItemRepository,
@@ -26,11 +28,7 @@ from app.vat_reports.services.messages import (
     VAT_PENDING_MATERIALS_NOTE_REQUIRED,
     VAT_WORK_ITEM_CONFLICT,
 )
-from app.tax_calendar.services.materialization_service import (
-    TaxCalendarMaterializationService,
-)
 from app.vat_reports.services.vat_type_resolver import resolve_effective_vat_type
-
 
 _VAT_PERIOD_MONTHS_COUNT = {VatType.MONTHLY: 1, VatType.BIMONTHLY: 2}
 
@@ -57,13 +55,13 @@ def create_work_item(
     client_record_id: int,
     period: str,
     created_by: int,
-    assigned_to: Optional[int] = None,
+    assigned_to: int | None = None,
     mark_pending: bool = False,
-    pending_materials_note: Optional[str] = None,
+    pending_materials_note: str | None = None,
 ):
-    client_record, legal_entity = VatClientContextService(
-        db
-    ).get_active_client_and_entity(client_record_id)
+    client_record, legal_entity = VatClientContextService(db).get_active_client_and_entity(
+        client_record_id
+    )
     if client_record.status == ClientStatus.CLOSED:
         raise AppError(VAT_CLIENT_CLOSED_CREATE_ITEM, "VAT.CLIENT_CLOSED")
     if client_record.status == ClientStatus.FROZEN:
@@ -77,9 +75,7 @@ def create_work_item(
     existing = work_item_repo.get_by_client_record_period(client_record_id, period)
     if existing:
         raise ConflictError(
-            VAT_WORK_ITEM_CONFLICT.format(
-                client_record_id=client_record_id, period=period
-            ),
+            VAT_WORK_ITEM_CONFLICT.format(client_record_id=client_record_id, period=period),
             "VAT.CONFLICT",
         )
 
@@ -115,9 +111,7 @@ def create_work_item(
     materializer.link_vat_work_item(item)
     db.flush()
 
-    action = (
-        ACTION_WORK_ITEM_CREATED_PENDING if mark_pending else ACTION_MATERIAL_RECEIVED
-    )
+    action = ACTION_WORK_ITEM_CREATED_PENDING if mark_pending else ACTION_MATERIAL_RECEIVED
     work_item_repo.append_audit(
         work_item_id=item.id,
         performed_by=created_by,

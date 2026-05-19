@@ -1,14 +1,13 @@
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
+from app.binders.models.binder import BinderStatus
 from app.clients.enums import ClientStatus
 from app.common.enums import EntityType
-from app.binders.models.binder import BinderStatus
 from app.search.schemas.search import SearchResponse, SearchResult
 from app.search.services.search_service import SearchService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/search",
@@ -21,14 +20,14 @@ router = APIRouter(
 def search(
     db: DBSession,
     user: CurrentUser,
-    query: Optional[str] = None,
-    client_name: Optional[str] = None,
-    id_number: Optional[str] = None,
-    binder_number: Optional[str] = None,
-    client_status: Optional[ClientStatus] = None,
-    entity_type: Optional[EntityType] = None,
-    binder_status: Optional[BinderStatus] = None,
-    filename: Optional[str] = None,
+    query: str | None = None,
+    client_name: str | None = None,
+    id_number: str | None = None,
+    binder_number: str | None = None,
+    client_status: ClientStatus | None = None,
+    entity_type: EntityType | None = None,
+    binder_status: BinderStatus | None = None,
+    filename: str | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):

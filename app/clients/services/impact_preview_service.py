@@ -1,11 +1,10 @@
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.actions.obligation_orchestrator import _years_to_generate
 from app.clients.create_policy import normalize_vat_exempt_ceiling
-from app.clients.schemas.impact import CreationImpactItem, ClientCreationImpactResponse
+from app.clients.schemas.impact import ClientCreationImpactResponse, CreationImpactItem
 from app.common.enums import (
     AdvancePaymentFrequency,
     EntityType,
@@ -23,10 +22,10 @@ from app.tax_calendar.services.materialization_service import (
 
 def compute_creation_impact(
     db: Session,
-    entity_type: Optional[EntityType],
-    vat_reporting_frequency: Optional[VatType],
-    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
-    reference_date: Optional[date] = None,
+    entity_type: EntityType | None,
+    vat_reporting_frequency: VatType | None,
+    advance_payment_frequency: AdvancePaymentFrequency | None = None,
+    reference_date: date | None = None,
 ) -> ClientCreationImpactResponse:
     if entity_type == EntityType.EMPLOYEE:
         raise ValueError("פתיחת לקוח מסוג שכיר אינה נתמכת במערכת")

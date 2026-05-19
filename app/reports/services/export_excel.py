@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict
 
 from app.reports.constants import (
     AGING_EXPORT_FILENAME_PREFIX,
@@ -12,9 +11,7 @@ from app.reports.constants import (
 from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 
 
-def export_aging_report_to_excel(
-    report_data: dict, export_dir: str
-) -> Dict[str, object]:
+def export_aging_report_to_excel(report_data: dict, export_dir: str) -> dict[str, object]:
     """
     Build an Excel file for the aging report.
     Returns download metadata.
@@ -63,9 +60,7 @@ def export_aging_report_to_excel(
         ws.cell(
             row=row,
             column=7,
-            value=str(item["oldest_invoice_date"])
-            if item["oldest_invoice_date"]
-            else "",
+            value=str(item["oldest_invoice_date"]) if item["oldest_invoice_date"] else "",
         )
         ws.cell(row=row, column=8, value=item["oldest_invoice_days"] or "")
         row += 1

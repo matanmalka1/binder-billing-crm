@@ -9,13 +9,13 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    column,
     and_,
+    column,
 )
 from sqlalchemy.orm import relationship
-from app.utils.enum_utils import pg_enum
 
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
 
@@ -41,9 +41,7 @@ class Business(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    legal_entity_id = Column(
-        Integer, ForeignKey("legal_entities.id"), nullable=False, index=True
-    )
+    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False, index=True)
 
     legal_entity = relationship(
         "LegalEntity",
@@ -53,9 +51,7 @@ class Business(Base):
     )
 
     # Business details.
-    business_name = Column(
-        String, nullable=False
-    )  # required: every activity must have a name
+    business_name = Column(String, nullable=False)  # required: every activity must have a name
     status = Column(
         pg_enum(BusinessStatus),
         default=BusinessStatus.ACTIVE,
@@ -107,8 +103,6 @@ class Business(Base):
             postgresql_where=and_(
                 column("business_name").isnot(None), column("deleted_at").is_(None)
             ),
-            sqlite_where=and_(
-                column("business_name").isnot(None), column("deleted_at").is_(None)
-            ),
+            sqlite_where=and_(column("business_name").isnot(None), column("deleted_at").is_(None)),
         ),
     )

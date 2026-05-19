@@ -32,9 +32,7 @@ class TestDeadlineFieldsFromSnapshot:
             result = deadline_fields_from_snapshot(
                 _snapshot_item(effective), submission_method=method
             )
-            assert result["submission_deadline"] == effective, (
-                f"failed for method={method}"
-            )
+            assert result["submission_deadline"] == effective, f"failed for method={method}"
             assert result["extended_deadline"] == effective, (
                 f"extended mismatch for method={method}"
             )
@@ -69,9 +67,7 @@ class TestDeadlineFieldsFromSnapshot:
 
             @property
             def period(self):
-                raise AssertionError(
-                    "deadline_fields_from_snapshot must not access item.period"
-                )
+                raise AssertionError("deadline_fields_from_snapshot must not access item.period")
 
         result = deadline_fields_from_snapshot(
             _NoPeriodItem(), submission_method=SubmissionMethod.ONLINE
@@ -114,9 +110,7 @@ def test_list_client_work_items_forwards_repository_call():
     expected = [make_item(id=1), make_item(id=2)]
     work_item_repo.list_by_client_record.return_value = expected
 
-    result = vat_report_queries.list_client_work_items(
-        work_item_repo, client_record_id=11
-    )
+    result = vat_report_queries.list_client_work_items(work_item_repo, client_record_id=11)
 
     work_item_repo.list_by_client_record.assert_called_once_with(11)
     assert result == expected
@@ -220,18 +214,14 @@ def test_list_invoices_forwards_invoice_type():
     )
 
     assert result == ["i1"]
-    invoice_repo.list_by_work_item.assert_called_once_with(
-        5, invoice_type=InvoiceType.EXPENSE
-    )
+    invoice_repo.list_by_work_item.assert_called_once_with(5, invoice_type=InvoiceType.EXPENSE)
 
 
 def test_get_audit_trail_forwards_call():
     work_item_repo = MagicMock()
     work_item_repo.get_audit_trail.return_value = ["a1", "a2"]
 
-    result = vat_report_queries.get_audit_trail(
-        work_item_repo, item_id=12, limit=50, offset=0
-    )
+    result = vat_report_queries.get_audit_trail(work_item_repo, item_id=12, limit=50, offset=0)
 
     assert result == ["a1", "a2"]
     work_item_repo.get_audit_trail.assert_called_once_with(12, 50, 0)

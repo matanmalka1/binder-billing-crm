@@ -1,8 +1,8 @@
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.utils.time_utils import utcnow
 from tests.tax_calendar.api.grouped_helpers import (
-    add_annual_report,
     add_advance_payment,
+    add_annual_report,
     add_vat_item,
     advance_entry,
     annual_entry,
@@ -115,9 +115,7 @@ def test_annual_report_linked_item_appears(client, auth_token, test_db):
     assert data["effective_due_date"] == "2027-07-31"
 
 
-def test_unlinked_business_objects_are_not_returned(
-    client, auth_token, test_db, test_user
-):
+def test_unlinked_business_objects_are_not_returned(client, auth_token, test_db, test_user):
     entry = vat_entry(test_db)
     other_entry = vat_entry(test_db, 2027)
     add_vat_item(test_db, other_entry, test_user.id)

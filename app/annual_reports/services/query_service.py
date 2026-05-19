@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import Optional
 
 from app.annual_reports.integrations.tax_rules_registry import (
     get_default_resident_credit_points,
@@ -10,13 +9,14 @@ from app.annual_reports.schemas.annual_report_responses import (
     ScheduleEntryResponse,
     StatusHistoryResponse,
 )
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+
 from .base import AnnualReportBaseService
 
 
 class AnnualReportQueryService(AnnualReportBaseService):
-    def get_report(self, report_id: int) -> Optional[AnnualReportResponse]:
+    def get_report(self, report_id: int) -> AnnualReportResponse | None:
         report = self.repo.get_by_id(report_id)
         if not report:
             return None
@@ -26,19 +26,16 @@ class AnnualReportQueryService(AnnualReportBaseService):
         self, client_record_id: int, page: int = 1, page_size: int = 20
     ) -> tuple[list[AnnualReportResponse], int]:
         from app.core.exceptions import NotFoundError
+
         from .messages import ANNUAL_REPORT_CLIENT_NOT_FOUND
 
         client_record = ClientRecordRepository(self.db).get_by_id(client_record_id)
         if client_record is None:
             raise NotFoundError(
-                ANNUAL_REPORT_CLIENT_NOT_FOUND.format(
-                    client_record_id=client_record_id
-                ),
+                ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
                 "ANNUAL_REPORT.CLIENT_NOT_FOUND",
             )
-        reports = self.repo.list_by_client_record(
-            client_record.id, page=page, page_size=page_size
-        )
+        reports = self.repo.list_by_client_record(client_record.id, page=page, page_size=page_size)
         total = self.repo.count_by_client_record(client_record.id)
         return self._to_responses(reports), total
 
@@ -56,9 +53,7 @@ class AnnualReportQueryService(AnnualReportBaseService):
             )
             total = self.repo.count_by_tax_year(tax_year)
         else:
-            items = self.repo.list_all(
-                page=page, page_size=page_size, sort_by=sort_by, order=order
-            )
+            items = self.repo.list_all(page=page, page_size=page_size, sort_by=sort_by, order=order)
             total = self.repo.count_all()
         return self._to_responses(items), total
 
@@ -66,18 +61,16 @@ class AnnualReportQueryService(AnnualReportBaseService):
         return self.repo.get_season_summary(tax_year)
 
     def get_overdue(
-        self, tax_year: Optional[int] = None, page: int = 1, page_size: int = 20
+        self, tax_year: int | None = None, page: int = 1, page_size: int = 20
     ) -> list[AnnualReportResponse]:
-        reports = self.repo.list_overdue(
-            tax_year=tax_year, page=page, page_size=page_size
-        )
+        reports = self.repo.list_overdue(tax_year=tax_year, page=page, page_size=page_size)
         return self._to_responses(reports)
 
     def get_status_history(self, report_id: int) -> list:
         self._get_or_raise(report_id)
         return self.repo.get_status_history(report_id)
 
-    def get_detail_report(self, report_id: int) -> Optional[AnnualReportDetailResponse]:
+    def get_detail_report(self, report_id: int) -> AnnualReportDetailResponse | None:
         """Return report with schedules, history, financial summary, and detail fields. None if not found."""
         from app.annual_reports.repositories.credit_point_repository import (
             AnnualReportCreditPointRepository,
@@ -97,22 +90,16 @@ class AnnualReportQueryService(AnnualReportBaseService):
         detail = AnnualReportDetailRepository(self.db).get_by_report_id(report_id)
         orm_report = self.repo.get_by_id(report_id)
         default_credit_points = get_default_resident_credit_points(
-            (orm_report.tax_year if orm_report else report.tax_year)
+            orm_report.tax_year if orm_report else report.tax_year
         )
-        credit_breakdown = AnnualReportCreditPointRepository(
-            self.db
-        ).aggregate_breakdown(
+        credit_breakdown = AnnualReportCreditPointRepository(self.db).aggregate_breakdown(
             report_id,
             default_resident_points=default_credit_points,
         )
 
         response = AnnualReportDetailResponse(**report.model_dump())
-        response.schedules = [
-            ScheduleEntryResponse.model_validate(s) for s in schedules
-        ]
-        response.status_history = [
-            StatusHistoryResponse.model_validate(h) for h in history
-        ]
+        response.schedules = [ScheduleEntryResponse.model_validate(s) for s in schedules]
+        response.status_history = [StatusHistoryResponse.model_validate(h) for h in history]
         response.total_income = financial_summary.total_income
         response.total_expenses = financial_summary.gross_expenses
         response.taxable_income = financial_summary.taxable_income
@@ -123,15 +110,11 @@ class AnnualReportQueryService(AnnualReportBaseService):
             response.amendment_reason = detail.amendment_reason
         response.credit_points = credit_breakdown["credit_points"]
         response.pension_credit_points = credit_breakdown["pension_credit_points"]
-        response.life_insurance_credit_points = credit_breakdown[
-            "life_insurance_credit_points"
-        ]
+        response.life_insurance_credit_points = credit_breakdown["life_insurance_credit_points"]
         response.tuition_credit_points = credit_breakdown["tuition_credit_points"]
         if orm_report:
             response.tax_refund_amount = (
-                float(orm_report.refund_due)
-                if orm_report.refund_due is not None
-                else None
+                float(orm_report.refund_due) if orm_report.refund_due is not None else None
             )
             response.tax_due_amount = (
                 float(orm_report.tax_due) if orm_report.tax_due is not None else None

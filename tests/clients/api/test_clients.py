@@ -43,9 +43,7 @@ def test_identity_only_client_creation_is_not_available(client, advisor_headers)
     assert response.status_code == 422
 
 
-def test_create_client_creates_client_and_initial_business(
-    client, test_db, advisor_headers
-):
+def test_create_client_creates_client_and_initial_business(client, test_db, advisor_headers):
     response = client.post(
         "/api/v1/clients",
         headers=advisor_headers,

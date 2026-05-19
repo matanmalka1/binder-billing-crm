@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -8,7 +7,6 @@ from app.binders.models.binder_intake_material import MaterialType
 from app.core.action_schemas import ActionDescriptor
 from app.core.api_types import ApiDateTime
 
-
 # ── Intake request ────────────────────────────────────────────────────────────
 
 
@@ -16,13 +14,13 @@ class BinderIntakeMaterialRequest(BaseModel):
     """פריט חומר בודד בתוך אירוע קבלה."""
 
     material_type: MaterialType
-    business_id: Optional[int] = None  # None = כל עסקי הלקוח
-    annual_report_id: Optional[int] = None
-    vat_report_id: Optional[int] = None
+    business_id: int | None = None  # None = כל עסקי הלקוח
+    annual_report_id: int | None = None
+    vat_report_id: int | None = None
     period_year: int
     period_month_start: int = Field(ge=1, le=12)
     period_month_end: int = Field(ge=1, le=12)
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class BinderReceiveRequest(BaseModel):
@@ -36,14 +34,14 @@ class BinderReceiveRequest(BaseModel):
     received_at: date  # תאריך קבלת החומרים (ב-intake)
     received_by: int
     open_new_binder: bool = False  # True = סמן קלסר קיים כמלא ופתח חדש
-    notes: Optional[str] = None
+    notes: str | None = None
     materials: list[BinderIntakeMaterialRequest] = Field(default_factory=list)
 
 
 class BinderReturnRequest(BaseModel):
-    pickup_person_name: Optional[str] = None
-    returned_by: Optional[int] = None
-    returned_at: Optional[date] = None
+    pickup_person_name: str | None = None
+    returned_by: int | None = None
+    returned_at: date | None = None
 
 
 # ── Core response ─────────────────────────────────────────────────────────────
@@ -52,19 +50,19 @@ class BinderReturnRequest(BaseModel):
 class BinderResponse(BaseModel):
     id: int
     client_record_id: int
-    office_client_number: Optional[int] = None
-    client_name: Optional[str] = None  # enriched by service
-    client_id_number: Optional[str] = None  # enriched by service
+    office_client_number: int | None = None
+    client_name: str | None = None  # enriched by service
+    client_id_number: str | None = None  # enriched by service
     binder_number: str
-    period_start: Optional[date] = None
-    period_end: Optional[date] = None
+    period_start: date | None = None
+    period_end: date | None = None
     status: BinderStatus
-    returned_at: Optional[date] = None
-    pickup_person_name: Optional[str] = None
-    notes: Optional[str] = None
+    returned_at: date | None = None
+    pickup_person_name: str | None = None
+    notes: str | None = None
     created_at: ApiDateTime
     # ── Derived (computed by service, not stored) ─────────────────────────────
-    days_in_office: Optional[int] = None  # today - period_start
+    days_in_office: int | None = None  # today - period_start
     available_actions: list[ActionDescriptor] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
@@ -93,13 +91,13 @@ class BinderIntakeMaterialResponse(BaseModel):
     id: int
     intake_id: int
     material_type: MaterialType
-    business_id: Optional[int] = None
-    annual_report_id: Optional[int] = None
-    vat_report_id: Optional[int] = None
+    business_id: int | None = None
+    annual_report_id: int | None = None
+    vat_report_id: int | None = None
     period_year: int
     period_month_start: int
     period_month_end: int
-    description: Optional[str] = None
+    description: str | None = None
     created_at: ApiDateTime
 
     model_config = {"from_attributes": True}
@@ -110,8 +108,8 @@ class BinderIntakeResponse(BaseModel):
     binder_id: int
     received_at: date
     received_by: int
-    received_by_name: Optional[str] = None  # enriched by service
-    notes: Optional[str] = None
+    received_by_name: str | None = None  # enriched by service
+    notes: str | None = None
     created_at: ApiDateTime
     materials: list[BinderIntakeMaterialResponse] = Field(default_factory=list)
 
@@ -149,7 +147,7 @@ class BinderHandoverRequest(BaseModel):
     handed_over_at: date
     until_period_year: int
     until_period_month: int = Field(ge=1, le=12)
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class BinderHandoverResponse(BaseModel):
@@ -160,7 +158,7 @@ class BinderHandoverResponse(BaseModel):
     until_period_year: int
     until_period_month: int
     binder_ids: list[int]
-    notes: Optional[str] = None
+    notes: str | None = None
     created_at: ApiDateTime
 
     model_config = {"from_attributes": True}
@@ -173,9 +171,9 @@ class BinderHistoryEntry(BaseModel):
     old_status: str
     new_status: str
     changed_by: int
-    changed_by_name: Optional[str] = None  # enriched by service
+    changed_by_name: str | None = None  # enriched by service
     changed_at: ApiDateTime
-    notes: Optional[str] = None
+    notes: str | None = None
 
     model_config = {"from_attributes": True}
 

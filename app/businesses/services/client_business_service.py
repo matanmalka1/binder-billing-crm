@@ -53,8 +53,7 @@ class ClientBusinessService:
         return ClientBusinessesResponse(
             client_id=client_id,
             items=[
-                self.to_response(business, user_role, client_id=client_id)
-                for business in items
+                self.to_response(business, user_role, client_id=client_id) for business in items
             ],
             page=page,
             page_size=page_size,
@@ -66,9 +65,7 @@ class ClientBusinessService:
         self._assert_business_belongs_to_client(business, client_id)
         return business
 
-    def delete_for_client(
-        self, client_id: int, business_id: int, actor_id: int
-    ) -> None:
+    def delete_for_client(self, client_id: int, business_id: int, actor_id: int) -> None:
         self.get_for_client(client_id, business_id)
         self.business_service.delete_business(business_id, actor_id=actor_id)
 
@@ -90,9 +87,7 @@ class ClientBusinessService:
             actor_role=actor_role,
         )
 
-    def _assert_business_belongs_to_client(
-        self, business: Business, client_id: int
-    ) -> None:
+    def _assert_business_belongs_to_client(self, business: Business, client_id: int) -> None:
         client_record = self.client_repo.get_by_id(client_id)
         if not client_record:
             raise NotFoundError(f"עסק {business.id} לא נמצא", "BUSINESS.NOT_FOUND")

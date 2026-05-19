@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -10,7 +9,6 @@ from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.schemas.binder import BinderResponse
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-
 
 _ALLOWED_SORT_COLS = {"period_start", "days_in_office", "status", "client_name"}
 _UNSET = object()
@@ -28,9 +26,7 @@ class BinderListService:
         self, client_record_ids: list[int]
     ) -> tuple[dict[int, int | None], dict[int, str], dict[int, str | None]]:
         client_records = (
-            self.client_record_repo.list_by_ids(client_record_ids)
-            if client_record_ids
-            else []
+            self.client_record_repo.list_by_ids(client_record_ids) if client_record_ids else []
         )
         legal_entity_ids = list({record.legal_entity_id for record in client_records})
         legal_entity_by_id = (
@@ -62,11 +58,11 @@ class BinderListService:
         self,
         binder: Binder,
         *,
-        query: Optional[str],
-        client_name_filter: Optional[str],
-        binder_number: Optional[str],
-        year: Optional[int],
-        client_name: Optional[str],
+        query: str | None,
+        client_name_filter: str | None,
+        binder_number: str | None,
+        year: int | None,
+        client_name: str | None,
     ) -> bool:
         if query:
             query_text = query.lower()
@@ -96,14 +92,10 @@ class BinderListService:
                 1 for binder in binders if binder.status == BinderStatus.IN_OFFICE
             ),
             BinderStatus.CLOSED_IN_OFFICE.value: sum(
-                1
-                for binder in binders
-                if binder.status == BinderStatus.CLOSED_IN_OFFICE
+                1 for binder in binders if binder.status == BinderStatus.CLOSED_IN_OFFICE
             ),
             BinderStatus.READY_FOR_PICKUP.value: sum(
-                1
-                for binder in binders
-                if binder.status == BinderStatus.READY_FOR_PICKUP
+                1 for binder in binders if binder.status == BinderStatus.READY_FOR_PICKUP
             ),
             BinderStatus.RETURNED.value: sum(
                 1 for binder in binders if binder.status == BinderStatus.RETURNED
@@ -114,23 +106,17 @@ class BinderListService:
         self,
         binder: Binder,
         *,
-        reference_date: Optional[date] = None,
-        office_client_number: Optional[int] | object = _UNSET,
-        client_name: Optional[str] | object = _UNSET,
-        client_id_number: Optional[str] | object = _UNSET,
+        reference_date: date | None = None,
+        office_client_number: int | None | object = _UNSET,
+        client_name: str | None | object = _UNSET,
+        client_id_number: str | None | object = _UNSET,
     ) -> BinderResponse:
-        if (
-            office_client_number is _UNSET
-            or client_name is _UNSET
-            or client_id_number is _UNSET
-        ):
+        if office_client_number is _UNSET or client_name is _UNSET or client_id_number is _UNSET:
             office_client_number_map, client_name_map, client_id_number_map = (
                 self._build_client_context_maps([binder.client_record_id])
             )
             if office_client_number is _UNSET:
-                office_client_number = office_client_number_map.get(
-                    binder.client_record_id
-                )
+                office_client_number = office_client_number_map.get(binder.client_record_id)
             if client_name is _UNSET:
                 client_name = client_name_map.get(binder.client_record_id)
             if client_id_number is _UNSET:
@@ -149,7 +135,7 @@ class BinderListService:
         response.client_id_number = client_id_number
         return response
 
-    def get_binder_with_client_name(self, binder_id: int) -> Optional[BinderResponse]:
+    def get_binder_with_client_name(self, binder_id: int) -> BinderResponse | None:
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
             return None
@@ -167,17 +153,17 @@ class BinderListService:
     def list_binders_enriched(
         self,
         *,
-        client_record_id: Optional[int] = None,
-        status: Optional[str] = None,
-        query: Optional[str] = None,
-        client_name_filter: Optional[str] = None,
-        binder_number: Optional[str] = None,
-        year: Optional[int] = None,
+        client_record_id: int | None = None,
+        status: str | None = None,
+        query: str | None = None,
+        client_name_filter: str | None = None,
+        binder_number: str | None = None,
+        year: int | None = None,
         sort_by: str = "period_start",
         sort_dir: str = "desc",
         page: int = 1,
         page_size: int = 20,
-        reference_date: Optional[date] = None,
+        reference_date: date | None = None,
     ) -> tuple[list[BinderResponse], int, dict[str, int]]:
         if sort_dir not in ("asc", "desc"):
             sort_dir = "desc"
@@ -216,9 +202,7 @@ class BinderListService:
                 self.build_binder_response(
                     binder,
                     reference_date=ref_date,
-                    office_client_number=office_client_number_map.get(
-                        binder.client_record_id
-                    ),
+                    office_client_number=office_client_number_map.get(binder.client_record_id),
                     client_name=client_name_map.get(binder.client_record_id),
                     client_id_number=client_id_number_map.get(binder.client_record_id),
                 )

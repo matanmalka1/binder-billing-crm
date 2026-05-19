@@ -1,9 +1,8 @@
 """Repository for AnnualReportAnnexData entities."""
 
-from typing import Optional
 
-from sqlalchemy.orm import Session
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
@@ -32,7 +31,7 @@ class AnnexDataRepository(BaseRepository[AnnualReportAnnexData]):
 
     def get_schedule_entry(
         self, report_id: int, schedule: AnnualReportSchedule
-    ) -> Optional[AnnualReportScheduleEntry]:
+    ) -> AnnualReportScheduleEntry | None:
         return self.db.scalars(
             select(AnnualReportScheduleEntry).where(
                 AnnualReportScheduleEntry.annual_report_id == report_id,
@@ -68,7 +67,7 @@ class AnnexDataRepository(BaseRepository[AnnualReportAnnexData]):
         schedule_entry_id: int,
         line_number: int,
         data: dict,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> AnnualReportAnnexData:
         row = AnnualReportAnnexData(
             schedule_entry_id=schedule_entry_id,
@@ -80,14 +79,14 @@ class AnnexDataRepository(BaseRepository[AnnualReportAnnexData]):
         self.db.flush()
         return row
 
-    def get_by_id(self, line_id: int) -> Optional[AnnualReportAnnexData]:
+    def get_by_id(self, line_id: int) -> AnnualReportAnnexData | None:
         return self.db.scalars(
             select(AnnualReportAnnexData).where(AnnualReportAnnexData.id == line_id)
         ).first()
 
     def update_line(
-        self, line_id: int, data: dict, notes: Optional[str] = None
-    ) -> Optional[AnnualReportAnnexData]:
+        self, line_id: int, data: dict, notes: str | None = None
+    ) -> AnnualReportAnnexData | None:
         row = self.get_by_id(line_id)
         if not row:
             return None
@@ -106,9 +105,7 @@ class AnnexDataRepository(BaseRepository[AnnualReportAnnexData]):
         self.db.flush()
         return True
 
-    def count_by_report_and_schedule(
-        self, report_id: int, schedule: AnnualReportSchedule
-    ) -> int:
+    def count_by_report_and_schedule(self, report_id: int, schedule: AnnualReportSchedule) -> int:
         return self.db.scalar(
             select(func.count(AnnualReportAnnexData.id))
             .join(AnnualReportAnnexData.schedule_entry)

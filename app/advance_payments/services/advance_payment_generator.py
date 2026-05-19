@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -11,8 +10,8 @@ def generate_annual_schedule(
     client_record_id: int,
     year: int,
     db: Session,
-    period_months_count: Optional[int] = None,
-    reference_date: Optional[date] = None,
+    period_months_count: int | None = None,
+    reference_date: date | None = None,
 ) -> tuple[list[AdvancePayment], int]:
     return AdvancePaymentService(db).generate_annual_schedule(
         client_record_id,

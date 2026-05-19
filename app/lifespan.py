@@ -3,12 +3,12 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.core.logging_config import get_logger
 from app.core.background_jobs import (
     daily_expiry_job,
     run_development_tax_calendar_bootstrap,
     run_startup_expiry,
 )
+from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 

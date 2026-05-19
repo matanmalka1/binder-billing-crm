@@ -2,16 +2,14 @@
 
 import json
 from decimal import Decimal
-from typing import Optional
 
-from app.core.exceptions import AppError
 from app.common.enums import EntityType
-from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.models.vat_enums import DocumentType, InvoiceType
+from app.core.exceptions import AppError
 from app.vat_reports.integrations.tax_rules_financials import (
     get_financial_value,
     get_vat_deduction_rate_for_category,
 )
+from app.vat_reports.models.vat_enums import DocumentType, InvoiceType, VatWorkItemStatus
 from app.vat_reports.repositories.vat_invoice_repository import VatInvoiceRepository
 from app.vat_reports.repositories.vat_work_item_write_repository import (
     VatWorkItemWriteRepository as VatWorkItemRepository,
@@ -58,9 +56,7 @@ def recalculate_totals(
     """Recompute output / input VAT totals from stored invoices (single query)."""
     output_vat, input_vat = invoice_repo.sum_vat_both_types(item_id)
     output_net, input_net = invoice_repo.sum_net_both_types(item_id)
-    work_item_repo.update_vat_totals(
-        item_id, output_vat, input_vat, output_net, input_net
-    )
+    work_item_repo.update_vat_totals(item_id, output_vat, input_vat, output_net, input_net)
     return output_vat, input_vat
 
 
@@ -79,7 +75,7 @@ def resolve_invoice_derived_fields(
     invoice_type,
     expense_category,
     document_type,
-    counterparty_id: Optional[str],
+    counterparty_id: str | None,
     net_amount: float,
     vat_amount: float,
     year: int = 2026,
@@ -109,9 +105,7 @@ def resolve_invoice_derived_fields(
         deduction_rate = Decimal(
             str(get_vat_deduction_rate_for_category(year, expense_category.value))
         )
-    threshold = Decimal(
-        str(get_financial_value(year, "exceptional_invoice_threshold_ils").value)
-    )
+    threshold = Decimal(str(get_financial_value(year, "exceptional_invoice_threshold_ils").value))
     is_exceptional = Decimal(str(net_amount)) > threshold
     return {"deduction_rate": deduction_rate, "is_exceptional": is_exceptional}
 
@@ -132,9 +126,7 @@ def check_osek_patur_ceiling(
         return False
     year = int(period[:4])
     ceiling = Decimal(str(get_financial_value(year, "osek_patur_ceiling_ils").value))
-    current_total = Decimal(
-        str(invoice_repo.sum_income_net_by_client_year(client_record_id, year))
-    )
+    current_total = Decimal(str(invoice_repo.sum_income_net_by_client_year(client_record_id, year)))
     new_total = current_total + Decimal(str(new_net_amount))
     if new_total > ceiling:
         raise AppError(

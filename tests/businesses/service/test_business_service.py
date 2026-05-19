@@ -77,9 +77,7 @@ def test_create_business_defaults_opened_at_to_today(monkeypatch, test_db):
 
 
 def test_update_business_blocks_non_advisor_freeze_or_close(test_db):
-    client = seed_client_identity(
-        test_db, full_name="Service Client", id_number="BSRV001"
-    )
+    client = seed_client_identity(test_db, full_name="Service Client", id_number="BSRV001")
     business = _create_business_row(test_db, legal_entity_id=client.legal_entity_id)
     service = BusinessService(test_db)
 
@@ -95,9 +93,7 @@ def test_update_business_blocks_non_advisor_freeze_or_close(test_db):
 
 
 def test_update_business_sets_closed_at_for_close_action(test_db):
-    client = seed_client_identity(
-        test_db, full_name="Service Client", id_number="BSRV002"
-    )
+    client = seed_client_identity(test_db, full_name="Service Client", id_number="BSRV002")
     business = _create_business_row(test_db, legal_entity_id=client.legal_entity_id)
     service = BusinessService(test_db)
 

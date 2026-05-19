@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, Depends, Query
 
 from app.reminders.schemas.reminders import ReminderListResponse
@@ -22,7 +20,7 @@ def list_reminders(
     _user: CurrentUser,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status_filter: Optional[str] = Query(None, alias="status"),
+    status_filter: str | None = Query(None, alias="status"),
 ):
     service = ReminderService(db)
     items, total = service.get_reminders(

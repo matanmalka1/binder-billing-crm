@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import String, cast, func, select
 from sqlalchemy.orm import Session
@@ -20,18 +19,18 @@ class PermanentDocumentRepository(BaseRepository[PermanentDocument]):
     def create(
         self,
         client_record_id: int,
-        business_id: Optional[int],
+        business_id: int | None,
         scope: DocumentScope,
         document_type: str,
         storage_key: str,
         uploaded_by: int,
-        tax_year: Optional[int] = None,
+        tax_year: int | None = None,
         version: int = 1,
         status: DocumentStatus = DocumentStatus.PENDING,
-        annual_report_id: Optional[int] = None,
-        original_filename: Optional[str] = None,
-        file_size_bytes: Optional[int] = None,
-        mime_type: Optional[str] = None,
+        annual_report_id: int | None = None,
+        original_filename: str | None = None,
+        file_size_bytes: int | None = None,
+        mime_type: str | None = None,
     ) -> PermanentDocument:
         document = PermanentDocument(
             client_record_id=client_record_id,
@@ -53,7 +52,7 @@ class PermanentDocumentRepository(BaseRepository[PermanentDocument]):
         self.db.flush()
         return document
 
-    def get_by_id(self, document_id: int) -> Optional[PermanentDocument]:
+    def get_by_id(self, document_id: int) -> PermanentDocument | None:
         return self.db.scalars(
             select(PermanentDocument).where(
                 PermanentDocument.id == document_id,
@@ -64,9 +63,9 @@ class PermanentDocumentRepository(BaseRepository[PermanentDocument]):
     def list_by_business(
         self,
         business_id: int,
-        tax_year: Optional[int] = None,
-        document_type: Optional[str] = None,
-        status: Optional[DocumentStatus] = None,
+        tax_year: int | None = None,
+        document_type: str | None = None,
+        status: DocumentStatus | None = None,
         include_superseded: bool = False,
     ) -> list[PermanentDocument]:
         stmt = select(PermanentDocument).where(
@@ -81,16 +80,14 @@ class PermanentDocumentRepository(BaseRepository[PermanentDocument]):
             stmt = stmt.where(PermanentDocument.document_type == document_type)
         if status is not None:
             stmt = stmt.where(PermanentDocument.status == status)
-        return self.db.scalars(
-            stmt.order_by(PermanentDocument.uploaded_at.desc())
-        ).all()
+        return self.db.scalars(stmt.order_by(PermanentDocument.uploaded_at.desc())).all()
 
     def list_by_client(
         self,
         client_record_id: int,
-        tax_year: Optional[int] = None,
-        document_type: Optional[str] = None,
-        status: Optional[DocumentStatus] = None,
+        tax_year: int | None = None,
+        document_type: str | None = None,
+        status: DocumentStatus | None = None,
         include_superseded: bool = False,
     ) -> list[PermanentDocument]:
         stmt = select(PermanentDocument).where(
@@ -105,17 +102,15 @@ class PermanentDocumentRepository(BaseRepository[PermanentDocument]):
             stmt = stmt.where(PermanentDocument.document_type == document_type)
         if status is not None:
             stmt = stmt.where(PermanentDocument.status == status)
-        return self.db.scalars(
-            stmt.order_by(PermanentDocument.uploaded_at.desc())
-        ).all()
+        return self.db.scalars(stmt.order_by(PermanentDocument.uploaded_at.desc())).all()
 
     def list_by_client_record(
         self,
         client_record_id: int,
-        scope: Optional[DocumentScope] = None,
-        tax_year: Optional[int] = None,
-        document_type: Optional[str] = None,
-        status: Optional[DocumentStatus] = None,
+        scope: DocumentScope | None = None,
+        tax_year: int | None = None,
+        document_type: str | None = None,
+        status: DocumentStatus | None = None,
         include_superseded: bool = False,
     ) -> list[PermanentDocument]:
         stmt = select(PermanentDocument).where(
@@ -132,9 +127,7 @@ class PermanentDocumentRepository(BaseRepository[PermanentDocument]):
             stmt = stmt.where(PermanentDocument.document_type == document_type)
         if status is not None:
             stmt = stmt.where(PermanentDocument.status == status)
-        return self.db.scalars(
-            stmt.order_by(PermanentDocument.uploaded_at.desc())
-        ).all()
+        return self.db.scalars(stmt.order_by(PermanentDocument.uploaded_at.desc())).all()
 
     def count_by_client_record(self, client_record_id: int) -> int:
         return self.db.scalar(
@@ -146,7 +139,7 @@ class PermanentDocumentRepository(BaseRepository[PermanentDocument]):
 
     def get_by_id_and_client_record(
         self, document_id: int, client_record_id: int
-    ) -> Optional[PermanentDocument]:
+    ) -> PermanentDocument | None:
         return self.db.scalars(
             select(PermanentDocument).where(
                 PermanentDocument.id == document_id,
@@ -163,9 +156,7 @@ class PermanentDocumentRepository(BaseRepository[PermanentDocument]):
             )
         )
 
-    def search_by_filename(
-        self, filename: str, limit: int = 50
-    ) -> list[PermanentDocument]:
+    def search_by_filename(self, filename: str, limit: int = 50) -> list[PermanentDocument]:
         term = f"%{filename.strip()}%"
         return self.db.scalars(
             select(PermanentDocument)

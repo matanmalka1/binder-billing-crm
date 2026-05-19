@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime as _dt
-from datetime import timezone
 
 from sqlalchemy.orm import Session
 
@@ -44,8 +43,7 @@ class AnnualReportClientReminderService:
         )
         if last:
             days_since = (
-                _dt.datetime.now(timezone.utc)
-                - last.created_at.replace(tzinfo=timezone.utc)
+                _dt.datetime.now(_dt.UTC) - last.created_at.replace(tzinfo=_dt.UTC)
             ).days
             if days_since < ANNUAL_REMINDER_COOLDOWN_DAYS:
                 raise AppError(

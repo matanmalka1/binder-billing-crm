@@ -50,9 +50,7 @@ class TaxStatusStatsService:
 
     def _build_advance_stats(self, reference_date: date) -> dict:
         monthly_period, monthly_label = monthly_vat_period(reference_date)
-        bimonthly_period, bimonthly_label = bimonthly_advance_payment_period(
-            reference_date
-        )
+        bimonthly_period, bimonthly_label = bimonthly_advance_payment_period(reference_date)
         return {
             "monthly": self._build_advance_stat(monthly_period, monthly_label, 1),
             "bimonthly": self._build_advance_stat(bimonthly_period, bimonthly_label, 2),
@@ -72,9 +70,7 @@ class TaxStatusStatsService:
             "completion_percent": percent,
         }
 
-    def _build_stat(
-        self, vat_type: VatType, period: str, label: str, reference_date: date
-    ) -> dict:
+    def _build_stat(self, vat_type: VatType, period: str, label: str, reference_date: date) -> dict:
         required = self.client_repo.count_active_by_vat_type(vat_type)
         submitted = self.vat_repo.count_filed_by_period_type(period, vat_type)
         pending = max(required - submitted, 0)
@@ -82,9 +78,7 @@ class TaxStatusStatsService:
         return {
             "period": period,
             "period_label": label,
-            "status_label": self._status_label(
-                period, vat_type, required, pending, reference_date
-            ),
+            "status_label": self._status_label(period, vat_type, required, pending, reference_date),
             "submitted": submitted,
             "required": required,
             "pending": pending,

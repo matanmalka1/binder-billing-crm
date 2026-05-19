@@ -4,9 +4,7 @@ from app.timeline.labels import BINDER_STATUS_HE
 
 
 def binder_received_event(binder) -> dict:
-    received_on = getattr(binder, "received_at", None) or getattr(
-        binder, "period_start"
-    )
+    received_on = getattr(binder, "received_at", None) or binder.period_start
     return {
         "event_type": "binder_received",
         "timestamp": datetime.combine(received_on, datetime.min.time()),

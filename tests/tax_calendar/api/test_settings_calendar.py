@@ -1,12 +1,12 @@
 import pytest
 
+from app.tax_calendar.integrations.tax_rules_registry import (
+    registry_periodic_calendar_available,
+)
 from app.tax_calendar.services.bootstrap import (
     DEFAULT_DEADLINE_RULES,
     bootstrap_tax_calendar,
     seed_default_deadline_rules,
-)
-from app.tax_calendar.integrations.tax_rules_registry import (
-    registry_periodic_calendar_available,
 )
 
 RULES_PATH = "/api/v1/settings/tax-calendar/rules"
@@ -63,9 +63,7 @@ def test_list_entries_year_filter(client, advisor_headers, test_db):
     bootstrap_tax_calendar(test_db, start_year=2026, end_year=2027)
     test_db.commit()
 
-    response = client.get(
-        f"{ENTRIES_PATH}?start_year=2026&end_year=2026", headers=advisor_headers
-    )
+    response = client.get(f"{ENTRIES_PATH}?start_year=2026&end_year=2026", headers=advisor_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 37
@@ -92,9 +90,7 @@ def test_list_entries_secretary_returns_403(client, secretary_headers, test_db):
 
 
 def test_list_entries_invalid_year_range_returns_400(client, advisor_headers, test_db):
-    response = client.get(
-        f"{ENTRIES_PATH}?start_year=2027&end_year=2026", headers=advisor_headers
-    )
+    response = client.get(f"{ENTRIES_PATH}?start_year=2027&end_year=2026", headers=advisor_headers)
     assert response.status_code == 400
 
 
@@ -105,9 +101,7 @@ def test_summary_correct_totals(client, advisor_headers, test_db):
     bootstrap_tax_calendar(test_db, start_year=2026, end_year=2027)
     test_db.commit()
 
-    response = client.get(
-        f"{SUMMARY_PATH}?start_year=2026&end_year=2027", headers=advisor_headers
-    )
+    response = client.get(f"{SUMMARY_PATH}?start_year=2026&end_year=2027", headers=advisor_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["total_entries"] == 74
@@ -124,9 +118,7 @@ def test_summary_2026_no_fallback_warning(client, advisor_headers, test_db):
     bootstrap_tax_calendar(test_db, start_year=2026, end_year=2026)
     test_db.commit()
 
-    response = client.get(
-        f"{SUMMARY_PATH}?start_year=2026&end_year=2026", headers=advisor_headers
-    )
+    response = client.get(f"{SUMMARY_PATH}?start_year=2026&end_year=2026", headers=advisor_headers)
     assert response.status_code == 200
     data = response.json()
     # 2026 has official registry calendar — no fallback warning
@@ -139,9 +131,7 @@ def test_summary_2027_has_fallback_warning(client, advisor_headers, test_db):
     bootstrap_tax_calendar(test_db, start_year=2027, end_year=2027)
     test_db.commit()
 
-    response = client.get(
-        f"{SUMMARY_PATH}?start_year=2027&end_year=2027", headers=advisor_headers
-    )
+    response = client.get(f"{SUMMARY_PATH}?start_year=2027&end_year=2027", headers=advisor_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["total_entries"] == 37
@@ -149,9 +139,7 @@ def test_summary_2027_has_fallback_warning(client, advisor_headers, test_db):
 
 
 def test_summary_no_entries_produces_warnings(client, advisor_headers, test_db):
-    response = client.get(
-        f"{SUMMARY_PATH}?start_year=2026&end_year=2026", headers=advisor_headers
-    )
+    response = client.get(f"{SUMMARY_PATH}?start_year=2026&end_year=2026", headers=advisor_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data["warnings"]) > 0
@@ -163,9 +151,7 @@ def test_summary_secretary_returns_403(client, secretary_headers, test_db):
 
 
 def test_summary_invalid_year_range_returns_400(client, advisor_headers, test_db):
-    response = client.get(
-        f"{SUMMARY_PATH}?start_year=2027&end_year=2026", headers=advisor_headers
-    )
+    response = client.get(f"{SUMMARY_PATH}?start_year=2027&end_year=2026", headers=advisor_headers)
     assert response.status_code == 400
 
 

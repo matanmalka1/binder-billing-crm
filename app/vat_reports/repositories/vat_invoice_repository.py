@@ -6,7 +6,6 @@ This class re-exposes them via composition for backward compatibility.
 """
 
 from datetime import date
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -44,14 +43,14 @@ class VatInvoiceRepository(BaseRepository[VatInvoice]):
         counterparty_name: str,
         net_amount: float,
         vat_amount: float,
-        counterparty_id: Optional[str] = None,
-        counterparty_id_type: Optional[CounterpartyIdType] = None,
-        expense_category: Optional[ExpenseCategory] = None,
+        counterparty_id: str | None = None,
+        counterparty_id_type: CounterpartyIdType | None = None,
+        expense_category: ExpenseCategory | None = None,
         rate_type: VatRateType = VatRateType.STANDARD,
         deduction_rate: float = 1.0,
-        document_type: Optional[DocumentType] = None,
+        document_type: DocumentType | None = None,
         is_exceptional: bool = False,
-        business_activity_id: Optional[int] = None,
+        business_activity_id: int | None = None,
     ) -> VatInvoice:
         return self.build_and_add(
             work_item_id=work_item_id,
@@ -74,7 +73,7 @@ class VatInvoiceRepository(BaseRepository[VatInvoice]):
 
     def get_by_number(
         self, work_item_id: int, invoice_type: InvoiceType, invoice_number: str
-    ) -> Optional[VatInvoice]:
+    ) -> VatInvoice | None:
         return self.db.scalars(
             select(VatInvoice).where(
                 VatInvoice.work_item_id == work_item_id,
@@ -86,14 +85,14 @@ class VatInvoiceRepository(BaseRepository[VatInvoice]):
     def list_by_work_item(
         self,
         work_item_id: int,
-        invoice_type: Optional[InvoiceType] = None,
+        invoice_type: InvoiceType | None = None,
     ) -> list[VatInvoice]:
         stmt = select(VatInvoice).where(VatInvoice.work_item_id == work_item_id)
         if invoice_type:
             stmt = stmt.where(VatInvoice.invoice_type == invoice_type)
         return self.db.scalars(stmt.order_by(VatInvoice.invoice_date.asc())).all()
 
-    def update(self, entity_id: int, **fields) -> Optional[VatInvoice]:
+    def update(self, entity_id: int, **fields) -> VatInvoice | None:
         invoice = self.get_by_id(entity_id)
         if not invoice:
             return None
@@ -114,7 +113,5 @@ class VatInvoiceRepository(BaseRepository[VatInvoice]):
     def sum_income_net_by_client_year(self, client_record_id: int, year: int) -> float:
         return self._agg.sum_income_net_by_client_year(client_record_id, year)
 
-    def sum_expense_net_by_client_year_grouped(
-        self, client_record_id: int, year: int
-    ) -> dict:
+    def sum_expense_net_by_client_year_grouped(self, client_record_id: int, year: int) -> dict:
         return self._agg.sum_expense_net_by_client_year_grouped(client_record_id, year)

@@ -48,9 +48,7 @@ def test_update_correspondence(client, test_db, advisor_headers, test_user):
     assert data["occurred_at"].startswith("2026-01-10")
 
 
-def test_update_correspondence_invalid_type(
-    client, test_db, advisor_headers, test_user
-):
+def test_update_correspondence_invalid_type(client, test_db, advisor_headers, test_user):
     business = _create_business(test_db)
     entry = _add_entry(test_db, business.client_id, business.id, test_user.id)
 
@@ -105,9 +103,7 @@ def test_deleted_not_returned_in_list(client, test_db, advisor_headers, test_use
     assert entry.id not in ids
 
 
-def test_delete_correspondence_secretary_forbidden(
-    client, test_db, secretary_headers, test_user
-):
+def test_delete_correspondence_secretary_forbidden(client, test_db, secretary_headers, test_user):
     business = _create_business(test_db)
     entry = _add_entry(test_db, business.client_id, business.id, test_user.id)
 

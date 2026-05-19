@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
-from app.users.api.deps import require_role
-from app.users.models.user import UserRole
 from app.reminders.api.routes_cancel import cancel_router
 from app.reminders.api.routes_create import create_router
 from app.reminders.api.routes_get import get_router
 from app.reminders.api.routes_list import list_router
-
+from app.users.api.deps import require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/reminders",

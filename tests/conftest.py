@@ -6,28 +6,29 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-import app.main as main_module
+
 import app.core.background_jobs as background_jobs_module
+import app.main as main_module
 
 os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("JWT_SECRET", "test-secret")
 
-from app.database import Base, get_db
 import app.notes.models.entity_note  # noqa: F401
 import app.tasks.models.task  # noqa: F401
 import app.tax_calendar.models.deadline_rule  # noqa: F401
 import app.tax_calendar.models.tax_calendar_entry  # noqa: F401
-from app.users.models.user import User, UserRole
-from app.users.services.auth_service import AuthService
-from app.clients.models.legal_entity import LegalEntity  # noqa: F401
+from app.businesses.models.business import BusinessStatus
+from app.clients.enums import ClientStatus
 from app.clients.models.client_record import ClientRecord  # noqa: F401
+from app.clients.models.legal_entity import LegalEntity  # noqa: F401
 from app.clients.models.person import Person  # noqa: F401
 from app.clients.models.person_legal_entity_link import PersonLegalEntityLink  # noqa: F401
-from app.clients.enums import ClientStatus
-from app.businesses.models.business import BusinessStatus
 from app.common.enums import IdNumberType
+from app.database import Base, get_db
 from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.services.bootstrap import seed_default_deadline_rules
+from app.users.models.user import User, UserRole
+from app.users.services.auth_service import AuthService
 from tests.helpers.identity import seed_business, seed_client_identity
 
 

@@ -1,10 +1,9 @@
 """Repository for AnnualReportIncomeLine entities."""
 
 from decimal import Decimal
-from typing import Optional
 
-from sqlalchemy.orm import Session
 from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from app.annual_reports.models.annual_report_income_line import (
     AnnualReportIncomeLine,
@@ -14,9 +13,7 @@ from app.annual_reports.repositories.financial_line_mixin import FinancialLineMi
 from app.common.repositories.base_repository import BaseRepository
 
 
-class AnnualReportIncomeRepository(
-    FinancialLineMixin, BaseRepository[AnnualReportIncomeLine]
-):
+class AnnualReportIncomeRepository(FinancialLineMixin, BaseRepository[AnnualReportIncomeLine]):
     def __init__(self, db: Session):
         self.db = db
 
@@ -25,7 +22,7 @@ class AnnualReportIncomeRepository(
         annual_report_id: int,
         source_type: IncomeSourceType,
         amount: Decimal,
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> AnnualReportIncomeLine:
         line = AnnualReportIncomeLine(
             annual_report_id=annual_report_id,
@@ -44,12 +41,12 @@ class AnnualReportIncomeRepository(
             .order_by(AnnualReportIncomeLine.source_type.asc())
         ).all()
 
-    def get_by_id(self, line_id: int) -> Optional[AnnualReportIncomeLine]:
+    def get_by_id(self, line_id: int) -> AnnualReportIncomeLine | None:
         return self.db.scalars(
             select(AnnualReportIncomeLine).where(AnnualReportIncomeLine.id == line_id)
         ).first()
 
-    def update(self, line_id: int, **fields) -> Optional[AnnualReportIncomeLine]:
+    def update(self, line_id: int, **fields) -> AnnualReportIncomeLine | None:
         return self._update_line(self.get_by_id, line_id, **fields)
 
     def delete(

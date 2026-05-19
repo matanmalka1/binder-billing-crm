@@ -1,9 +1,9 @@
-from typing import Optional
 
 from sqlalchemy.orm import Session
+
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
-from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.models.user import User, UserRole
+from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.repositories.user_repository import UserRepository
 from app.users.services.audit_log_service import AuditLogService
 from app.users.services.auth_service import AuthService
@@ -49,7 +49,7 @@ class UserManagementService:
         email: str,
         role: UserRole,
         password: str,
-        phone: Optional[str] = None,
+        phone: str | None = None,
     ) -> User:
         ensure_advisor(actor_role)
         validate_password(password)
@@ -77,8 +77,8 @@ class UserManagementService:
         actor_role: UserRole,
         page: int,
         page_size: int,
-        is_active: Optional[bool] = None,
-        search: Optional[str] = None,
+        is_active: bool | None = None,
+        search: str | None = None,
     ):
         ensure_advisor(actor_role)
         items = self.user_repo.list(
@@ -132,9 +132,7 @@ class UserManagementService:
         )
         return user
 
-    def activate_user(
-        self, actor_user_id: int, actor_role: UserRole, user_id: int
-    ) -> User:
+    def activate_user(self, actor_user_id: int, actor_role: UserRole, user_id: int) -> User:
         ensure_advisor(actor_role)
         get_user_or_raise(self.user_repo, user_id)
         user = self.user_repo.activate(user_id)

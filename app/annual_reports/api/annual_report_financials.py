@@ -2,8 +2,6 @@
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.annual_reports.schemas.annual_report_financials import (
     AdvancesSummary,
     ExpenseLineCreateRequest,
@@ -19,13 +17,14 @@ from app.annual_reports.schemas.annual_report_financials import (
     TaxPreviewResponse,
     VatAutoPopulateResponse,
 )
-from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.annual_reports.services.advances_summary_service import (
     AnnualReportAdvancesSummaryService,
 )
-from app.annual_reports.services.vat_import_service import VatImportService
+from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.annual_reports.services.tax_engine import calculate_tax
-
+from app.annual_reports.services.vat_import_service import VatImportService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/annual-reports",

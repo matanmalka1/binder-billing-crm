@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -13,18 +13,18 @@ class AnnexDataLineResponse(BaseModel):
     line_number: int
     data: dict[str, Any]
     data_version: int  # נוסף — קיים במודל
-    notes: Optional[str] = None
+    notes: str | None = None
     created_at: ApiDateTime
-    updated_at: Optional[ApiDateTime] = None
+    updated_at: ApiDateTime | None = None
 
     model_config = {"from_attributes": True}
 
 
 class AnnexDataAddRequest(BaseModel):
     data: dict[str, Any]
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class AnnexDataUpdateRequest(BaseModel):
     data: dict[str, Any]
-    notes: Optional[str] = None
+    notes: str | None = None

@@ -2,14 +2,14 @@ from typing import Any
 
 from sqlalchemy import select
 
-from app.clients.models.legal_entity import LegalEntity
-from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.core.exceptions import NotFoundError
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
 from app.annual_reports.schemas.annual_report_responses import AnnualReportResponse
 from app.annual_reports.services.constants import VALID_TRANSITIONS
 from app.annual_reports.services.messages import ANNUAL_REPORT_NOT_FOUND
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.core.exceptions import NotFoundError
 
 
 class AnnualReportBaseService:
@@ -40,9 +40,7 @@ class AnnualReportBaseService:
         records = (
             {
                 record.id: record
-                for record in ClientRecordRepository(self.db).list_by_ids(
-                    list(client_record_ids)
-                )
+                for record in ClientRecordRepository(self.db).list_by_ids(list(client_record_ids))
             }
             if client_record_ids
             else {}
@@ -65,9 +63,7 @@ class AnnualReportBaseService:
         for r in reports:
             obj = AnnualReportResponse.model_validate(r)
             record = records.get(r.client_record_id)
-            legal_entity = (
-                legal_entities.get(record.legal_entity_id) if record else None
-            )
+            legal_entity = legal_entities.get(record.legal_entity_id) if record else None
             if record and legal_entity:
                 obj.office_client_number = record.office_client_number
                 obj.client_name = legal_entity.official_name

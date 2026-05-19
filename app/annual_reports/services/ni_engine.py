@@ -59,9 +59,7 @@ def calculate_national_insurance(
         prev = annual_ceiling
 
     total = round(base_amount + high_amount, 2)
-    return NationalInsuranceResult(
-        base_amount=base_amount, high_amount=high_amount, total=total
-    )
+    return NationalInsuranceResult(base_amount=base_amount, high_amount=high_amount, total=total)
 
 
 __all__ = ["calculate_national_insurance", "NationalInsuranceResult"]

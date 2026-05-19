@@ -1,7 +1,7 @@
 from datetime import date
 
 from app.businesses.services.signals_service import SignalsService
-from tests.helpers.identity import seed_client_identity, seed_business
+from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def test_operational_signals_missing_documents(test_db, test_user):

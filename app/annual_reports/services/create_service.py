@@ -1,8 +1,4 @@
-from typing import Optional
 
-from app.audit.constants import ENTITY_ANNUAL_REPORT
-from app.audit.services.entity_audit_writer import EntityAuditWriter
-from app.core.exceptions import AppError, ConflictError
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
     ClientAnnualFilingType,
@@ -11,15 +7,19 @@ from app.annual_reports.models.annual_report_enums import (
     SubmissionMethod,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.audit.constants import ENTITY_ANNUAL_REPORT
+from app.audit.services.entity_audit_writer import EntityAuditWriter
 from app.clients.guards.client_record_guards import assert_client_record_is_active
-from app.users.services.user_management_service import get_user_or_raise
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.core.exceptions import AppError, ConflictError
 from app.tax_calendar.services.materialization_service import (
     TaxCalendarMaterializationService,
 )
+from app.users.services.user_management_service import get_user_or_raise
+
+from .base import AnnualReportBaseService
 from .constants import FORM_MAP
 from .deadlines import extended_deadline, standard_deadline
-from .base import AnnualReportBaseService
 from .messages import (
     ANNUAL_REPORT_ALREADY_EXISTS,
     ANNUAL_REPORT_CLIENT_NOT_FOUND,
@@ -39,10 +39,10 @@ class AnnualReportCreateService(AnnualReportBaseService):
         created_by: int,
         created_by_name: str,
         deadline_type: str = "standard",
-        assigned_to: Optional[int] = None,
-        notes: Optional[str] = None,
-        submission_method: Optional[str] = None,
-        extension_reason: Optional[str] = None,
+        assigned_to: int | None = None,
+        notes: str | None = None,
+        submission_method: str | None = None,
+        extension_reason: str | None = None,
         # Income flags for schedule auto-generation
         has_rental_income: bool = False,
         has_capital_gains: bool = False,
@@ -56,9 +56,7 @@ class AnnualReportCreateService(AnnualReportBaseService):
             from app.core.exceptions import NotFoundError
 
             raise NotFoundError(
-                ANNUAL_REPORT_CLIENT_NOT_FOUND.format(
-                    client_record_id=client_record_id
-                ),
+                ANNUAL_REPORT_CLIENT_NOT_FOUND.format(client_record_id=client_record_id),
                 "ANNUAL_REPORT.CLIENT_NOT_FOUND",
             )
         assert_client_record_is_active(client_record)
@@ -109,9 +107,9 @@ class AnnualReportCreateService(AnnualReportBaseService):
         else:
             filing_deadline = None  # custom — caller can set note
 
-        tax_calendar_entry = TaxCalendarMaterializationService(
-            self.db
-        ).ensure_annual_entry(tax_year)
+        tax_calendar_entry = TaxCalendarMaterializationService(self.db).ensure_annual_entry(
+            tax_year
+        )
         report = self.repo.create(
             client_record_id=client_record_id,
             tax_year=tax_year,
@@ -124,21 +122,15 @@ class AnnualReportCreateService(AnnualReportBaseService):
             filing_deadline=filing_deadline,
             tax_calendar_entry_id=tax_calendar_entry.id,
             notes=notes,
-            submission_method=SubmissionMethod(submission_method)
-            if submission_method
-            else None,
-            extension_reason=ExtensionReason(extension_reason)
-            if extension_reason
-            else None,
+            submission_method=SubmissionMethod(submission_method) if submission_method else None,
+            extension_reason=ExtensionReason(extension_reason) if extension_reason else None,
             has_rental_income=has_rental_income,
             has_capital_gains=has_capital_gains,
             has_foreign_income=has_foreign_income,
             has_depreciation=has_depreciation,
             has_exempt_rental=has_exempt_rental,
         )
-        linked_report = TaxCalendarMaterializationService(self.db).link_annual_report(
-            report
-        )
+        linked_report = TaxCalendarMaterializationService(self.db).link_annual_report(report)
 
         # Auto-generate required schedules
         self._generate_schedules(linked_report)

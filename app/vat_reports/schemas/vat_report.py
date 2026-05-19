@@ -1,9 +1,8 @@
 """Pydantic request / response schemas for the VAT Reports module."""
 
+import re
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
-import re
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -11,16 +10,15 @@ from app.common.enums import SubmissionMethod, VatType
 from app.core.action_schemas import ActionDescriptor
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
-
 # ── Work Item ─────────────────────────────────────────────────────────────────
 
 
 class VatWorkItemCreateRequest(BaseModel):
     client_record_id: int
     period: str  # "YYYY-MM"
-    assigned_to: Optional[int] = None
+    assigned_to: int | None = None
     mark_pending: bool = False
-    pending_materials_note: Optional[str] = None
+    pending_materials_note: str | None = None
 
     @field_validator("period")
     @classmethod
@@ -33,40 +31,40 @@ class VatWorkItemCreateRequest(BaseModel):
 class VatWorkItemResponse(BaseModel):
     id: int
     client_record_id: int
-    office_client_number: Optional[int] = None  # enriched by service
-    client_name: Optional[str] = None  # enriched by service
-    client_id_number: Optional[str] = None  # enriched by service
-    client_status: Optional[str] = None  # enriched by service
+    office_client_number: int | None = None  # enriched by service
+    client_name: str | None = None  # enriched by service
+    client_id_number: str | None = None  # enriched by service
+    client_status: str | None = None  # enriched by service
     period: str
     period_type: VatType  # snapshot at creation — immutable historical record
     status: VatWorkItemStatus
-    pending_materials_note: Optional[str] = None
+    pending_materials_note: str | None = None
     total_output_vat: Decimal
     total_input_vat: Decimal
     net_vat: Decimal
     total_output_net: Decimal  # קיים במודל — שדה 87
     total_input_net: Decimal  # קיים במודל — שדה 66
-    final_vat_amount: Optional[Decimal] = None
+    final_vat_amount: Decimal | None = None
     is_overridden: bool
-    override_justification: Optional[str] = None
-    submission_method: Optional[SubmissionMethod] = None  # שם חדש במודל
-    filed_at: Optional[datetime] = None
-    filed_by: Optional[int] = None
-    filed_by_name: Optional[str] = None
-    submission_reference: Optional[str] = None
+    override_justification: str | None = None
+    submission_method: SubmissionMethod | None = None  # שם חדש במודל
+    filed_at: datetime | None = None
+    filed_by: int | None = None
+    filed_by_name: str | None = None
+    submission_reference: str | None = None
     is_amendment: bool = False
-    amends_item_id: Optional[int] = None
+    amends_item_id: int | None = None
     created_by: int
-    assigned_to: Optional[int] = None
-    assigned_to_name: Optional[str] = None
+    assigned_to: int | None = None
+    assigned_to_name: str | None = None
     created_at: datetime
     updated_at: datetime
     # Derived — not stored
-    submission_deadline: Optional[date] = None
-    statutory_deadline: Optional[date] = None
-    extended_deadline: Optional[date] = None
-    days_until_deadline: Optional[int] = None
-    is_overdue: Optional[bool] = None
+    submission_deadline: date | None = None
+    statutory_deadline: date | None = None
+    extended_deadline: date | None = None
+    days_until_deadline: int | None = None
+    is_overdue: bool | None = None
     available_actions: list[ActionDescriptor] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
@@ -148,8 +146,8 @@ class VatWorkItemLookupResponse(BaseModel):
 
 class FileVatReturnRequest(BaseModel):
     submission_method: SubmissionMethod  # שם חדש — תואם המודל
-    override_amount: Optional[Decimal] = None
-    override_justification: Optional[str] = None
-    submission_reference: Optional[str] = None
+    override_amount: Decimal | None = None
+    override_justification: str | None = None
+    submission_reference: str | None = None
     is_amendment: bool = False
-    amends_item_id: Optional[int] = None
+    amends_item_id: int | None = None

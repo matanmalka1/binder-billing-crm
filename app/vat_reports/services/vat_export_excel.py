@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict
 
 from app.utils.excel import adjust_column_widths, save_workbook_to_temp
 from app.vat_reports.schemas.vat_client_summary_schema import VatPeriodRow
@@ -16,7 +15,7 @@ def export_vat_to_excel(
     year: int,
     periods: list[VatPeriodRow],
     export_dir: str,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     try:
         import openpyxl
         from openpyxl.styles import Alignment, Font, PatternFill
@@ -29,9 +28,7 @@ def export_vat_to_excel(
     ws = wb.active
     ws.title = f"מע״מ {year}"
 
-    header_fill = PatternFill(
-        start_color="366092", end_color="366092", fill_type="solid"
-    )
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF")
     center = Alignment(horizontal="center", vertical="center")
 

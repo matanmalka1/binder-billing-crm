@@ -20,9 +20,7 @@ class VatAuditLog(Base):
     __tablename__ = "vat_audit_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    work_item_id = Column(
-        Integer, ForeignKey("vat_work_items.id"), nullable=False, index=True
-    )
+    work_item_id = Column(Integer, ForeignKey("vat_work_items.id"), nullable=False, index=True)
     performed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     # Use ACTION_* constants from constants.py — never raw strings in service code
@@ -43,6 +41,5 @@ class VatAuditLog(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<VatAuditLog(id={self.id}, work_item_id={self.work_item_id}, "
-            f"action={self.action})>"
+            f"<VatAuditLog(id={self.id}, work_item_id={self.work_item_id}, action={self.action})>"
         )

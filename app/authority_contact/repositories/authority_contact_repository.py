@@ -1,10 +1,9 @@
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.common.repositories.base_repository import BaseRepository
 from app.authority_contact.models.authority_contact import AuthorityContact, ContactType
+from app.common.repositories.base_repository import BaseRepository
 from app.utils.time_utils import utcnow
 
 
@@ -21,10 +20,10 @@ class AuthorityContactRepository(BaseRepository[AuthorityContact]):
         client_record_id: int,
         contact_type: ContactType,
         name: str,
-        office: Optional[str] = None,
-        phone: Optional[str] = None,
-        email: Optional[str] = None,
-        notes: Optional[str] = None,
+        office: str | None = None,
+        phone: str | None = None,
+        email: str | None = None,
+        notes: str | None = None,
     ) -> AuthorityContact:
         """Create new authority contact."""
         contact = AuthorityContact(
@@ -41,7 +40,7 @@ class AuthorityContactRepository(BaseRepository[AuthorityContact]):
         return contact
 
     def _base_where(
-        self, client_record_id: int, contact_type: Optional[ContactType] = None
+        self, client_record_id: int, contact_type: ContactType | None = None
     ) -> list:
         conditions = [
             AuthorityContact.client_record_id == client_record_id,
@@ -54,7 +53,7 @@ class AuthorityContactRepository(BaseRepository[AuthorityContact]):
     def list_by_client_record(
         self,
         client_record_id: int,
-        contact_type: Optional[ContactType] = None,
+        contact_type: ContactType | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[AuthorityContact]:
@@ -69,7 +68,7 @@ class AuthorityContactRepository(BaseRepository[AuthorityContact]):
     def count_by_client_record(
         self,
         client_record_id: int,
-        contact_type: Optional[ContactType] = None,
+        contact_type: ContactType | None = None,
     ) -> int:
         return self.db.scalar(
             select(func.count(AuthorityContact.id)).where(
@@ -77,7 +76,7 @@ class AuthorityContactRepository(BaseRepository[AuthorityContact]):
             )
         )
 
-    def update(self, contact_id: int, **fields) -> Optional[AuthorityContact]:
+    def update(self, contact_id: int, **fields) -> AuthorityContact | None:
         """Update contact fields."""
         contact = self.get_by_id(contact_id)
         return self._update_entity(contact, touch_updated_at=True, **fields)

@@ -8,7 +8,6 @@ overlap are forbidden.
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -21,8 +20,8 @@ def has_overlapping_rule(
     *,
     rule_type: DeadlineRuleType,
     effective_from: date,
-    effective_to: Optional[date],
-    exclude_id: Optional[int] = None,
+    effective_to: date | None,
+    exclude_id: int | None = None,
 ) -> bool:
     """Return True if any existing DeadlineRule of the same rule_type
     has an effective range that intersects [effective_from, effective_to].
@@ -30,9 +29,7 @@ def has_overlapping_rule(
     Treats null effective_to as +infinity. Pure read; never raises on
     mere overlap. Caller decides how to react.
     """
-    candidate_value = (
-        rule_type.value if isinstance(rule_type, DeadlineRuleType) else rule_type
-    )
+    candidate_value = rule_type.value if isinstance(rule_type, DeadlineRuleType) else rule_type
     query = db.query(DeadlineRule).filter(DeadlineRule.rule_type == candidate_value)
     if exclude_id is not None:
         query = query.filter(DeadlineRule.id != exclude_id)

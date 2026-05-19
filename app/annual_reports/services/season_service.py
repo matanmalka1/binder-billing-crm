@@ -3,6 +3,7 @@ from app.annual_reports.schemas.annual_report_responses import (
     SeasonSummaryResponse,
 )
 from app.utils.time_utils import israel_today
+
 from .base import AnnualReportBaseService
 
 

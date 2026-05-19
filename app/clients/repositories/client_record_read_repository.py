@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional, TypedDict
+from typing import TypedDict
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -20,34 +20,34 @@ from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, 
 
 class ClientRecordData(TypedDict):
     id: int
-    full_name: Optional[str]
+    full_name: str | None
     id_number: str
-    id_number_type: Optional[IdNumberType]
-    entity_type: Optional[EntityType]
+    id_number_type: IdNumberType | None
+    entity_type: EntityType | None
     status: ClientStatus
-    office_client_number: Optional[int]
-    accountant_id: Optional[int]
-    notes: Optional[str]
-    vat_reporting_frequency: Optional[VatType]
-    advance_payment_frequency: Optional[AdvancePaymentFrequency]
-    vat_exempt_ceiling: Optional[Decimal]
-    advance_rate: Optional[Decimal]
-    advance_rate_updated_at: Optional[date]
-    annual_revenue: Optional[Decimal]
-    phone: Optional[str]
-    email: Optional[str]
-    address_street: Optional[str]
-    address_building_number: Optional[str]
-    address_apartment: Optional[str]
-    address_city: Optional[str]
-    address_zip_code: Optional[str]
+    office_client_number: int | None
+    accountant_id: int | None
+    notes: str | None
+    vat_reporting_frequency: VatType | None
+    advance_payment_frequency: AdvancePaymentFrequency | None
+    vat_exempt_ceiling: Decimal | None
+    advance_rate: Decimal | None
+    advance_rate_updated_at: date | None
+    annual_revenue: Decimal | None
+    phone: str | None
+    email: str | None
+    address_street: str | None
+    address_building_number: str | None
+    address_apartment: str | None
+    address_city: str | None
+    address_zip_code: str | None
     created_at: datetime
-    updated_at: Optional[datetime]
-    created_by: Optional[int]
-    deleted_at: Optional[datetime]
-    deleted_by: Optional[int]
-    restored_at: Optional[datetime]
-    restored_by: Optional[int]
+    updated_at: datetime | None
+    created_by: int | None
+    deleted_at: datetime | None
+    deleted_by: int | None
+    restored_at: datetime | None
+    restored_by: int | None
 
 
 def _full_record_query():
@@ -63,9 +63,7 @@ def _full_record_query():
     )
 
 
-def _full_record_dict(
-    cr: ClientRecord, le: LegalEntity, person: Person | None
-) -> ClientRecordData:
+def _full_record_dict(cr: ClientRecord, le: LegalEntity, person: Person | None) -> ClientRecordData:
     full_name = person.full_name if person and person.full_name else le.official_name
     return {
         "id": cr.id,
@@ -112,15 +110,11 @@ def get_full_record(db: Session, client_record_id: int) -> ClientRecordData | No
 def get_full_record_including_deleted(
     db: Session, client_record_id: int
 ) -> ClientRecordData | None:
-    row = db.execute(
-        _full_record_query().where(ClientRecord.id == client_record_id)
-    ).first()
+    row = db.execute(_full_record_query().where(ClientRecord.id == client_record_id)).first()
     return _full_record_dict(*row) if row else None
 
 
-def get_full_records_bulk(
-    db: Session, client_record_ids: list[int]
-) -> dict[int, ClientRecordData]:
+def get_full_records_bulk(db: Session, client_record_ids: list[int]) -> dict[int, ClientRecordData]:
     if not client_record_ids:
         return {}
     rows = db.execute(

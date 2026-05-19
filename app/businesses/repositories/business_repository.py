@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
 
 from sqlalchemy import String, cast, func, select
 from sqlalchemy.orm import Session
 
-from app.common.repositories.base_repository import BaseRepository
 from app.businesses.models.business import Business, BusinessStatus
+from app.common.repositories.base_repository import BaseRepository
 from app.utils.time_utils import utcnow
 
 
@@ -25,9 +24,9 @@ class BusinessRepository(BaseRepository[Business]):
         self,
         legal_entity_id: int,
         opened_at: date,
-        business_name: Optional[str] = None,
-        notes: Optional[str] = None,
-        created_by: Optional[int] = None,
+        business_name: str | None = None,
+        notes: str | None = None,
+        created_by: int | None = None,
     ) -> Business:
         business = Business(
             legal_entity_id=legal_entity_id,
@@ -40,7 +39,7 @@ class BusinessRepository(BaseRepository[Business]):
         self.db.flush()
         return business
 
-    def update(self, business_id: int, **fields) -> Optional[Business]:
+    def update(self, business_id: int, **fields) -> Business | None:
         business = self.get_by_id(business_id)
         return self._update_entity(business, **fields)
 
@@ -53,10 +52,8 @@ class BusinessRepository(BaseRepository[Business]):
         self.db.flush()
         return True
 
-    def restore(self, business_id: int, restored_by: int) -> Optional[Business]:
-        business = self.db.scalars(
-            select(Business).where(Business.id == business_id)
-        ).first()
+    def restore(self, business_id: int, restored_by: int) -> Business | None:
+        business = self.db.scalars(select(Business).where(Business.id == business_id)).first()
         if not business or business.deleted_at is None:
             return None
         business.deleted_at = None
@@ -68,10 +65,8 @@ class BusinessRepository(BaseRepository[Business]):
 
     # ─── Read (single) ───────────────────────────────────────────────────────
 
-    def get_by_id_including_deleted(self, business_id: int) -> Optional[Business]:
-        return self.db.scalars(
-            select(Business).where(Business.id == business_id)
-        ).first()
+    def get_by_id_including_deleted(self, business_id: int) -> Business | None:
+        return self.db.scalars(select(Business).where(Business.id == business_id)).first()
 
     def exists_for_legal_entity(self, legal_entity_id: int) -> bool:
         return (
@@ -90,9 +85,7 @@ class BusinessRepository(BaseRepository[Business]):
                 Business.deleted_at.is_(None),
             )
         ).all()
-        return bool(businesses) and all(
-            b.status == BusinessStatus.CLOSED for b in businesses
-        )
+        return bool(businesses) and all(b.status == BusinessStatus.CLOSED for b in businesses)
 
     def get_ids_by_legal_entity(self, legal_entity_id: int) -> list[int]:
         rows = self.db.execute(
@@ -115,8 +108,8 @@ class BusinessRepository(BaseRepository[Business]):
 
     def _build_base_stmt(
         self,
-        status: Optional[str] = None,
-        search: Optional[str] = None,
+        status: str | None = None,
+        search: str | None = None,
     ):
         stmt = select(Business).where(Business.deleted_at.is_(None))
         if status:
@@ -124,16 +117,15 @@ class BusinessRepository(BaseRepository[Business]):
         if search:
             term = f"%{search.strip()}%"
             stmt = stmt.where(
-                Business.business_name.ilike(term)
-                | cast(Business.id, String).ilike(term)
+                Business.business_name.ilike(term) | cast(Business.id, String).ilike(term)
             )
         return stmt
 
     def list(
         self,
-        status: Optional[str] = None,
-        entity_type: Optional[str] = None,
-        search: Optional[str] = None,
+        status: str | None = None,
+        entity_type: str | None = None,
+        search: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Business]:
@@ -143,9 +135,9 @@ class BusinessRepository(BaseRepository[Business]):
 
     def count(
         self,
-        status: Optional[str] = None,
-        entity_type: Optional[str] = None,
-        search: Optional[str] = None,
+        status: str | None = None,
+        entity_type: str | None = None,
+        search: str | None = None,
         *,
         include_deleted: bool = False,
     ) -> int:
@@ -174,9 +166,7 @@ class BusinessRepository(BaseRepository[Business]):
             )
         )
 
-    def list_by_legal_entity_including_deleted(
-        self, legal_entity_id: int
-    ) -> list[Business]:
+    def list_by_legal_entity_including_deleted(self, legal_entity_id: int) -> list[Business]:
         return self.db.scalars(
             select(Business)
             .where(Business.legal_entity_id == legal_entity_id)
@@ -197,12 +187,10 @@ class BusinessRepository(BaseRepository[Business]):
         if not business_ids:
             return []
         return self.db.scalars(
-            select(Business).where(
-                Business.id.in_(business_ids), Business.deleted_at.is_(None)
-            )
+            select(Business).where(Business.id.in_(business_ids), Business.deleted_at.is_(None))
         ).all()
 
-    def list_all(self, status: Optional[str] = None) -> list[Business]:
+    def list_all(self, status: str | None = None) -> list[Business]:
         """List all active businesses. No pagination — internal aggregation use only."""
         stmt = select(Business).where(Business.deleted_at.is_(None))
         if status:

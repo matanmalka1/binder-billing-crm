@@ -11,16 +11,15 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import relationship
-from app.utils.enum_utils import pg_enum
+
 from app.database import Base
+from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
 
 
 class BinderStatus(str, PyEnum):
     IN_OFFICE = "in_office"
-    CLOSED_IN_OFFICE = (
-        "closed_in_office"  # full, no more intake, still physically present
-    )
+    CLOSED_IN_OFFICE = "closed_in_office"  # full, no more intake, still physically present
     READY_FOR_PICKUP = "ready_for_pickup"
     RETURNED = "returned"
 
@@ -43,9 +42,7 @@ class Binder(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    client_record_id = Column(
-        Integer, ForeignKey("client_records.id"), nullable=False, index=True
-    )
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
 
     # Label number on the physical binder, unique per active client record.
     binder_number = Column(String, nullable=False)
@@ -84,9 +81,7 @@ class Binder(Base):
     deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    intakes = relationship(
-        "BinderIntake", back_populates="binder", cascade="all, delete-orphan"
-    )
+    intakes = relationship("BinderIntake", back_populates="binder", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("idx_binder_status", "status"),

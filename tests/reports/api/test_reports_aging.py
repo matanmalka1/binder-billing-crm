@@ -5,7 +5,6 @@ from itertools import count
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from tests.helpers.identity import seed_business, seed_client_identity
 
-
 _client_seq = count(1)
 
 
@@ -28,9 +27,7 @@ def _client_and_business(db):
     return client, business
 
 
-def _charge(
-    db, client_id: int, business_id: int, amount: Decimal, issued_days_ago: int
-):
+def _charge(db, client_id: int, business_id: int, amount: Decimal, issued_days_ago: int):
     issued_at = date.today() - timedelta(days=issued_days_ago)
     charge = Charge(
         client_record_id=client_id,
@@ -52,18 +49,10 @@ def test_aging_report_buckets_and_sorting(client, test_db, advisor_headers):
     client_b, business_b = _client_and_business(test_db)
 
     # Client A: mix across buckets
-    _charge(
-        test_db, client_a.id, business_a.id, Decimal("100"), issued_days_ago=10
-    )  # current
-    _charge(
-        test_db, client_a.id, business_a.id, Decimal("200"), issued_days_ago=45
-    )  # 30
-    _charge(
-        test_db, client_a.id, business_a.id, Decimal("300"), issued_days_ago=75
-    )  # 60
-    _charge(
-        test_db, client_a.id, business_a.id, Decimal("400"), issued_days_ago=120
-    )  # 90+
+    _charge(test_db, client_a.id, business_a.id, Decimal("100"), issued_days_ago=10)  # current
+    _charge(test_db, client_a.id, business_a.id, Decimal("200"), issued_days_ago=45)  # 30
+    _charge(test_db, client_a.id, business_a.id, Decimal("300"), issued_days_ago=75)  # 60
+    _charge(test_db, client_a.id, business_a.id, Decimal("400"), issued_days_ago=120)  # 90+
 
     # Client B: single 90+ should sort below A because total is smaller
     _charge(test_db, client_b.id, business_b.id, Decimal("150"), issued_days_ago=200)

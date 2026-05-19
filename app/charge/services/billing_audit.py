@@ -1,6 +1,5 @@
 """Audit helpers for charge lifecycle events."""
 
-from typing import Optional
 
 from app.audit.constants import ENTITY_CHARGE
 from app.audit.services.entity_audit_writer import EntityAuditWriter
@@ -9,11 +8,11 @@ from app.audit.services.entity_audit_writer import EntityAuditWriter
 def record_charge_status_audit(
     writer: EntityAuditWriter,
     charge_id: int,
-    actor_id: Optional[int],
+    actor_id: int | None,
     action: str,
     old_status,
     new_status,
-    note: Optional[str] = None,
+    note: str | None = None,
 ) -> None:
     writer.append(
         entity_type=ENTITY_CHARGE,

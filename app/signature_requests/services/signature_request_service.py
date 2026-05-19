@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -21,8 +20,8 @@ from app.signature_requests.services import (
     signer_actions,
 )
 from app.signature_requests.services.messages import (
-    AUTO_ADVANCE_ANNUAL_REPORT_ERROR,
     ANNUAL_REPORT_SIGNED_NOTE,
+    AUTO_ADVANCE_ANNUAL_REPORT_ERROR,
     AUTO_SUBMITTED_AFTER_SIGNATURE_NOTE,
     INVALID_FILTER_STATUS,
     SYSTEM_USER_NAME,
@@ -68,17 +67,13 @@ class SignatureRequestService:
         return signer_actions.record_view(self.repo, **kwargs)
 
     def sign_request(self, **kwargs):
-        req, annual_report_id, signed_at = signer_actions.sign_request(
-            self.repo, **kwargs
-        )
+        req, annual_report_id, signed_at = signer_actions.sign_request(self.repo, **kwargs)
         if annual_report_id:
             self.repo.append_audit_event(
                 signature_request_id=req.id,
                 event_type="annual_report_signed",
                 actor_type="system",
-                notes=ANNUAL_REPORT_SIGNED_NOTE.format(
-                    annual_report_id=annual_report_id
-                ),
+                notes=ANNUAL_REPORT_SIGNED_NOTE.format(annual_report_id=annual_report_id),
             )
             self._auto_advance_annual_report(annual_report_id, signed_at)
         return req
@@ -122,17 +117,17 @@ class SignatureRequestService:
 
     # ── Queries ───────────────────────────────────────────────────────────────
 
-    def get_request(self, request_id: int) -> Optional[SignatureRequest]:
+    def get_request(self, request_id: int) -> SignatureRequest | None:
         return self.repo.get_by_id(request_id)
 
-    def get_by_token(self, token: str) -> Optional[SignatureRequest]:
+    def get_by_token(self, token: str) -> SignatureRequest | None:
         return self.repo.get_by_token(token)
 
     def list_client_requests(
         self,
         *,
         client_record_id: int,
-        status: Optional[str] = None,
+        status: str | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[SignatureRequest], int]:
@@ -160,15 +155,13 @@ class SignatureRequestService:
         return self.repo.list_audit_events(request_id)
 
     @staticmethod
-    def _parse_status(status: Optional[str]) -> Optional[SignatureRequestStatus]:
+    def _parse_status(status: str | None) -> SignatureRequestStatus | None:
         if not status:
             return None
         valid_statuses = {e.value for e in SignatureRequestStatus}
         if status not in valid_statuses:
             raise AppError(
-                INVALID_FILTER_STATUS.format(
-                    status=status, valid_statuses=sorted(valid_statuses)
-                ),
+                INVALID_FILTER_STATUS.format(status=status, valid_statuses=sorted(valid_statuses)),
                 "SIGNATURE_REQUEST.INVALID_STATUS",
             )
         return SignatureRequestStatus(status)

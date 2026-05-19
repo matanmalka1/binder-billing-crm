@@ -1,6 +1,6 @@
 """VAT amount derivation from tax rules."""
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from app.vat_reports.integrations.tax_rules_financials import get_vat_rate_percent
 from app.vat_reports.models.vat_enums import VatRateType

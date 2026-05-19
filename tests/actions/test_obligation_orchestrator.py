@@ -86,4 +86,3 @@ def test_generate_client_obligations_result_collects_partial_failures(monkeypatc
     assert result.errors == [
         "annual_report_creation_failed:2026",
     ]
-

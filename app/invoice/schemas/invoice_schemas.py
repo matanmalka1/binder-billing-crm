@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -12,7 +11,7 @@ class InvoiceAttachRequest(BaseModel):
     provider: str
     external_invoice_id: str
     issued_at: ApiDateTime
-    document_url: Optional[str] = None
+    document_url: str | None = None
 
 
 class InvoiceResponse(BaseModel):
@@ -20,7 +19,7 @@ class InvoiceResponse(BaseModel):
     charge_id: int
     provider: str
     external_invoice_id: str
-    document_url: Optional[str] = None
+    document_url: str | None = None
     issued_at: ApiDateTime
     created_at: ApiDateTime
 

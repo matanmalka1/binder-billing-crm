@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import List, Optional
-
 from fastapi import APIRouter, Depends, Query
 
+from app.tasks.models.task import TaskStatus
 from app.users.api.deps import DBSession, require_role
 from app.users.models.user import UserRole
-from app.tasks.models.task import TaskStatus
 from app.work_queue.schemas.work_queue import (
     WorkQueueLinkedFilter,
     WorkQueueListResponse,
@@ -26,16 +24,16 @@ _LIMIT_DEFAULT = 50
 class WorkQueueFilterParams:
     def __init__(
         self,
-        client_record_id: Optional[int] = Query(None),
-        business_id: Optional[int] = Query(None),
-        exclude_source_types: Optional[List[WorkQueueSourceType]] = Query(None),
+        client_record_id: int | None = Query(None),
+        business_id: int | None = Query(None),
+        exclude_source_types: list[WorkQueueSourceType] | None = Query(None),
         include_task_history: bool = Query(False),
-        search: Optional[str] = Query(None),
-        source_type: Optional[WorkQueueSourceType] = Query(None),
-        urgency: Optional[WorkQueueUrgency] = Query(None),
-        task_status: Optional[TaskStatus] = Query(None),
-        linked: Optional[WorkQueueLinkedFilter] = Query(None),
-        scope: Optional[WorkQueueScope] = Query(None),
+        search: str | None = Query(None),
+        source_type: WorkQueueSourceType | None = Query(None),
+        urgency: WorkQueueUrgency | None = Query(None),
+        task_status: TaskStatus | None = Query(None),
+        linked: WorkQueueLinkedFilter | None = Query(None),
+        scope: WorkQueueScope | None = Query(None),
     ):
         self.client_record_id = client_record_id
         self.business_id = business_id

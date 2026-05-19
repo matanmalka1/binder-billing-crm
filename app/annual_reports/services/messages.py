@@ -8,9 +8,7 @@ ANNUAL_REPORT_CLIENT_NOT_FOUND = "לקוח {client_record_id} לא נמצא"
 INVALID_CLIENT_TYPE_ERROR = "סוג לקוח לא חוקי: '{client_type}'"
 INVALID_DEADLINE_TYPE_ERROR = "סוג מועד אחרון לא חוקי: '{deadline_type}'"
 ANNUAL_REPORT_ALREADY_EXISTS = "דוח שנתי ראשי ללקוח {client_record_id} לשנת מס {tax_year} כבר קיים (id={existing_id}, status={status})"
-ANNUAL_REPORT_CREATED_NOTE = (
-    "הדוח נוצר. טופס: {form_type}, מועד אחרון: {filing_deadline}"
-)
+ANNUAL_REPORT_CREATED_NOTE = "הדוח נוצר. טופס: {form_type}, מועד אחרון: {filing_deadline}"
 DEADLINE_NOT_SET = "לא נקבע"
 INVALID_INCOME_SOURCE_ERROR = "סוג הכנסה לא חוקי: '{source_type}'"
 INCOME_LINE_NOT_FOUND = "שורת הכנסה {line_id} לא נמצאה"
@@ -20,7 +18,9 @@ INVALID_EXPENSE_CATEGORY_ERROR = "קטגוריית הוצאה לא חוקית: '
 EXPENSE_LINE_NOT_FOUND = "שורת הוצאה {line_id} לא נמצאה"
 REPORT_NOT_READY_FOR_SUBMISSION = "הדוח אינו מוכן להגשה: {issues}"
 INVALID_ANNUAL_REPORT_STATUS = "סטטוס לא חוקי: '{new_status}'"
-INVALID_STATUS_TRANSITION = "לא ניתן לעבור מ-'{current_status}' ל-'{new_status}'. סטטוסים הבאים מותרים: {allowed}"
+INVALID_STATUS_TRANSITION = (
+    "לא ניתן לעבור מ-'{current_status}' ל-'{new_status}'. סטטוסים הבאים מותרים: {allowed}"
+)
 STATUS_CHANGE_CANCEL_SIGNATURE_REASON = "מעבר סטטוס — ביטול בקשת חתימה"
 REENTER_PENDING_CLIENT_CANCEL_SIGNATURE_REASON = "כניסה חוזרת ל-PENDING_CLIENT"
 DEADLINE_UPDATED_NOTE = "המועד האחרון עודכן ל-{deadline_type}: {filing_deadline}"
@@ -30,22 +30,16 @@ ANNEX_VALIDATION_ERROR = "נתוני הנספח אינם תקינים: {error}"
 ANNEX_LINE_NOT_FOUND = "שורת נספח {line_id} לא נמצאה"
 SCHEDULE_NOT_FOUND = "נספח '{schedule}' לא נמצא בדוח {report_id}"
 INVALID_SCHEDULE_ERROR = "נספח לא חוקי: '{schedule}'"
-UNSUPPORTED_TAX_YEAR_ERROR = (
-    "שנת מס {tax_year} אינה נתמכת. שנים נתמכות: {supported_years}"
-)
+UNSUPPORTED_TAX_YEAR_ERROR = "שנת מס {tax_year} אינה נתמכת. שנים נתמכות: {supported_years}"
 AUTOPOPULATE_INVALID_STATUS = 'ניתן למלא נתוני מע"מ אוטומטית רק לדוח בשלבים הראשונים'
 AUTOPOPULATE_LINES_ALREADY_EXIST = (
     "קיימים נתוני הכנסות/הוצאות בדוח. יש לשלוח force=true למחיקה ומילוי מחדש"
 )
 VAT_IMPORTED_BUSINESS_INCOME_DESCRIPTION = 'הכנסות עסקיות — יובא ממע"מ'
 VAT_IMPORTED_EXPENSE_DESCRIPTION = 'הוצאות {category} — יובא ממע"מ'
-ANNUAL_DEADLINE_REMINDER_MESSAGE = (
-    "תזכורת: מועד מס בעוד {days_before} ימים ({due_date})"
-)
+ANNUAL_DEADLINE_REMINDER_MESSAGE = "תזכורת: מועד מס בעוד {days_before} ימים ({due_date})"
 ANNUAL_REPORT_APPROVAL_TITLE = "אישור דוח שנתי {tax_year}"
 ANNUAL_REPORT_DELETED_REASON = "דוח נמחק"
-REPORT_AMEND_ONLY_SUBMITTED_ERROR = (
-    "ניתן לתקן רק דוח בסטטוס 'הוגש'. הסטטוס הנוכחי: {status}"
-)
+REPORT_AMEND_ONLY_SUBMITTED_ERROR = "ניתן לתקן רק דוח בסטטוס 'הוגש'. הסטטוס הנוכחי: {status}"
 REPORT_AMEND_CANCEL_SIGNATURE_REASON = "תיקון דוח — ביטול בקשת חתימה"
 CLIENT_FALLBACK_NAME = "לקוח #{client_record_id}"

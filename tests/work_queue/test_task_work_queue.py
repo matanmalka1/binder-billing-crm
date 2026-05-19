@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
-from app.tasks.models.task import Task, TaskStatus, TaskPriority
+from app.tasks.models.task import Task, TaskPriority, TaskStatus
 from app.utils.time_utils import utcnow
 from app.work_queue.schemas.work_queue import WorkQueueSourceType, WorkQueueUrgency
 from app.work_queue.services.work_queue_service import WorkQueueService
@@ -112,9 +112,7 @@ def test_done_linked_task_appears_as_task_row_in_history(test_db):
 
     items = WorkQueueService(test_db).list_items(include_task_history=True)
     task_row = next(
-        i
-        for i in items
-        if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
     )
 
     assert task_row.source_summary is not None
@@ -129,11 +127,7 @@ def test_null_due_date_task_appears(test_db):
     task = _add_task(test_db, title="No Due Date")
     items = WorkQueueService(test_db).list_items()
     match = next(
-        (
-            i
-            for i in items
-            if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
-        ),
+        (i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id),
         None,
     )
     assert match is not None
@@ -161,9 +155,7 @@ def test_overdue_task_urgency(test_db):
     task = _add_task(test_db, due_date=past)
     items = WorkQueueService(test_db).list_items()
     match = next(
-        i
-        for i in items
-        if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
     )
     assert match.urgency == WorkQueueUrgency.OVERDUE
 
@@ -173,9 +165,7 @@ def test_approaching_task_urgency(test_db):
     task = _add_task(test_db, due_date=soon)
     items = WorkQueueService(test_db).list_items()
     match = next(
-        i
-        for i in items
-        if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
     )
     assert match.urgency == WorkQueueUrgency.APPROACHING
 
@@ -203,9 +193,7 @@ def test_task_work_queue_item_metadata(test_db):
 
     items = WorkQueueService(test_db).list_items()
     match = next(
-        i
-        for i in items
-        if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
+        i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
     )
 
     assert match.title == "Payload Task"
@@ -225,9 +213,7 @@ def test_task_work_queue_item_metadata(test_db):
 
 def test_exclude_task_source_type(test_db):
     _add_task(test_db)
-    items = WorkQueueService(test_db).list_items(
-        exclude_source_types=[WorkQueueSourceType.TASK]
-    )
+    items = WorkQueueService(test_db).list_items(exclude_source_types=[WorkQueueSourceType.TASK])
     assert not any(i.source_type == WorkQueueSourceType.TASK for i in items)
 
 
@@ -263,11 +249,7 @@ def test_task_linked_to_charge_exposes_client_info(test_db):
 
     items = WorkQueueService(test_db).list_items()
     match = next(
-        (
-            i
-            for i in items
-            if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
-        ),
+        (i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id),
         None,
     )
     assert match is not None
@@ -294,11 +276,7 @@ def test_task_linked_to_charge_appears_in_client_filtered_work_queue(test_db):
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz.client_id)
     match = next(
-        (
-            i
-            for i in items
-            if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
-        ),
+        (i for i in items if i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id),
         None,
     )
     assert match is not None
@@ -333,6 +311,5 @@ def test_task_linked_to_other_client_charge_excluded_from_client_filter(test_db)
 
     items = WorkQueueService(test_db).list_items(client_record_id=biz2.client_id)
     assert not any(
-        i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id
-        for i in items
+        i.source_type == WorkQueueSourceType.TASK and i.source_id == task.id for i in items
     )

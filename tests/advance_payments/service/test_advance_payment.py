@@ -15,7 +15,6 @@ from app.common.enums import VatType
 from app.core.exceptions import AppError, ConflictError
 from tests.helpers.identity import seed_client_identity
 
-
 _seq = count(1)
 
 
@@ -94,9 +93,7 @@ def test_list_payments_filters_by_status(test_db):
         paid_amount=Decimal("200"),
     )
 
-    all_items, total = service.list_payments_for_client(
-        business.client_record_id, year=2026
-    )
+    all_items, total = service.list_payments_for_client(business.client_record_id, year=2026)
     assert total == 2
     assert [p.id for p in all_items] == [first.id, second.id]
 

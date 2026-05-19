@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict
 
 from bidi.algorithm import get_display
 
@@ -29,12 +28,14 @@ def export_vat_to_pdf(
     year: int,
     periods: list[VatPeriodRow],
     export_dir: str,
-) -> Dict[str, object]:
+) -> dict[str, object]:
     try:
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import A4, landscape
-        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
         from reportlab.lib.units import cm
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
         from reportlab.platypus import (
             Paragraph,
             SimpleDocTemplate,
@@ -42,8 +43,6 @@ def export_vat_to_pdf(
             Table,
             TableStyle,
         )
-        from reportlab.pdfbase import pdfmetrics
-        from reportlab.pdfbase.ttfonts import TTFont
     except ImportError as exc:
         raise ImportError(
             "הספרייה reportlab נדרשת. יש להתקין באמצעות: pip install reportlab"
@@ -52,12 +51,8 @@ def export_vat_to_pdf(
     font_name = "Assistant"
     font_name_bold = "Assistant-Bold"
     try:
-        project_root = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        )
-        font_regular = os.path.join(
-            project_root, "assets", "fonts", "Assistant-Regular.ttf"
-        )
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        font_regular = os.path.join(project_root, "assets", "fonts", "Assistant-Regular.ttf")
         font_bold = os.path.join(project_root, "assets", "fonts", "Assistant-Bold.ttf")
         pdfmetrics.registerFont(TTFont(font_name, font_regular))
         pdfmetrics.registerFont(TTFont(font_name_bold, font_bold))
@@ -67,9 +62,7 @@ def export_vat_to_pdf(
             "Ensure assets/fonts/ directory contains Assistant-Regular.ttf and Assistant-Bold.ttf"
         ) from e
 
-    filename = (
-        f"vat_{client_record_id}_{year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    )
+    filename = f"vat_{client_record_id}_{year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     filepath = os.path.join(export_dir, filename)
 
     doc = SimpleDocTemplate(filepath, pagesize=landscape(A4))
@@ -121,10 +114,7 @@ def export_vat_to_pdf(
     elements.append(Spacer(1, 0.4 * cm))
 
     table_data = [
-        [
-            _hebrew(col)
-            for col in ["תקופה", "סטטוס", "עסקאות", "תשומות", "נטו", "סופי", "הוגש"]
-        ]
+        [_hebrew(col) for col in ["תקופה", "סטטוס", "עסקאות", "תשומות", "נטו", "סופי", "הוגש"]]
     ]
     totals = {"output": Decimal(0), "input": Decimal(0), "net": Decimal(0)}
 

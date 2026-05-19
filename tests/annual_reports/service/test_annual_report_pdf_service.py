@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.annual_reports.services import annual_report_pdf_service as pdf_mod
 from app.annual_reports.services import annual_report_pdf_builder as pdf_builder
+from app.annual_reports.services import annual_report_pdf_service as pdf_mod
 from app.core.exceptions import NotFoundError
 
 
@@ -57,9 +57,7 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
         def get_financial_summary(self, report_id):
             return SimpleNamespace(
                 income_lines=[SimpleNamespace(source_type="salary", amount=1000)],
-                expense_lines=[
-                    SimpleNamespace(category="other", recognized_amount=100)
-                ],
+                expense_lines=[SimpleNamespace(category="other", recognized_amount=100)],
                 total_income=1000,
                 recognized_expenses=100,
             )
@@ -75,9 +73,7 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
                 tax_after_credits=80,
                 effective_rate=8.9,
                 total_liability=120,
-                national_insurance=SimpleNamespace(
-                    base_amount=10, high_amount=5, total=15
-                ),
+                national_insurance=SimpleNamespace(base_amount=10, high_amount=5, total=15),
             )
 
     class _DetailSvc:
@@ -85,9 +81,7 @@ def test_generate_uses_dependencies_and_returns_pdf_bytes(test_db, monkeypatch):
             self.db = db
 
         def get_detail(self, report_id):
-            return SimpleNamespace(
-                tax_refund_amount=Decimal("0"), tax_due_amount=Decimal("120")
-            )
+            return SimpleNamespace(tax_refund_amount=Decimal("0"), tax_due_amount=Decimal("120"))
 
     monkeypatch.setattr(pdf_mod, "AnnualReportRepository", _Repo)
     monkeypatch.setattr(pdf_mod, "ClientRecordRepository", _ClientRepo)

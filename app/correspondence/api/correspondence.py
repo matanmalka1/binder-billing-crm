@@ -1,10 +1,8 @@
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Query, status
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.correspondence.models.correspondence import CorrespondenceType
 from app.correspondence.schemas.correspondence import (
     CorrespondenceCreateRequest,
@@ -13,6 +11,8 @@ from app.correspondence.schemas.correspondence import (
     CorrespondenceUpdateRequest,
 )
 from app.correspondence.services.correspondence_service import CorrespondenceService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 _DEFAULT_PAGE_SIZE = 20
 _MAX_PAGE_SIZE = 100
@@ -27,19 +27,17 @@ client_router = APIRouter(
 )
 
 
-@client_router.get(
-    "/{client_record_id}/correspondence", response_model=CorrespondenceListResponse
-)
+@client_router.get("/{client_record_id}/correspondence", response_model=CorrespondenceListResponse)
 def list_correspondence_by_client(
     client_record_id: int,
     db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(_DEFAULT_PAGE_SIZE, ge=1, le=_MAX_PAGE_SIZE),
-    business_id: Optional[int] = Query(None),
-    correspondence_type: Optional[CorrespondenceType] = Query(None),
-    contact_id: Optional[int] = Query(None),
-    from_date: Optional[datetime] = Query(None),
-    to_date: Optional[datetime] = Query(None),
+    business_id: int | None = Query(None),
+    correspondence_type: CorrespondenceType | None = Query(None),
+    contact_id: int | None = Query(None),
+    from_date: datetime | None = Query(None),
+    to_date: datetime | None = Query(None),
     sort_dir: Literal["asc", "desc"] = Query("desc"),
 ):
     """All correspondence for a client, optionally filtered by business."""
@@ -130,6 +128,4 @@ def delete_correspondence(
     db: DBSession,
     user: CurrentUser,
 ):
-    CorrespondenceService(db).delete_entry(
-        correspondence_id, client_record_id, actor_id=user.id
-    )
+    CorrespondenceService(db).delete_entry(correspondence_id, client_record_id, actor_id=user.id)

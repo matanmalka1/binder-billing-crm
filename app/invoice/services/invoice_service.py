@@ -1,12 +1,11 @@
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.charge.models.charge import ChargeStatus
-from app.invoice.models.invoice import Invoice
 from app.charge.repositories.charge_repository import ChargeRepository
+from app.core.exceptions import AppError, ConflictError, NotFoundError
+from app.invoice.models.invoice import Invoice
 from app.invoice.repositories.invoice_repository import InvoiceRepository
 
 
@@ -24,7 +23,7 @@ class InvoiceService:
         provider: str,
         external_invoice_id: str,
         issued_at: datetime,
-        document_url: Optional[str] = None,
+        document_url: str | None = None,
     ) -> Invoice:
         """
         Attach external invoice reference to a charge.

@@ -50,9 +50,7 @@ def test_update_invoice_patch_success(client, advisor_headers, vat_client):
     assert body["is_exceptional"] is True
 
 
-def test_update_invoice_patch_not_found_returns_404(
-    client, advisor_headers, vat_client
-):
+def test_update_invoice_patch_not_found_returns_404(client, advisor_headers, vat_client):
     item_id = create_work_item(client, advisor_headers, vat_client, "2026-04")
 
     patch_resp = client.patch(
@@ -64,9 +62,7 @@ def test_update_invoice_patch_not_found_returns_404(
     assert patch_resp.status_code == 404
 
 
-def test_update_invoice_patch_invalid_amount_returns_422(
-    client, advisor_headers, vat_client
-):
+def test_update_invoice_patch_invalid_amount_returns_422(client, advisor_headers, vat_client):
     item_id = create_work_item(client, advisor_headers, vat_client, "2026-05")
     create_resp = client.post(
         f"/api/v1/vat/work-items/{item_id}/invoices",
@@ -111,9 +107,7 @@ def test_list_invoices_filter_by_type(client, advisor_headers, vat_client):
     assert items[0]["invoice_type"] == "income"
 
 
-def test_expense_tax_invoice_requires_counterparty_id(
-    client, advisor_headers, vat_client
-):
+def test_expense_tax_invoice_requires_counterparty_id(client, advisor_headers, vat_client):
     item_id = create_work_item(client, advisor_headers, vat_client, "2026-07")
 
     resp = client.post(
@@ -126,9 +120,7 @@ def test_expense_tax_invoice_requires_counterparty_id(
     assert resp.json()["error"] == "VAT.COUNTERPARTY_ID_REQUIRED"
 
 
-def test_create_invoice_persists_counterparty_identity_fields(
-    client, advisor_headers, vat_client
-):
+def test_create_invoice_persists_counterparty_identity_fields(client, advisor_headers, vat_client):
     item_id = create_work_item(client, advisor_headers, vat_client, "2026-08")
 
     resp = client.post(
@@ -150,9 +142,7 @@ def test_create_invoice_persists_counterparty_identity_fields(
     assert body["counterparty_id_type"] == "il_business"
 
 
-def test_update_invoice_persists_counterparty_identity_fields(
-    client, advisor_headers, vat_client
-):
+def test_update_invoice_persists_counterparty_identity_fields(client, advisor_headers, vat_client):
     item_id = create_work_item(client, advisor_headers, vat_client, "2026-09")
     create_resp = client.post(
         f"/api/v1/vat/work-items/{item_id}/invoices",
@@ -177,9 +167,7 @@ def test_update_invoice_persists_counterparty_identity_fields(
     assert body["counterparty_id_type"] == "il_personal"
 
 
-def test_update_invoice_accepts_valid_personal_id_checksum(
-    client, advisor_headers, vat_client
-):
+def test_update_invoice_accepts_valid_personal_id_checksum(client, advisor_headers, vat_client):
     item_id = create_work_item(client, advisor_headers, vat_client, "2026-10")
     create_resp = client.post(
         f"/api/v1/vat/work-items/{item_id}/invoices",

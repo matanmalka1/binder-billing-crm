@@ -1,5 +1,4 @@
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, EmailStr, Field, computed_field
 
@@ -9,7 +8,6 @@ from app.signature_requests.models.signature_request import (
     SignatureRequestType,
 )
 
-
 # ── Audit event ───────────────────────────────────────────────────────────────
 
 
@@ -17,10 +15,10 @@ class SignatureAuditEventResponse(BaseModel):
     id: int
     event_type: str  # String במודל — לא enum, מרחיב בחופשיות
     actor_type: str  # String במודל — לא enum
-    actor_id: Optional[int] = None
-    actor_name: Optional[str] = None
-    ip_address: Optional[str] = None
-    notes: Optional[str] = None
+    actor_id: int | None = None
+    actor_name: str | None = None
+    ip_address: str | None = None
+    notes: str | None = None
     occurred_at: ApiDateTime
 
     model_config = {"from_attributes": True}
@@ -32,31 +30,31 @@ class SignatureAuditEventResponse(BaseModel):
 class SignatureRequestResponse(BaseModel):
     id: int
     client_record_id: int  # PRIMARY anchor — always present
-    office_client_number: Optional[int] = None
-    business_id: Optional[int] = None  # OPTIONAL context
-    business_name: Optional[str] = None  # enriched by route layer when business_id set
+    office_client_number: int | None = None
+    business_id: int | None = None  # OPTIONAL context
+    business_name: str | None = None  # enriched by route layer when business_id set
     created_by: int
     request_type: SignatureRequestType
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     signer_name: str
-    signer_email: Optional[str] = None
-    signer_phone: Optional[str] = None
+    signer_email: str | None = None
+    signer_phone: str | None = None
     status: SignatureRequestStatus
-    content_hash: Optional[str] = None
-    storage_key: Optional[str] = None
-    annual_report_id: Optional[int] = None
-    document_id: Optional[int] = None
+    content_hash: str | None = None
+    storage_key: str | None = None
+    annual_report_id: int | None = None
+    document_id: int | None = None
     created_at: ApiDateTime
-    sent_at: Optional[ApiDateTime] = None
-    expires_at: Optional[ApiDateTime] = None
-    signed_at: Optional[ApiDateTime] = None
-    declined_at: Optional[ApiDateTime] = None
-    canceled_at: Optional[ApiDateTime] = None
-    canceled_by: Optional[int] = None
+    sent_at: ApiDateTime | None = None
+    expires_at: ApiDateTime | None = None
+    signed_at: ApiDateTime | None = None
+    declined_at: ApiDateTime | None = None
+    canceled_at: ApiDateTime | None = None
+    canceled_by: int | None = None
     # signer_ip_address intentionally excluded — PII, available only in audit trail
-    decline_reason: Optional[str] = None
-    signed_document_key: Optional[str] = None
+    decline_reason: str | None = None
+    signed_document_key: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -73,18 +71,16 @@ class SignatureRequestWithAuditResponse(SignatureRequestResponse):
 
 class SignatureRequestCreateRequest(BaseModel):
     client_record_id: int = Field(gt=0)  # PRIMARY anchor — always required
-    business_id: Optional[int] = Field(
-        None, gt=0
-    )  # OPTIONAL; validated server-side for ownership
+    business_id: int | None = Field(None, gt=0)  # OPTIONAL; validated server-side for ownership
     request_type: SignatureRequestType
     title: str = Field(min_length=3, max_length=200)
-    description: Optional[str] = Field(None, max_length=2000)
+    description: str | None = Field(None, max_length=2000)
     signer_name: str = Field(min_length=2, max_length=100)
-    signer_email: Optional[EmailStr] = None
-    signer_phone: Optional[str] = None
-    annual_report_id: Optional[int] = Field(None, gt=0)
-    document_id: Optional[int] = Field(None, gt=0)
-    content_to_hash: Optional[str] = None  # service computes SHA-256
+    signer_email: EmailStr | None = None
+    signer_phone: str | None = None
+    annual_report_id: int | None = Field(None, gt=0)
+    document_id: int | None = Field(None, gt=0)
+    content_to_hash: str | None = None  # service computes SHA-256
     expiry_days: int = Field(14, ge=1, le=90)
 
 
@@ -96,7 +92,7 @@ class SignatureRequestCreatedResponse(SignatureRequestResponse):
 
 
 class CancelRequest(BaseModel):
-    reason: Optional[str] = Field(None, max_length=500)
+    reason: str | None = Field(None, max_length=500)
 
 
 # ── Signer-facing (public, no JWT) ───────────────────────────────────────────
@@ -107,25 +103,25 @@ class SignerViewResponse(BaseModel):
 
     request_id: int
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     signer_name: str
     status: SignatureRequestStatus
-    content_hash: Optional[str] = None
-    expires_at: Optional[ApiDateTime] = None
+    content_hash: str | None = None
+    expires_at: ApiDateTime | None = None
 
     @computed_field
     @property
     def is_expired(self) -> bool:
         if self.expires_at is None:
             return False
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         exp = (
             self.expires_at
             if self.expires_at.tzinfo
-            else self.expires_at.replace(tzinfo=timezone.utc)
+            else self.expires_at.replace(tzinfo=UTC)
         )
         return exp < now
 
 
 class SignerDeclineRequest(BaseModel):
-    reason: Optional[str] = Field(None, max_length=500)
+    reason: str | None = Field(None, max_length=500)

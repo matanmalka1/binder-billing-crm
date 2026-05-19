@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import datetime as _dt
-from datetime import date, timezone
-from typing import Optional
+from datetime import date
 
 from app.actions.action_helpers import build_action, build_confirm
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
@@ -29,9 +28,7 @@ _ANNUAL_PENDING_CLIENT_DAYS = 3
 _UPCOMING_WINDOW_DAYS = 14
 
 
-def _enrich(
-    action: dict, category: str, urgency: str, due_date: date, due_label: str
-) -> dict:
+def _enrich(action: dict, category: str, urgency: str, due_date: date, due_label: str) -> dict:
     action["category"] = category
     action["urgency"] = urgency
     action["due_date"] = due_date.isoformat()
@@ -39,7 +36,7 @@ def _enrich(
     return action
 
 
-def _batch_client_names(db, client_record_ids: list[int]) -> dict[int, Optional[str]]:
+def _batch_client_names(db, client_record_ids: list[int]) -> dict[int, str | None]:
     """Batch-load client display names by client record IDs (avoids N+1)."""
     if not client_record_ids:
         return {}
@@ -63,7 +60,7 @@ def build_annual_report_actions(
     if not reports:
         return []
 
-    now_utc = _dt.datetime.now(timezone.utc)
+    now_utc = _dt.datetime.now(_dt.UTC)
     client_record_ids = [r.client_record_id for r in reports if r.client_record_id]
     client_name_map = _batch_client_names(business_repo.db, client_record_ids)
 
@@ -90,9 +87,7 @@ def build_annual_report_actions(
         is_pending_client = report.status == AnnualReportStatus.PENDING_CLIENT
         pending_days = 0
         if is_pending_client:
-            pending_days = (
-                now_utc - report.updated_at.replace(tzinfo=timezone.utc)
-            ).days
+            pending_days = (now_utc - report.updated_at.replace(tzinfo=_dt.UTC)).days
 
         if is_pending_client and pending_days >= _ANNUAL_PENDING_CLIENT_DAYS:
             last_reminder = notification_repo.get_last_for_annual_report_trigger(
@@ -100,9 +95,7 @@ def build_annual_report_actions(
             )
             cooldown_ok = (
                 not last_reminder
-                or (
-                    now_utc - last_reminder.created_at.replace(tzinfo=timezone.utc)
-                ).days
+                or (now_utc - last_reminder.created_at.replace(tzinfo=_dt.UTC)).days
                 >= ANNUAL_REMINDER_COOLDOWN_DAYS
             )
             if cooldown_ok:
@@ -135,7 +128,7 @@ def build_binder_actions(
     if not binders:
         return []
 
-    now_utc = _dt.datetime.now(timezone.utc)
+    now_utc = _dt.datetime.now(_dt.UTC)
     client_record_ids = [b.client_record_id for b in binders if b.client_record_id]
     client_name_map = _batch_client_names(business_repo.db, client_record_ids)
 
@@ -145,17 +138,13 @@ def build_binder_actions(
             binder.id, NotificationTrigger.PICKUP_REMINDER
         )
         if last_reminder:
-            days_since = (
-                now_utc - last_reminder.created_at.replace(tzinfo=timezone.utc)
-            ).days
+            days_since = (now_utc - last_reminder.created_at.replace(tzinfo=_dt.UTC)).days
             if days_since < PICKUP_REMINDER_COOLDOWN_DAYS:
                 continue
 
         client_name = client_name_map.get(binder.client_record_id)
 
-        days_waiting = int(
-            (now_utc - binder.ready_for_pickup_at.replace(tzinfo=timezone.utc)).days
-        )
+        days_waiting = int((now_utc - binder.ready_for_pickup_at.replace(tzinfo=_dt.UTC)).days)
         due_date = binder.ready_for_pickup_at.date()
         due_label = f"ממתין לאיסוף {days_waiting} ימים"
 

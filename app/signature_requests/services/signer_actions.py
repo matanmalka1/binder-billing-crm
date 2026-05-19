@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 from app.core.exceptions import AppError
 from app.signature_requests.models.signature_request import (
@@ -28,16 +27,12 @@ from app.utils.time_utils import utcnow
 
 def _expire_and_raise(repo: SignatureRequestRepository, req: SignatureRequest) -> None:
     """Transition to EXPIRED and raise. Called only when expiry is detected at signing time."""
-    repo.update(
-        req.id, req=req, status=SignatureRequestStatus.EXPIRED, signing_token=None
-    )
+    repo.update(req.id, req=req, status=SignatureRequestStatus.EXPIRED, signing_token=None)
     repo.append_audit_event(
         signature_request_id=req.id,
         event_type="expired",
         actor_type="system",
-        notes=SIGNATURE_REQUEST_EXPIRED_NOTE.format(
-            expires_at=req.expires_at.date().isoformat()
-        ),
+        notes=SIGNATURE_REQUEST_EXPIRED_NOTE.format(expires_at=req.expires_at.date().isoformat()),
     )
     raise AppError(SIGNATURE_REQUEST_EXPIRED_ERROR, "SIGNATURE_REQUEST.EXPIRED")
 
@@ -46,8 +41,8 @@ def record_view(
     repo: SignatureRequestRepository,
     *,
     token: str,
-    ip_address: Optional[str] = None,
-    user_agent: Optional[str] = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
 ) -> SignatureRequest:
     req = get_by_token_or_raise(repo, token)
     assert_pending(req)
@@ -69,9 +64,9 @@ def sign_request(
     repo: SignatureRequestRepository,
     *,
     token: str,
-    ip_address: Optional[str] = None,
-    user_agent: Optional[str] = None,
-) -> tuple[SignatureRequest, Optional[int], Optional[datetime]]:
+    ip_address: str | None = None,
+    user_agent: str | None = None,
+) -> tuple[SignatureRequest, int | None, datetime | None]:
     """Returns (req, annual_report_id, signed_at) so the façade can handle cross-domain side-effects."""
     req = get_by_token_or_raise_for_update(repo, token)
     assert_pending(req)
@@ -106,9 +101,9 @@ def decline_request(
     repo: SignatureRequestRepository,
     *,
     token: str,
-    reason: Optional[str] = None,
-    ip_address: Optional[str] = None,
-    user_agent: Optional[str] = None,
+    reason: str | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
 ) -> SignatureRequest:
     req = get_by_token_or_raise_for_update(repo, token)
     assert_pending(req)

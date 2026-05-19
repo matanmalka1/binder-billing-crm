@@ -8,7 +8,6 @@ from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.services.billing_service import BillingService
 from tests.helpers.identity import seed_client_with_business
 
-
 _seq = count(1)
 
 

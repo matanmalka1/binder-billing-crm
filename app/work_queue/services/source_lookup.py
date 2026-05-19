@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -107,9 +107,7 @@ def load_source_states(
 
     ids = grouped.get(WorkQueueSourceType.ADVANCE_PAYMENT, set())
     if ids:
-        rows = db.scalars(
-            select(AdvancePayment).where(AdvancePayment.id.in_(ids))
-        ).all()
+        rows = db.scalars(select(AdvancePayment).where(AdvancePayment.id.in_(ids))).all()
         for row in rows:
             states[(WorkQueueSourceType.ADVANCE_PAYMENT.value, row.id)] = _state(
                 WorkQueueSourceType.ADVANCE_PAYMENT,

@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -38,17 +37,15 @@ class AdvancePaymentAnalyticsService:
 
     @staticmethod
     def _collection_rate(total_paid: float, total_expected: float) -> float:
-        return (
-            round(total_paid / total_expected * 100, 2) if total_expected > 0 else 0.0
-        )
+        return round(total_paid / total_expected * 100, 2) if total_expected > 0 else 0.0
 
     # ─── Overview ─────────────────────────────────────────────────────────────
 
     def list_overview(
         self,
         year: int,
-        month: Optional[int] = None,
-        statuses: Optional[list[AdvancePaymentStatus]] = None,
+        month: int | None = None,
+        statuses: list[AdvancePaymentStatus] | None = None,
         page: int = 1,
         page_size: int = 50,
         client_search: str | None = None,
@@ -92,7 +89,7 @@ class AdvancePaymentAnalyticsService:
     def _build_live_turnover_map(
         payments: list[AdvancePayment],
         turnover_repo: TurnoverLookupRepository,
-    ) -> dict[tuple[int, str], Optional[object]]:
+    ) -> dict[tuple[int, str], object | None]:
         """Batch-fetch live turnover per (client_record_id, period)."""
         from collections import defaultdict
 
@@ -101,7 +98,7 @@ class AdvancePaymentAnalyticsService:
             if p.turnover_amount is None:
                 by_client[p.client_record_id].append((p.period, p.period_months_count))
 
-        result: dict[tuple[int, str], Optional[object]] = {}
+        result: dict[tuple[int, str], object | None] = {}
         turnover_by_period = turnover_repo.get_turnover_for_many_clients(dict(by_client))
         for key, (turnover, _) in turnover_by_period.items():
             result[key] = turnover
@@ -120,16 +117,14 @@ class AdvancePaymentAnalyticsService:
             **data,
             "client_record_id": client_record_id,
             "year": year,
-            "collection_rate": self._collection_rate(
-                data["total_paid"], data["total_expected"]
-            ),
+            "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"]),
         }
 
     def get_overview_kpis(
         self,
         year: int,
-        month: Optional[int] = None,
-        statuses: Optional[list[AdvancePaymentStatus]] = None,
+        month: int | None = None,
+        statuses: list[AdvancePaymentStatus] | None = None,
         due_date: date | None = None,
         period_months_count: int | None = None,
         client_search: str | None = None,
@@ -146,7 +141,5 @@ class AdvancePaymentAnalyticsService:
         )
         return {
             **data,
-            "collection_rate": self._collection_rate(
-                data["total_paid"], data["total_expected"]
-            ),
+            "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"]),
         }

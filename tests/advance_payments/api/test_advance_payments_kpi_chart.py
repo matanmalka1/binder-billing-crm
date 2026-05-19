@@ -11,9 +11,7 @@ from tests.helpers.tax_calendar_links import create_linked_advance_payment
 
 
 def _business(db) -> Business:
-    crm_client = seed_client_identity(
-        db, full_name="AP KPI Client", id_number="APKPI-1"
-    )
+    crm_client = seed_client_identity(db, full_name="AP KPI Client", id_number="APKPI-1")
     business = seed_business(
         db,
         legal_entity_id=crm_client.legal_entity_id,
@@ -37,9 +35,7 @@ def _seed_payments(db, client_record_id: int):
         due_date=date(2026, 2, 15),
         expected_amount=Decimal("100"),
     )
-    repo.update_payment(
-        jan, paid_amount=Decimal("80"), status=AdvancePaymentStatus.PAID
-    )
+    repo.update_payment(jan, paid_amount=Decimal("80"), status=AdvancePaymentStatus.PAID)
 
     mar = create_linked_advance_payment(
         db,
@@ -50,9 +46,7 @@ def _seed_payments(db, client_record_id: int):
         due_date=date(2020, 4, 15),  # past due date → timing_status=overdue
         expected_amount=Decimal("50"),
     )
-    repo.update_payment(
-        mar, paid_amount=Decimal("0"), status=AdvancePaymentStatus.PENDING
-    )
+    repo.update_payment(mar, paid_amount=Decimal("0"), status=AdvancePaymentStatus.PENDING)
 
 
 def test_kpi_endpoint_returns_collection_rate(client, test_db, advisor_headers):

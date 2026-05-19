@@ -24,6 +24,4 @@ def get_entity_audit_trail(
     offset: int = Query(default=0, ge=0),
 ):
     """Get the full audit trail for any audited entity."""
-    return AuditTrailService(db).get_entity_audit_trail(
-        entity_type, entity_id, limit, offset
-    )
+    return AuditTrailService(db).get_entity_audit_trail(entity_type, entity_id, limit, offset)

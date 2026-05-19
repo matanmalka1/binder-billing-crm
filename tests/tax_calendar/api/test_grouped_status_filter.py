@@ -108,9 +108,7 @@ def test_status_done_excludes_empty_groups(client, auth_token, test_db):
     advance_entry(test_db)
     test_db.commit()
 
-    resp = client.get(
-        f"{PATH}?status=done&include_empty=true", headers=headers(auth_token)
-    )
+    resp = client.get(f"{PATH}?status=done&include_empty=true", headers=headers(auth_token))
 
     assert resp.status_code == 200
     assert resp.json()["total"] == 0
@@ -120,9 +118,7 @@ def test_groups_paginated_response_shape(client, auth_token, test_db):
     advance_entry(test_db)
     test_db.commit()
 
-    resp = client.get(
-        f"{PATH}?include_empty=true&page=1&page_size=10", headers=headers(auth_token)
-    )
+    resp = client.get(f"{PATH}?include_empty=true&page=1&page_size=10", headers=headers(auth_token))
 
     assert resp.status_code == 200
     payload = resp.json()

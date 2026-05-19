@@ -12,10 +12,9 @@ Provides consistent log format with:
 import logging
 import sys
 from contextvars import ContextVar
-from typing import Optional
 
 # Context variable for request tracking
-request_id_ctx: ContextVar[Optional[str]] = ContextVar("request_id", default=None)
+request_id_ctx: ContextVar[str | None] = ContextVar("request_id", default=None)
 
 
 class StructuredFormatter(logging.Formatter):

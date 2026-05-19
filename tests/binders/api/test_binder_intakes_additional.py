@@ -35,9 +35,7 @@ def _seed_binder_and_intakes(db, user_id: int):
     return binder
 
 
-def test_binder_intakes_endpoint_success_and_not_found(
-    client, test_db, advisor_headers, test_user
-):
+def test_binder_intakes_endpoint_success_and_not_found(client, test_db, advisor_headers, test_user):
     binder = _seed_binder_and_intakes(test_db, test_user.id)
 
     ok = client.get(f"/api/v1/binders/{binder.id}/intakes", headers=advisor_headers)

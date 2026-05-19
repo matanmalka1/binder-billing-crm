@@ -9,10 +9,11 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
+
+from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.database import Base
-from app.utils.time_utils import utcnow
-from app.common.enums import AdvancePaymentFrequency, EntityType, VatType, IdNumberType
 from app.utils.enum_utils import pg_enum
+from app.utils.time_utils import utcnow
 
 
 class LegalEntity(Base):
@@ -49,9 +50,7 @@ class LegalEntity(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint(
-            "id_number_type", "id_number", name="uq_legal_entity_registration_id"
-        ),
+        UniqueConstraint("id_number_type", "id_number", name="uq_legal_entity_registration_id"),
         Index("ix_legal_entities_official_name", "official_name"),
     )
 

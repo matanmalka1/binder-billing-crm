@@ -1,14 +1,14 @@
 from datetime import date
 
 from app.businesses.models.business import Business
-from app.common.enums import IdNumberType
-from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.clients.models.person import Person
 from app.clients.models.person_legal_entity_link import (
     PersonLegalEntityLink,
     PersonLegalEntityRole,
 )
+from app.common.enums import IdNumberType
 from app.notification.models.notification import (
     NotificationChannel,
     NotificationTrigger,
@@ -117,9 +117,7 @@ def test_notifications_list_by_trigger(client, test_db, advisor_headers):
     n_manual = _seed_notification(
         test_db, b1.id, "manual", trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER
     )
-    _seed_notification(
-        test_db, b1.id, "binder", trigger=NotificationTrigger.BINDER_RECEIVED
-    )
+    _seed_notification(test_db, b1.id, "binder", trigger=NotificationTrigger.BINDER_RECEIVED)
 
     resp = client.get(
         f"/api/v1/notifications?business_id={b1.id}&trigger=manual_payment_reminder",
@@ -133,9 +131,7 @@ def test_notifications_list_by_trigger(client, test_db, advisor_headers):
 
 def test_notifications_list_by_channel(client, test_db, advisor_headers):
     b1 = _business(test_db, "c1")
-    n_email = _seed_notification(
-        test_db, b1.id, "email-notif", channel=NotificationChannel.EMAIL
-    )
+    n_email = _seed_notification(test_db, b1.id, "email-notif", channel=NotificationChannel.EMAIL)
     _seed_notification(test_db, b1.id, "wa-notif", channel=NotificationChannel.WHATSAPP)
 
     resp = client.get(
@@ -171,9 +167,7 @@ def test_notifications_summary(client, test_db, advisor_headers):
     assert data["total"] == 3
 
 
-def test_notifications_summary_zero_for_absent_statuses(
-    client, test_db, advisor_headers
-):
+def test_notifications_summary_zero_for_absent_statuses(client, test_db, advisor_headers):
     b1 = _business(test_db, "sum2")
     repo = NotificationRepository(test_db)
     n = _seed_notification(test_db, b1.id, "sent-only")

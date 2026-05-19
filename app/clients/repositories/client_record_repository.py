@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 import sqlalchemy as sa
-from typing import Optional
-
 from sqlalchemy import asc, case, desc, func, select
 from sqlalchemy.orm import Session
 
 from app.clients.enums import ClientStatus
-from app.common.enums import EntityType
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import EntityType
 from app.core.exceptions import NotFoundError
 from app.utils.time_utils import utcnow
-
 
 OFFICE_CLIENT_NUMBER_START = 100001
 
@@ -31,11 +28,11 @@ class ClientRecordRepository:
         self,
         *,
         legal_entity_id: int,
-        office_client_number: Optional[int] = None,
-        accountant_id: Optional[int] = None,
+        office_client_number: int | None = None,
+        accountant_id: int | None = None,
         status: ClientStatus = ClientStatus.ACTIVE,
-        notes: Optional[str] = None,
-        created_by: Optional[int] = None,
+        notes: str | None = None,
+        created_by: int | None = None,
     ) -> ClientRecord:
         record = ClientRecord(
             legal_entity_id=legal_entity_id,
@@ -49,9 +46,7 @@ class ClientRecordRepository:
         self.db.flush()
         return record
 
-    def update_status(
-        self, client_record_id: int, status: ClientStatus
-    ) -> Optional[ClientRecord]:
+    def update_status(self, client_record_id: int, status: ClientStatus) -> ClientRecord | None:
         record = self.db.scalars(
             select(ClientRecord).where(
                 ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None)
@@ -74,9 +69,7 @@ class ClientRecordRepository:
         self.db.flush()
         return True
 
-    def restore(
-        self, client_record_id: int, restored_by: int
-    ) -> Optional[ClientRecord]:
+    def restore(self, client_record_id: int, restored_by: int) -> ClientRecord | None:
         record = self.db.scalars(
             select(ClientRecord).where(ClientRecord.id == client_record_id)
         ).first()
@@ -91,21 +84,19 @@ class ClientRecordRepository:
 
     # ── single-record lookups ────────────────────────────────────────────────
 
-    def get_by_id(self, client_record_id: int) -> Optional[ClientRecord]:
+    def get_by_id(self, client_record_id: int) -> ClientRecord | None:
         return self.db.scalars(
             select(ClientRecord).where(
                 ClientRecord.id == client_record_id, ClientRecord.deleted_at.is_(None)
             )
         ).first()
 
-    def get_by_id_including_deleted(
-        self, client_record_id: int
-    ) -> Optional[ClientRecord]:
+    def get_by_id_including_deleted(self, client_record_id: int) -> ClientRecord | None:
         return self.db.scalars(
             select(ClientRecord).where(ClientRecord.id == client_record_id)
         ).first()
 
-    def get_by_legal_entity_id(self, legal_entity_id: int) -> Optional[ClientRecord]:
+    def get_by_legal_entity_id(self, legal_entity_id: int) -> ClientRecord | None:
         return self.db.scalars(
             select(ClientRecord).where(
                 ClientRecord.legal_entity_id == legal_entity_id,
@@ -134,9 +125,7 @@ class ClientRecordRepository:
         return self.db.scalars(
             select(ClientRecord)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-            .where(
-                LegalEntity.id_number == id_number, ClientRecord.deleted_at.is_(None)
-            )
+            .where(LegalEntity.id_number == id_number, ClientRecord.deleted_at.is_(None))
         ).all()
 
     def get_deleted_by_id_number(self, id_number: str) -> list[ClientRecord]:
@@ -144,9 +133,7 @@ class ClientRecordRepository:
         return self.db.scalars(
             select(ClientRecord)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-            .where(
-                LegalEntity.id_number == id_number, ClientRecord.deleted_at.isnot(None)
-            )
+            .where(LegalEntity.id_number == id_number, ClientRecord.deleted_at.isnot(None))
             .order_by(ClientRecord.deleted_at.desc())
         ).all()
 
@@ -192,13 +179,10 @@ class ClientRecordRepository:
         if search:
             term = f"%{search.strip()}%"
             stmt = stmt.where(
-                LegalEntity.official_name.ilike(term)
-                | LegalEntity.id_number.ilike(term)
+                LegalEntity.official_name.ilike(term) | LegalEntity.id_number.ilike(term)
             )
         if client_name:
-            stmt = stmt.where(
-                LegalEntity.official_name.ilike(f"%{client_name.strip()}%")
-            )
+            stmt = stmt.where(LegalEntity.official_name.ilike(f"%{client_name.strip()}%"))
         if id_number:
             stmt = stmt.where(LegalEntity.id_number.ilike(f"%{id_number.strip()}%"))
         if status:
@@ -211,10 +195,10 @@ class ClientRecordRepository:
 
     def list(
         self,
-        search: Optional[str] = None,
-        status: Optional[ClientStatus] = None,
-        accountant_id: Optional[int] = None,
-        entity_type: Optional[EntityType] = None,
+        search: str | None = None,
+        status: ClientStatus | None = None,
+        accountant_id: int | None = None,
+        entity_type: EntityType | None = None,
         sort_by: str = "official_name",
         sort_order: str = "asc",
         page: int = 1,
@@ -234,10 +218,10 @@ class ClientRecordRepository:
 
     def count(
         self,
-        search: Optional[str] = None,
-        status: Optional[ClientStatus] = None,
-        accountant_id: Optional[int] = None,
-        entity_type: Optional[EntityType] = None,
+        search: str | None = None,
+        status: ClientStatus | None = None,
+        accountant_id: int | None = None,
+        entity_type: EntityType | None = None,
     ) -> int:
         count_stmt = self._apply_list_filters(
             select(func.count(ClientRecord.id))
@@ -252,11 +236,11 @@ class ClientRecordRepository:
 
     def search(
         self,
-        query: Optional[str] = None,
-        client_name: Optional[str] = None,
-        id_number: Optional[str] = None,
-        status: Optional[ClientStatus] = None,
-        entity_type: Optional[EntityType] = None,
+        query: str | None = None,
+        client_name: str | None = None,
+        id_number: str | None = None,
+        status: ClientStatus | None = None,
+        entity_type: EntityType | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[ClientRecord], int]:
@@ -273,9 +257,7 @@ class ClientRecordRepository:
         offset = (page - 1) * page_size
         items = list(
             self.db.scalars(
-                stmt.order_by(LegalEntity.official_name.asc())
-                .offset(offset)
-                .limit(page_size)
+                stmt.order_by(LegalEntity.official_name.asc()).offset(offset).limit(page_size)
             ).all()
         )
         return items, total
@@ -283,15 +265,13 @@ class ClientRecordRepository:
     def list_all(self) -> list[ClientRecord]:
         """All active ClientRecords ordered by official_name."""
         return list(
-            self.db.scalars(
-                self._active_query().order_by(LegalEntity.official_name.asc())
-            ).all()
+            self.db.scalars(self._active_query().order_by(LegalEntity.official_name.asc())).all()
         )
 
     def count_by_status(
         self,
-        search: Optional[str] = None,
-        accountant_id: Optional[int] = None,
+        search: str | None = None,
+        accountant_id: int | None = None,
         entity_type=None,
     ) -> dict[ClientStatus, int]:
         """Active ClientRecords grouped by status, respecting active filters."""
@@ -309,10 +289,6 @@ class ClientRecordRepository:
 
     def get_next_office_client_number(self) -> int:
         if self.db.get_bind().dialect.name == "postgresql":
-            return self.db.execute(
-                sa.text("SELECT nextval('client_office_number_seq')")
-            ).scalar()
-        current_max = self.db.scalar(
-            select(func.max(ClientRecord.office_client_number))
-        )
+            return self.db.execute(sa.text("SELECT nextval('client_office_number_seq')")).scalar()
+        current_max = self.db.scalar(select(func.max(ClientRecord.office_client_number)))
         return OFFICE_CLIENT_NUMBER_START if current_max is None else current_max + 1

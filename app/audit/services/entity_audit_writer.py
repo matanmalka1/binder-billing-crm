@@ -4,7 +4,7 @@ import json
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -28,12 +28,12 @@ class EntityAuditWriter:
         *,
         entity_type: str,
         entity_id: int,
-        actor_id: Optional[int],
+        actor_id: int | None,
         action: str,
         old_value: Any = None,
         new_value: Any = None,
-        note: Optional[str] = None,
-    ) -> Optional[EntityAuditLog]:
+        note: str | None = None,
+    ) -> EntityAuditLog | None:
         if actor_id is None:
             return None
         return self._repo.append(
@@ -50,10 +50,10 @@ class EntityAuditWriter:
         self,
         entity_type: str,
         entity_id: int,
-        actor_id: Optional[int],
+        actor_id: int | None,
         new_value: Any = None,
-        note: Optional[str] = None,
-    ) -> Optional[EntityAuditLog]:
+        note: str | None = None,
+    ) -> EntityAuditLog | None:
         return self.append(
             entity_type=entity_type,
             entity_id=entity_id,
@@ -67,11 +67,11 @@ class EntityAuditWriter:
         self,
         entity_type: str,
         entity_id: int,
-        actor_id: Optional[int],
+        actor_id: int | None,
         old_value: Any = None,
         new_value: Any = None,
-        note: Optional[str] = None,
-    ) -> Optional[EntityAuditLog]:
+        note: str | None = None,
+    ) -> EntityAuditLog | None:
         return self.append(
             entity_type=entity_type,
             entity_id=entity_id,
@@ -86,10 +86,10 @@ class EntityAuditWriter:
         self,
         entity_type: str,
         entity_id: int,
-        actor_id: Optional[int],
+        actor_id: int | None,
         old_value: Any = None,
-        note: Optional[str] = None,
-    ) -> Optional[EntityAuditLog]:
+        note: str | None = None,
+    ) -> EntityAuditLog | None:
         return self.append(
             entity_type=entity_type,
             entity_id=entity_id,
@@ -103,10 +103,10 @@ class EntityAuditWriter:
         self,
         entity_type: str,
         entity_id: int,
-        actor_id: Optional[int],
+        actor_id: int | None,
         new_value: Any = None,
-        note: Optional[str] = None,
-    ) -> Optional[EntityAuditLog]:
+        note: str | None = None,
+    ) -> EntityAuditLog | None:
         return self.append(
             entity_type=entity_type,
             entity_id=entity_id,
@@ -120,11 +120,11 @@ class EntityAuditWriter:
         self,
         entity_type: str,
         entity_id: int,
-        actor_id: Optional[int],
+        actor_id: int | None,
         old_status: Any,
         new_status: Any,
-        note: Optional[str] = None,
-    ) -> Optional[EntityAuditLog]:
+        note: str | None = None,
+    ) -> EntityAuditLog | None:
         return self.append(
             entity_type=entity_type,
             entity_id=entity_id,
@@ -135,7 +135,7 @@ class EntityAuditWriter:
             note=note,
         )
 
-    def _serialize_value(self, value: Any) -> Optional[str]:
+    def _serialize_value(self, value: Any) -> str | None:
         if value is None:
             return None
         if isinstance(value, str):

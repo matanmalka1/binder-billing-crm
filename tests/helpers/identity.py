@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -25,24 +24,24 @@ class SeededClient:
     full_name: str
     id_number: str
     id_number_type: IdNumberType
-    entity_type: Optional[EntityType]
-    phone: Optional[str]
-    email: Optional[str]
-    address_street: Optional[str]
-    address_building_number: Optional[str]
-    address_apartment: Optional[str]
-    address_city: Optional[str]
-    address_zip_code: Optional[str]
-    office_client_number: Optional[int]
-    notes: Optional[str]
-    vat_reporting_frequency: Optional[VatType]
-    vat_exempt_ceiling: Optional[object]
-    advance_rate: Optional[object]
-    advance_rate_updated_at: Optional[date]
-    accountant_id: Optional[int]
+    entity_type: EntityType | None
+    phone: str | None
+    email: str | None
+    address_street: str | None
+    address_building_number: str | None
+    address_apartment: str | None
+    address_city: str | None
+    address_zip_code: str | None
+    office_client_number: int | None
+    notes: str | None
+    vat_reporting_frequency: VatType | None
+    vat_exempt_ceiling: object | None
+    advance_rate: object | None
+    advance_rate_updated_at: date | None
+    accountant_id: int | None
     status: ClientStatus
-    created_by: Optional[int]
-    deleted_at: Optional[object]
+    created_by: int | None
+    deleted_at: object | None
 
 
 def seed_client_identity(
@@ -51,27 +50,27 @@ def seed_client_identity(
     full_name: str,
     id_number: str,
     id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,
-    entity_type: Optional[EntityType] = None,
-    phone: Optional[str] = None,
-    email: Optional[str] = None,
-    address_street: Optional[str] = None,
-    address_building_number: Optional[str] = None,
-    address_apartment: Optional[str] = None,
-    address_city: Optional[str] = None,
-    address_zip_code: Optional[str] = None,
-    office_client_number: Optional[int] = None,
-    notes: Optional[str] = None,
-    vat_reporting_frequency: Optional[VatType] = None,
-    advance_payment_frequency: Optional[AdvancePaymentFrequency] = None,
+    entity_type: EntityType | None = None,
+    phone: str | None = None,
+    email: str | None = None,
+    address_street: str | None = None,
+    address_building_number: str | None = None,
+    address_apartment: str | None = None,
+    address_city: str | None = None,
+    address_zip_code: str | None = None,
+    office_client_number: int | None = None,
+    notes: str | None = None,
+    vat_reporting_frequency: VatType | None = None,
+    advance_payment_frequency: AdvancePaymentFrequency | None = None,
     vat_exempt_ceiling=None,
     advance_rate=None,
-    advance_rate_updated_at: Optional[date] = None,
-    accountant_id: Optional[int] = None,
+    advance_rate_updated_at: date | None = None,
+    accountant_id: int | None = None,
     status: ClientStatus = ClientStatus.ACTIVE,
-    created_by: Optional[int] = None,
+    created_by: int | None = None,
     deleted_at=None,
     create_person: bool = True,
-    client_record_id: Optional[int] = None,
+    client_record_id: int | None = None,
 ) -> SeededClient:
     legal_entity = LegalEntity(
         id_number=id_number,
@@ -89,9 +88,7 @@ def seed_client_identity(
 
     if create_person:
         person_type = (
-            IdNumberType.OTHER
-            if id_number_type == IdNumberType.CORPORATION
-            else id_number_type
+            IdNumberType.OTHER if id_number_type == IdNumberType.CORPORATION else id_number_type
         )
         person = Person(
             full_name=full_name,
@@ -161,10 +158,10 @@ def seed_business(
     *,
     legal_entity_id: int,
     business_name: str,
-    opened_at: Optional[date] = None,
+    opened_at: date | None = None,
     status: BusinessStatus = BusinessStatus.ACTIVE,
-    created_by: Optional[int] = None,
-    notes: Optional[str] = None,
+    created_by: int | None = None,
+    notes: str | None = None,
 ) -> Business:
     business = Business(
         legal_entity_id=legal_entity_id,
@@ -184,9 +181,9 @@ def seed_client_with_business(
     *,
     full_name: str,
     id_number: str,
-    business_name: Optional[str] = None,
+    business_name: str | None = None,
     id_number_type: IdNumberType = IdNumberType.INDIVIDUAL,
-    opened_at: Optional[date] = None,
+    opened_at: date | None = None,
     **client_fields,
 ) -> tuple[SeededClient, Business]:
     client = seed_client_identity(

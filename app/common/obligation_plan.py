@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from app.common.enums import AdvancePaymentFrequency, EntityType, VatType
 
@@ -11,7 +10,7 @@ class PeriodicObligationPlan:
 
 
 def vat_obligation_plan(
-    vat_type: Optional[VatType],
+    vat_type: VatType | None,
     year: int,
 ) -> list[PeriodicObligationPlan]:
     if vat_type in (VatType.EXEMPT, None):

@@ -94,8 +94,7 @@ def test_list_reminders_batch_enriches_client_display(test_db):
 
     assert total == 2
     profiles = {
-        item.client_record_id: (item.client_name, item.office_client_number)
-        for item in items
+        item.client_record_id: (item.client_name, item.office_client_number) for item in items
     }
     assert profiles[first.id] == ("Reminder Client One", 101)
     assert profiles[second.id] == ("Reminder Client Two", 202)

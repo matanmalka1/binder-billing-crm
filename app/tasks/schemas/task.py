@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -12,48 +12,48 @@ from app.users.models.user import UserRole
 
 class TaskCreateRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=500)
-    description: Optional[str] = None
+    description: str | None = None
     priority: TaskPriority = TaskPriority.NORMAL
-    due_date: Optional[date] = None
-    assigned_to_user_id: Optional[int] = Field(None, gt=0)
-    assigned_role: Optional[UserRole] = None
-    source_domain: Optional[str] = Field(None, max_length=100)
-    source_id: Optional[int] = Field(None, gt=0)
-    action_key: Optional[str] = Field(None, max_length=100)
-    action_payload: Optional[dict[str, Any]] = None
+    due_date: date | None = None
+    assigned_to_user_id: int | None = Field(None, gt=0)
+    assigned_role: UserRole | None = None
+    source_domain: str | None = Field(None, max_length=100)
+    source_id: int | None = Field(None, gt=0)
+    action_key: str | None = Field(None, max_length=100)
+    action_payload: dict[str, Any] | None = None
 
 
 class TaskUpdateRequest(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=500)
-    description: Optional[str] = None
-    priority: Optional[TaskPriority] = None
-    due_date: Optional[date] = None
-    assigned_to_user_id: Optional[int] = Field(None, gt=0)
-    assigned_role: Optional[UserRole] = None
-    source_domain: Optional[str] = Field(None, max_length=100)
-    source_id: Optional[int] = Field(None, gt=0)
-    action_key: Optional[str] = Field(None, max_length=100)
-    action_payload: Optional[dict[str, Any]] = None
+    title: str | None = Field(None, min_length=1, max_length=500)
+    description: str | None = None
+    priority: TaskPriority | None = None
+    due_date: date | None = None
+    assigned_to_user_id: int | None = Field(None, gt=0)
+    assigned_role: UserRole | None = None
+    source_domain: str | None = Field(None, max_length=100)
+    source_id: int | None = Field(None, gt=0)
+    action_key: str | None = Field(None, max_length=100)
+    action_payload: dict[str, Any] | None = None
 
 
 class TaskResponse(BaseModel):
     id: int
     title: str
-    description: Optional[str] = None
+    description: str | None = None
     status: TaskStatus
     priority: TaskPriority
-    due_date: Optional[date] = None
-    assigned_to_user_id: Optional[int] = None
-    assigned_role: Optional[UserRole] = None
-    source_domain: Optional[str] = None
-    source_id: Optional[int] = None
-    action_key: Optional[str] = None
-    action_payload: Optional[dict[str, Any]] = None
-    created_by_user_id: Optional[int] = None
-    completed_by_user_id: Optional[int] = None
-    completed_at: Optional[ApiDateTime] = None
-    canceled_by_user_id: Optional[int] = None
-    canceled_at: Optional[ApiDateTime] = None
+    due_date: date | None = None
+    assigned_to_user_id: int | None = None
+    assigned_role: UserRole | None = None
+    source_domain: str | None = None
+    source_id: int | None = None
+    action_key: str | None = None
+    action_payload: dict[str, Any] | None = None
+    created_by_user_id: int | None = None
+    completed_by_user_id: int | None = None
+    completed_at: ApiDateTime | None = None
+    canceled_by_user_id: int | None = None
+    canceled_at: ApiDateTime | None = None
     created_at: ApiDateTime
     updated_at: ApiDateTime
 

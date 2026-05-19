@@ -79,9 +79,7 @@ def test_list_count_and_soft_delete(test_db):
 
     deleted = repo.soft_delete(draft.id, deleted_by=user.id)
     assert deleted is True
-    assert {c.id for c in repo.list_charges(client_record_id=business.client_id)} == {
-        paid.id
-    }
+    assert {c.id for c in repo.list_charges(client_record_id=business.client_id)} == {paid.id}
     assert repo.count_charges(client_record_id=business.client_id) == 1
     assert repo.soft_delete(999999, deleted_by=user.id) is False
 

@@ -1,9 +1,8 @@
 """Tests for the refactored quick actions helpers and builder."""
 
-from datetime import date, datetime, timedelta, timezone
-from types import SimpleNamespace
-
 import unittest.mock as mock
+from datetime import UTC, date, datetime, timedelta
+from types import SimpleNamespace
 
 from app.dashboard.services import _quick_actions_helpers as helpers
 from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
@@ -19,9 +18,7 @@ def _make_notification_repo(last=None):
 def _make_business_repo(name="Client"):
     return SimpleNamespace(
         db=None,
-        list_by_legal_entity=lambda le_id, page=1, page_size=1: [
-            SimpleNamespace(full_name=name)
-        ],
+        list_by_legal_entity=lambda le_id, page=1, page_size=1: [SimpleNamespace(full_name=name)],
     )
 
 
@@ -29,7 +26,7 @@ def _make_business_repo(name="Client"):
 
 
 def test_build_binder_actions_shows_overdue_pickup():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     binder = SimpleNamespace(
         id=1,
         client_record_id=10,
@@ -37,9 +34,7 @@ def test_build_binder_actions_shows_overdue_pickup():
         ready_for_pickup_at=now - timedelta(days=35),
         status="ready_for_pickup",
     )
-    binder_repo = SimpleNamespace(
-        list_overdue_pickup=lambda overdue_days=30, limit=50: [binder]
-    )
+    binder_repo = SimpleNamespace(list_overdue_pickup=lambda overdue_days=30, limit=50: [binder])
     business_repo = _make_business_repo()
     notification_repo = _make_notification_repo(last=None)
 
@@ -47,9 +42,7 @@ def test_build_binder_actions_shows_overdue_pickup():
         "app.dashboard.services._quick_actions_helpers._batch_client_names",
         return_value={10: "Client"},
     ):
-        actions = helpers.build_binder_actions(
-            binder_repo, business_repo, notification_repo
-        )
+        actions = helpers.build_binder_actions(binder_repo, business_repo, notification_repo)
 
     assert len(actions) == 1
     assert actions[0]["key"] == "binder_pickup_reminder"
@@ -59,7 +52,7 @@ def test_build_binder_actions_shows_overdue_pickup():
 
 
 def test_build_binder_actions_skips_recent_reminder():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     binder = SimpleNamespace(
         id=2,
         client_record_id=11,
@@ -67,9 +60,7 @@ def test_build_binder_actions_skips_recent_reminder():
         ready_for_pickup_at=now - timedelta(days=35),
         status="ready_for_pickup",
     )
-    binder_repo = SimpleNamespace(
-        list_overdue_pickup=lambda overdue_days=30, limit=50: [binder]
-    )
+    binder_repo = SimpleNamespace(list_overdue_pickup=lambda overdue_days=30, limit=50: [binder])
     business_repo = _make_business_repo()
     recent_notification = SimpleNamespace(created_at=now - timedelta(days=2))
     notification_repo = _make_notification_repo(last=recent_notification)
@@ -78,9 +69,7 @@ def test_build_binder_actions_skips_recent_reminder():
         "app.dashboard.services._quick_actions_helpers._batch_client_names",
         return_value={11: "Client"},
     ):
-        actions = helpers.build_binder_actions(
-            binder_repo, business_repo, notification_repo
-        )
+        actions = helpers.build_binder_actions(binder_repo, business_repo, notification_repo)
 
     assert actions == []
 
@@ -90,7 +79,7 @@ def test_build_binder_actions_skips_recent_reminder():
 
 def test_build_annual_report_actions_overdue_without_reminder_returns_empty():
     today = date(2026, 4, 28)
-    deadline = datetime(2026, 3, 31, tzinfo=timezone.utc)
+    deadline = datetime(2026, 3, 31, tzinfo=UTC)
     from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 
     report = SimpleNamespace(
@@ -99,7 +88,7 @@ def test_build_annual_report_actions_overdue_without_reminder_returns_empty():
         tax_year=2025,
         status=AnnualReportStatus.IN_PREPARATION,
         filing_deadline=deadline,
-        updated_at=datetime.now(timezone.utc) - timedelta(days=20),
+        updated_at=datetime.now(UTC) - timedelta(days=20),
     )
     annual_repo = SimpleNamespace(list_for_dashboard=lambda limit=50: [report])
     business_repo = _make_business_repo()
@@ -118,9 +107,7 @@ def test_build_annual_report_actions_overdue_without_reminder_returns_empty():
 
 def test_build_annual_report_actions_pending_client_reminder():
     today = date(2026, 4, 28)
-    deadline = datetime(
-        2026, 4, 30, tzinfo=timezone.utc
-    )  # 2 days away — within upcoming window
+    deadline = datetime(2026, 4, 30, tzinfo=UTC)  # 2 days away — within upcoming window
     from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 
     report = SimpleNamespace(
@@ -129,7 +116,7 @@ def test_build_annual_report_actions_pending_client_reminder():
         tax_year=2025,
         status=AnnualReportStatus.PENDING_CLIENT,
         filing_deadline=deadline,
-        updated_at=datetime.now(timezone.utc) - timedelta(days=5),
+        updated_at=datetime.now(UTC) - timedelta(days=5),
     )
     annual_repo = SimpleNamespace(list_for_dashboard=lambda limit=50: [report])
     business_repo = _make_business_repo("Client X")

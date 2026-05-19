@@ -2,10 +2,10 @@ from datetime import date
 from decimal import Decimal
 
 from app.annual_reports.models.annual_report_enums import (
-    PrimaryAnnualReportForm,
     AnnualReportStatus,
     ClientAnnualFilingType,
     FilingDeadlineType,
+    PrimaryAnnualReportForm,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
 from tests.helpers.identity import seed_business, seed_client_identity

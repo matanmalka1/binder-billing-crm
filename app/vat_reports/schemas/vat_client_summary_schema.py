@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -13,20 +12,20 @@ from app.vat_reports.models.vat_enums import VatWorkItemStatus
 class VatPeriodRow(BaseModel):
     work_item_id: int = 0
     period: str
-    period_type: Optional[str]
+    period_type: str | None
     status: VatWorkItemStatus
     total_output_vat: ApiDecimal
     total_input_vat: ApiDecimal
     net_vat: ApiDecimal
     total_output_net: ApiDecimal = Decimal("0")
     total_input_net: ApiDecimal = Decimal("0")
-    final_vat_amount: Optional[ApiDecimal]
-    filed_at: Optional[ApiDateTime]
-    submission_deadline: Optional[date]
-    statutory_deadline: Optional[date]
-    extended_deadline: Optional[date]
-    days_until_deadline: Optional[int]
-    is_overdue: Optional[bool]
+    final_vat_amount: ApiDecimal | None
+    filed_at: ApiDateTime | None
+    submission_deadline: date | None
+    statutory_deadline: date | None
+    extended_deadline: date | None
+    days_until_deadline: int | None
+    is_overdue: bool | None
 
     model_config = {"from_attributes": True}
 

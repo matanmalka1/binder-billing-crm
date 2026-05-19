@@ -2,12 +2,11 @@
 
 from fastapi import APIRouter, Depends, Query
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.annual_reports.services.annual_report_charge_service import (
     AnnualReportChargeService,
 )
-
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/annual-reports",

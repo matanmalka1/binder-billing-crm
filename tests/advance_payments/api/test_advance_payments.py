@@ -107,9 +107,7 @@ def test_update_advance_payment_success(client, test_db, advisor_headers):
     assert data["updated_at"] is not None
 
 
-def test_update_advance_payment_invalid_status_returns_400(
-    client, test_db, advisor_headers
-):
+def test_update_advance_payment_invalid_status_returns_400(client, test_db, advisor_headers):
     business = _create_business(test_db)
     repo = AdvancePaymentRepository(test_db)
     payment = create_linked_advance_payment(

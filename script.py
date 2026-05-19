@@ -41,7 +41,6 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Constants
@@ -74,7 +73,7 @@ class FieldDef:
     type_str: str
     nullable: bool
     is_fk: bool
-    fk_target: Optional[str] = None  # "table.column" or just "table"
+    fk_target: str | None = None  # "table.column" or just "table"
 
 
 @dataclass
@@ -82,7 +81,7 @@ class RelDef:
     name: str
     target_class: str
     uselist: bool  # True → one-to-many / many-to-many; False → one-to-one / many-to-one
-    back_populates: Optional[str]
+    back_populates: str | None
     viewonly: bool
 
 
@@ -120,9 +119,7 @@ def discover_model_modules() -> dict[str, list[str]]:
         if not models_dir.is_dir():
             continue
         files = sorted(
-            f
-            for f in models_dir.iterdir()
-            if f.suffix == ".py" and f.name != "__init__.py"
+            f for f in models_dir.iterdir() if f.suffix == ".py" and f.name != "__init__.py"
         )
         if not files:
             continue
@@ -139,13 +136,15 @@ def _sa_type_str(col) -> str:
     """Return a short, normalised type string for a SQLAlchemy column type."""
     try:
         from sqlalchemy import (
-            Integer,
-            String,
-            Text,
             Boolean,
-            Numeric,
             Date,
             DateTime,
+            Integer,
+            Numeric,
+            String,
+            Text,
+        )
+        from sqlalchemy import (
             Enum as SAEnum,
         )
 
@@ -192,8 +191,9 @@ def extract_models_from_module(module_dotpath: str, domain: str) -> list[ModelDe
         print(f"    WARN: cannot import {module_dotpath}: {exc}")
         return []
 
-    from sqlalchemy import inspect as sa_inspect
     import enum as stdlib_enum
+
+    from sqlalchemy import inspect as sa_inspect
 
     results: list[ModelDef] = []
 
@@ -282,9 +282,7 @@ def build_table_class_map(domain_models: dict[str, list[ModelDef]]) -> dict[str,
     This replaces the old fuzzy _table_to_class() heuristic which failed on
     plural table names like 'businesses', 'tax_deadlines', 'annual_reports', etc.
     """
-    return {
-        m.table_name: m.class_name for models in domain_models.values() for m in models
-    }
+    return {m.table_name: m.class_name for models in domain_models.values() for m in models}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -292,7 +290,7 @@ def build_table_class_map(domain_models: dict[str, list[ModelDef]]) -> dict[str,
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def _field_line(f: FieldDef, compact: bool) -> Optional[str]:
+def _field_line(f: FieldDef, compact: bool) -> str | None:
     if compact and f.name in NOISE_COLUMNS:
         return None
     # In compact mode hide raw FK integer columns — edges convey the link visually
@@ -346,9 +344,7 @@ def _fk_edges(
             # Check whether this specific FK field is already covered by a
             # relationship from this model to this target.
             already_covered = any(
-                rel.target_class == target_class
-                for rel in m.relationships
-                if not rel.viewonly
+                rel.target_class == target_class for rel in m.relationships if not rel.viewonly
             )
             if already_covered:
                 continue
@@ -488,9 +484,7 @@ def render_overview_puml(
                 if target_domain == domain:
                     continue
                 # Skip if already covered by ORM edge in same direction
-                already_orm = any(
-                    rel.target_class == target_class for rel in m.relationships
-                )
+                already_orm = any(rel.target_class == target_class for rel in m.relationships)
                 pair = frozenset({domain, target_domain, "fk"})
                 if pair in seen:
                     continue
@@ -521,9 +515,7 @@ def render_svg(puml_path: Path) -> bool:
         text=True,
     )
     if result.returncode != 0:
-        print(
-            f"    WARN: plantuml failed for {puml_path.name}: {result.stderr.strip()}"
-        )
+        print(f"    WARN: plantuml failed for {puml_path.name}: {result.stderr.strip()}")
         return False
     return True
 
@@ -534,9 +526,7 @@ def render_svg(puml_path: Path) -> bool:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Generate UML diagrams for the CRM backend."
-    )
+    parser = argparse.ArgumentParser(description="Generate UML diagrams for the CRM backend.")
     parser.add_argument(
         "--mode",
         choices=["full", "compact"],
@@ -602,9 +592,7 @@ def main() -> None:
             print(status)
         domain_models[domain] = models
 
-    all_class_names: set[str] = {
-        m.class_name for models in domain_models.values() for m in models
-    }
+    all_class_names: set[str] = {m.class_name for models in domain_models.values() for m in models}
     print(f"\nTotal models extracted: {len(all_class_names)}")
 
     # Build exact table → class map (replaces old fuzzy heuristic)
@@ -646,9 +634,7 @@ def main() -> None:
                 puml_path.write_text(content, encoding="utf-8")
                 if has_plantuml and not args.no_render:
                     ok = render_svg(puml_path)
-                    print(
-                        f"{'OK' if ok else 'WARN'} → {puml_path.with_suffix('.svg').name}"
-                    )
+                    print(f"{'OK' if ok else 'WARN'} → {puml_path.with_suffix('.svg').name}")
                 else:
                     print(f"Written → {puml_path.name}")
             except Exception as exc:

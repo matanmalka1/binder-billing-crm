@@ -1,6 +1,5 @@
 """Enrichment helpers for VAT work item query results."""
 
-from typing import Optional
 
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
@@ -20,17 +19,13 @@ from app.vat_reports.services.vat_report_queries import (
 
 def _build_client_maps(db, client_record_ids: list[int]) -> dict[str, dict]:
     client_records = (
-        ClientRecordRepository(db).list_by_ids(client_record_ids)
-        if client_record_ids
-        else []
+        ClientRecordRepository(db).list_by_ids(client_record_ids) if client_record_ids else []
     )
     legal_entity_ids = list({record.legal_entity_id for record in client_records})
     legal_entity_by_id = (
         {
             entity.id: entity
-            for entity in db.query(LegalEntity)
-            .filter(LegalEntity.id.in_(legal_entity_ids))
-            .all()
+            for entity in db.query(LegalEntity).filter(LegalEntity.id.in_(legal_entity_ids)).all()
         }
         if legal_entity_ids
         else {}
@@ -78,9 +73,7 @@ def get_client_items_enriched(
 ) -> dict:
     """Return client work items + enrichment data."""
     items = list_client_work_items(work_item_repo, client_record_id)
-    user_ids = list(
-        {uid for item in items for uid in [item.assigned_to, item.filed_by] if uid}
-    )
+    user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     client_maps = _build_client_maps(work_item_repo.db, [client_record_id])
     return {
@@ -97,9 +90,9 @@ def get_list_enriched(
     status_filter,
     page: int,
     page_size: int,
-    period: Optional[str],
+    period: str | None,
     period_type=None,
-    client_name: Optional[str] = None,
+    client_name: str | None = None,
 ) -> dict:
     """Return paginated work items + enrichment data."""
     if status_filter:
@@ -124,9 +117,7 @@ def get_list_enriched(
             client_name=client_name,
         )
     client_record_ids = list({item.client_record_id for item in items})
-    user_ids = list(
-        {uid for item in items for uid in [item.assigned_to, item.filed_by] if uid}
-    )
+    user_ids = list({uid for item in items for uid in [item.assigned_to, item.filed_by] if uid})
     users = user_repo.list_by_ids(user_ids) if user_ids else []
     client_maps = _build_client_maps(work_item_repo.db, client_record_ids)
     return {

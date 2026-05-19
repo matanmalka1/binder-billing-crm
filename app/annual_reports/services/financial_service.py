@@ -1,26 +1,12 @@
 """Annual report financial service: CRUD, tax calculation, readiness."""
 
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
     AdvancePaymentAggregationRepository,
 )
-from app.audit.constants import (
-    ACTION_EXPENSE_ADDED,
-    ACTION_EXPENSE_DELETED,
-    ACTION_EXPENSE_UPDATED,
-    ACTION_INCOME_ADDED,
-    ACTION_INCOME_DELETED,
-    ACTION_INCOME_UPDATED,
-    ENTITY_ANNUAL_REPORT,
-)
-from app.audit.services.entity_audit_writer import EntityAuditWriter
-from app.businesses.repositories.business_repository import BusinessRepository
-from app.clients.enums import ClientStatus
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.annual_reports.domain.expense_rules import default_recognition_rate
 from app.annual_reports.integrations.tax_rules_registry import (
     get_default_resident_credit_points,
@@ -70,6 +56,19 @@ from app.annual_reports.services.messages import (
 )
 from app.annual_reports.services.ni_engine import calculate_national_insurance
 from app.annual_reports.services.tax_engine import calculate_tax
+from app.audit.constants import (
+    ACTION_EXPENSE_ADDED,
+    ACTION_EXPENSE_DELETED,
+    ACTION_EXPENSE_UPDATED,
+    ACTION_INCOME_ADDED,
+    ACTION_INCOME_DELETED,
+    ACTION_INCOME_UPDATED,
+    ENTITY_ANNUAL_REPORT,
+)
+from app.audit.services.entity_audit_writer import EntityAuditWriter
+from app.businesses.repositories.business_repository import BusinessRepository
+from app.clients.enums import ClientStatus
+from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError, ForbiddenError, NotFoundError
 from app.vat_reports.repositories.vat_work_item_write_repository import (
     VatWorkItemWriteRepository as VatWorkItemRepository,
@@ -84,13 +83,7 @@ _PRE_SUBMISSION_STATUSES = {
 
 
 def audit_scalar(value):
-    return (
-        value.value
-        if hasattr(value, "value")
-        else str(value)
-        if value is not None
-        else None
-    )
+    return value.value if hasattr(value, "value") else str(value) if value is not None else None
 
 
 def income_line_snapshot(line) -> dict:
@@ -148,8 +141,8 @@ class AnnualReportFinancialService:
         report_id: int,
         source_type: str,
         amount: Decimal,
-        description: Optional[str] = None,
-        actor_id: Optional[int] = None,
+        description: str | None = None,
+        actor_id: int | None = None,
     ) -> IncomeLineResponse:
         report = self._get_report_or_raise(report_id)
         self._assert_client_allows_create(report.client_record_id)
@@ -176,16 +169,14 @@ class AnnualReportFinancialService:
         return IncomeLineResponse.model_validate(line)
 
     def update_income(
-        self, report_id: int, line_id: int, actor_id: Optional[int] = None, **fields
+        self, report_id: int, line_id: int, actor_id: int | None = None, **fields
     ) -> IncomeLineResponse:
         self._get_report_or_raise(report_id)
         if "source_type" in fields and fields["source_type"] is not None:
             valid_sources = {e.value for e in IncomeSourceType}
             if fields["source_type"] not in valid_sources:
                 raise AppError(
-                    INVALID_INCOME_SOURCE_ERROR.format(
-                        source_type=fields["source_type"]
-                    ),
+                    INVALID_INCOME_SOURCE_ERROR.format(source_type=fields["source_type"]),
                     "ANNUAL_REPORT.INVALID_TYPE",
                 )
             fields["source_type"] = IncomeSourceType(fields["source_type"])
@@ -209,9 +200,7 @@ class AnnualReportFinancialService:
         )
         return IncomeLineResponse.model_validate(line)
 
-    def delete_income(
-        self, report_id: int, line_id: int, actor_id: Optional[int] = None
-    ) -> None:
+    def delete_income(self, report_id: int, line_id: int, actor_id: int | None = None) -> None:
         self._get_report_or_raise(report_id)
         line = self.income_repo.get_by_id(line_id)
         old_value = income_line_snapshot(line) if line else None
@@ -234,11 +223,11 @@ class AnnualReportFinancialService:
         report_id: int,
         category: str,
         amount: Decimal,
-        description: Optional[str] = None,
-        recognition_rate: Optional[Decimal] = None,
-        external_document_reference: Optional[str] = None,
-        supporting_document_id: Optional[int] = None,
-        actor_id: Optional[int] = None,
+        description: str | None = None,
+        recognition_rate: Decimal | None = None,
+        external_document_reference: str | None = None,
+        supporting_document_id: int | None = None,
+        actor_id: int | None = None,
     ) -> ExpenseLineResponse:
         report = self._get_report_or_raise(report_id)
         self._assert_client_allows_create(report.client_record_id)
@@ -277,7 +266,7 @@ class AnnualReportFinancialService:
         return ExpenseLineResponse.model_validate(line)
 
     def update_expense(
-        self, report_id: int, line_id: int, actor_id: Optional[int] = None, **fields
+        self, report_id: int, line_id: int, actor_id: int | None = None, **fields
     ) -> ExpenseLineResponse:
         self._get_report_or_raise(report_id)
         if "category" in fields and fields["category"] is not None:
@@ -308,9 +297,7 @@ class AnnualReportFinancialService:
         )
         return ExpenseLineResponse.model_validate(line)
 
-    def delete_expense(
-        self, report_id: int, line_id: int, actor_id: Optional[int] = None
-    ) -> None:
+    def delete_expense(self, report_id: int, line_id: int, actor_id: int | None = None) -> None:
         self._get_report_or_raise(report_id)
         line = self.expense_repo.get_by_id(line_id)
         old_value = expense_line_snapshot(line) if line else None
@@ -344,12 +331,8 @@ class AnnualReportFinancialService:
             gross_expenses=float(gross_expenses),
             recognized_expenses=float(recognized_expenses),
             taxable_income=float(total_income - recognized_expenses),
-            income_lines=[
-                IncomeLineResponse.model_validate(line) for line in income_lines
-            ],
-            expense_lines=[
-                ExpenseLineResponse.model_validate(line) for line in expense_lines
-            ],
+            income_lines=[IncomeLineResponse.model_validate(line) for line in income_lines],
+            expense_lines=[ExpenseLineResponse.model_validate(line) for line in expense_lines],
         )
 
     def get_tax_calculation(self, report_id: int) -> TaxCalculationResponse:
@@ -374,9 +357,7 @@ class AnnualReportFinancialService:
             else 0.0
         )
         other_credits = (
-            float(detail.other_credits)
-            if (detail and detail.other_credits is not None)
-            else 0.0
+            float(detail.other_credits) if (detail and detail.other_credits is not None) else 0.0
         )
 
         tax = calculate_tax(
@@ -444,9 +425,7 @@ class AnnualReportFinancialService:
                     label = self._SCHEDULE_LABELS.get(
                         schedule.schedule.value, schedule.schedule.value
                     )
-                    issues.append(
-                        INCOMPLETE_REQUIRED_SCHEDULE_ISSUE.format(label=label)
-                    )
+                    issues.append(INCOMPLETE_REQUIRED_SCHEDULE_ISSUE.format(label=label))
             else:
                 passed += 1
         else:
@@ -481,8 +460,8 @@ class AnnualReportFinancialService:
     def save_tax_calculation(
         self,
         report_id: int,
-        tax_due: Optional[Decimal],
-        refund_due: Optional[Decimal],
+        tax_due: Decimal | None,
+        refund_due: Decimal | None,
     ) -> TaxCalculationSaveResponse:
         """Persist computed tax_due / refund_due to the annual report record."""
         if tax_due is not None and refund_due is not None:
@@ -491,9 +470,7 @@ class AnnualReportFinancialService:
                 "ANNUAL_REPORT.TAX_CONFLICT",
             )
         report = self._get_report_or_raise(report_id)
-        updated = self.report_repo.update(
-            report.id, tax_due=tax_due, refund_due=refund_due
-        )
+        updated = self.report_repo.update(report.id, tax_due=tax_due, refund_due=refund_due)
         return TaxCalculationSaveResponse(
             annual_report_id=report_id,
             tax_due=updated.tax_due,
@@ -503,9 +480,7 @@ class AnnualReportFinancialService:
 
     def invalidate_tax_if_open(self, client_record_id: int, tax_year: int) -> None:
         """Clear saved tax_due / refund_due when advances change before submission."""
-        client_record = ClientRecordRepository(self.report_repo.db).get_by_id(
-            client_record_id
-        )
+        client_record = ClientRecordRepository(self.report_repo.db).get_by_id(client_record_id)
         if not client_record:
             return
         report = self.report_repo.get_by_client_record_year(client_record.id, tax_year)

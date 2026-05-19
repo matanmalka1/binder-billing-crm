@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -19,7 +18,7 @@ class BinderStatusLogRepository(BaseRepository[BinderStatusLog]):
         old_status: str,
         new_status: str,
         changed_by: int,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> BinderStatusLog:
         """Append status change log entry."""
         log = BinderStatusLog(

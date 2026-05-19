@@ -3,17 +3,16 @@ from itertools import count
 
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.businesses.models.business import Business
-from app.common.enums import IdNumberType, VatType
-from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
+from app.clients.repositories.client_record_repository import ClientRecordRepository
+from app.common.enums import IdNumberType, VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.utils.time_utils import utcnow
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
 from tests.helpers.tax_calendar_links import create_linked_vat_work_item
-
 
 _client_seq = count(1)
 
@@ -93,9 +92,7 @@ def test_status_listing_totals_and_audit_trail(test_db):
         status=VatWorkItemStatus.PENDING_MATERIALS,
     )
 
-    by_status = repo.list_by_status(
-        VatWorkItemStatus.PENDING_MATERIALS, page=1, page_size=10
-    )
+    by_status = repo.list_by_status(VatWorkItemStatus.PENDING_MATERIALS, page=1, page_size=10)
     assert [item.id for item in by_status] == [newest.id, middle.id]
     assert repo.count_by_status(VatWorkItemStatus.PENDING_MATERIALS) == 2
 

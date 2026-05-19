@@ -1,17 +1,16 @@
-from typing import Optional
 
 from pydantic import BaseModel
 
-from app.core.api_types import ApiDateTime, ApiDecimal
 from app.annual_reports.models.annual_report_enums import (
-    ClientAnnualFilingType,
-    FilingDeadlineType,
-    AnnualReportStatus,
     AnnualReportSchedule,
+    AnnualReportStatus,
+    ClientAnnualFilingType,
     ExtensionReason,
-    SubmissionMethod,
+    FilingDeadlineType,
     ReportStage,
+    SubmissionMethod,
 )
+from app.core.api_types import ApiDateTime, ApiDecimal
 
 
 class AnnualReportCreateRequest(BaseModel):
@@ -19,10 +18,10 @@ class AnnualReportCreateRequest(BaseModel):
     tax_year: int
     client_type: ClientAnnualFilingType
     deadline_type: FilingDeadlineType = FilingDeadlineType.STANDARD
-    assigned_to: Optional[int] = None
-    notes: Optional[str] = None
-    submission_method: Optional[SubmissionMethod] = None
-    extension_reason: Optional[ExtensionReason] = None
+    assigned_to: int | None = None
+    notes: str | None = None
+    submission_method: SubmissionMethod | None = None
+    extension_reason: ExtensionReason | None = None
     has_rental_income: bool = False
     has_capital_gains: bool = False
     has_foreign_income: bool = False
@@ -35,23 +34,23 @@ class AmendRequest(BaseModel):
 
 class StatusTransitionRequest(BaseModel):
     status: AnnualReportStatus  # enum — לא str חופשי
-    note: Optional[str] = None
-    ita_reference: Optional[str] = None
-    assessment_amount: Optional[ApiDecimal] = None
-    refund_due: Optional[ApiDecimal] = None
-    tax_due: Optional[ApiDecimal] = None
+    note: str | None = None
+    ita_reference: str | None = None
+    assessment_amount: ApiDecimal | None = None
+    refund_due: ApiDecimal | None = None
+    tax_due: ApiDecimal | None = None
 
 
 class DeadlineUpdateRequest(BaseModel):
     deadline_type: FilingDeadlineType  # enum
-    custom_deadline_note: Optional[str] = None
+    custom_deadline_note: str | None = None
 
 
 class SubmitRequest(BaseModel):
-    submitted_at: Optional[ApiDateTime] = None
-    ita_reference: Optional[str] = None
-    submission_method: Optional[SubmissionMethod] = None
-    note: Optional[str] = None
+    submitted_at: ApiDateTime | None = None
+    ita_reference: str | None = None
+    submission_method: SubmissionMethod | None = None
+    note: str | None = None
 
 
 class StageTransitionRequest(BaseModel):
@@ -60,7 +59,7 @@ class StageTransitionRequest(BaseModel):
 
 class ScheduleAddRequest(BaseModel):
     schedule: AnnualReportSchedule  # enum
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class ScheduleCompleteRequest(BaseModel):

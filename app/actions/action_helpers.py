@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, NotRequired, Optional, TypedDict
-
+from typing import Any, Literal, NotRequired, TypedDict
 
 HttpMethod = Literal["get", "post", "put", "patch", "delete"]
 
@@ -30,7 +29,7 @@ def build_confirm(
     *,
     confirm_label: str = "אישור",
     cancel_label: str = "ביטול",
-    inputs: Optional[list[ConfirmInput]] = None,
+    inputs: list[ConfirmInput] | None = None,
 ) -> ActionConfirm:
     confirm: ActionConfirm = {
         "title": title,
@@ -49,8 +48,8 @@ def build_action(
     method: HttpMethod,
     endpoint: str,
     action_id: str,
-    payload: Optional[dict[str, Any]] = None,
-    confirm: Optional[ActionConfirm] = None,
+    payload: dict[str, Any] | None = None,
+    confirm: ActionConfirm | None = None,
 ) -> dict[str, Any]:
     if method not in _VALID_METHODS:
         raise ValueError("Action method is not supported")

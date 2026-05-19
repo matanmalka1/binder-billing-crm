@@ -1,9 +1,9 @@
 from datetime import UTC, date, datetime, timedelta
 
 from app.businesses.models.business import Business
-from app.common.enums import IdNumberType, VatType
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
+from app.common.enums import IdNumberType, VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 from app.vat_reports.services.vat_report_service import VatReportService
@@ -123,9 +123,7 @@ def test_list_work_items_filters_by_period_type(test_db):
         created_by=user.id,
     )
 
-    items, total = service.list_all_work_items(
-        period="2026-02", period_type=VatType.MONTHLY
-    )
+    items, total = service.list_all_work_items(period="2026-02", period_type=VatType.MONTHLY)
 
     assert total == 1
     assert items[0].id == monthly.id

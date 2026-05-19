@@ -77,13 +77,9 @@ def test_signature_request_repository_pending_expired_and_audit_methods(test_db)
     now = utcnow()
     canceled = _create(repo, business_a, user_id=user.id, title="Canceled")
     repo.update(canceled.id, status=SignatureRequestStatus.CANCELED)
-    expired_pending = _create(
-        repo, business_a, user_id=user.id, title="Expired Pending"
-    )
+    expired_pending = _create(repo, business_a, user_id=user.id, title="Expired Pending")
     active_pending = _create(repo, business_a, user_id=user.id, title="Active Pending")
-    other_client_pending = _create(
-        repo, business_b, user_id=user.id, title="Other Client"
-    )
+    other_client_pending = _create(repo, business_b, user_id=user.id, title="Other Client")
     repo.update(
         expired_pending.id,
         status=SignatureRequestStatus.PENDING_SIGNATURE,
@@ -108,10 +104,7 @@ def test_signature_request_repository_pending_expired_and_audit_methods(test_db)
     assert repo.get_by_token("tok-active").id == active_pending.id
     assert repo.count_by_business(business_a.id) == 3
     assert (
-        repo.count_by_business(
-            business_a.id, status=SignatureRequestStatus.PENDING_SIGNATURE
-        )
-        == 2
+        repo.count_by_business(business_a.id, status=SignatureRequestStatus.PENDING_SIGNATURE) == 2
     )
     assert [item.id for item in repo.list_pending(page=1, page_size=10)] == [
         other_client_pending.id,
@@ -130,9 +123,10 @@ def test_signature_request_repository_pending_expired_and_audit_methods(test_db)
     late.occurred_at = now + timedelta(minutes=1)
     early.occurred_at = now - timedelta(minutes=1)
     test_db.commit()
-    assert [
-        event.event_type for event in repo.list_audit_events(active_pending.id)
-    ] == ["early", "late"]
+    assert [event.event_type for event in repo.list_audit_events(active_pending.id)] == [
+        "early",
+        "late",
+    ]
 
 
 def test_repository_update_missing_id_and_pending_by_annual_report_and_repr(test_db):
@@ -140,22 +134,16 @@ def test_repository_update_missing_id_and_pending_by_annual_report_and_repr(test
     user = _user(test_db)
     business = _business(test_db, suffix="AR")
     assert repo.update(999999, status=SignatureRequestStatus.CANCELED) is None
-    pending = _create(
-        repo, business, user_id=user.id, title="Annual Pending", annual_report_id=77
-    )
+    pending = _create(repo, business, user_id=user.id, title="Annual Pending", annual_report_id=77)
     canceled = _create(
         repo, business, user_id=user.id, title="Annual Canceled", annual_report_id=77
     )
     repo.update(canceled.id, status=SignatureRequestStatus.CANCELED)
-    other = _create(
-        repo, business, user_id=user.id, title="Different Report", annual_report_id=88
-    )
+    other = _create(repo, business, user_id=user.id, title="Different Report", annual_report_id=88)
     repo.update(pending.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
     repo.update(other.id, status=SignatureRequestStatus.PENDING_SIGNATURE)
     assert [item.id for item in repo.list_pending_by_annual_report(77)] == [pending.id]
-    assert canceled.id not in [
-        item.id for item in repo.list_pending_by_annual_report(77)
-    ]
+    assert canceled.id not in [item.id for item in repo.list_pending_by_annual_report(77)]
     model_repr = repr(
         SignatureRequest(
             id=123,

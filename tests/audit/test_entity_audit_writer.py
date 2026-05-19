@@ -70,9 +70,7 @@ def test_writer_serializes_date_and_decimal_inside_dict(test_db, test_user):
 
 
 def test_writer_skips_when_actor_is_none(test_db):
-    result = EntityAuditWriter(test_db).record_create(
-        ENTITY_CLIENT, 10, None, new_value={"x": 1}
-    )
+    result = EntityAuditWriter(test_db).record_create(ENTITY_CLIENT, 10, None, new_value={"x": 1})
 
     assert result is None
     assert test_db.scalar(select(func.count(EntityAuditLog.id))) == 0

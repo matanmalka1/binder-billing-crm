@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -49,15 +48,15 @@ _ACTIVE_TASK_STATUSES = {TaskStatus.OPEN.value}
 
 @dataclass(frozen=True)
 class WorkQueueFilters:
-    search: Optional[str] = None
-    source_type: Optional[WorkQueueSourceType] = None
-    urgency: Optional[WorkQueueUrgency] = None
-    task_status: Optional[TaskStatus] = None
-    linked: Optional[WorkQueueLinkedFilter] = None
-    scope: Optional[WorkQueueScope] = None
+    search: str | None = None
+    source_type: WorkQueueSourceType | None = None
+    urgency: WorkQueueUrgency | None = None
+    task_status: TaskStatus | None = None
+    linked: WorkQueueLinkedFilter | None = None
+    scope: WorkQueueScope | None = None
 
 
-def _task_status(item: WorkQueueItem) -> Optional[str]:
+def _task_status(item: WorkQueueItem) -> str | None:
     if item.source_type != WorkQueueSourceType.TASK or not item.metadata:
         return None
     status = item.metadata.get("status")
@@ -117,9 +116,7 @@ def apply_work_queue_filters(
     if query:
         filtered = [item for item in filtered if query in _search_text(item)]
     if filters.source_type is not None:
-        filtered = [
-            item for item in filtered if item.source_type == filters.source_type
-        ]
+        filtered = [item for item in filtered if item.source_type == filters.source_type]
     if filters.urgency is not None:
         filtered = [item for item in filtered if item.urgency == filters.urgency]
     if filters.task_status is not None:
@@ -135,13 +132,9 @@ def apply_work_queue_filters(
     elif filters.linked == WorkQueueLinkedFilter.UNLINKED:
         filtered = [item for item in filtered if item.linked_tasks_count == 0]
     if filters.scope == WorkQueueScope.MANUAL:
-        filtered = [
-            item for item in filtered if item.source_type == WorkQueueSourceType.TASK
-        ]
+        filtered = [item for item in filtered if item.source_type == WorkQueueSourceType.TASK]
     elif filters.scope == WorkQueueScope.SYSTEM:
-        filtered = [
-            item for item in filtered if item.source_type != WorkQueueSourceType.TASK
-        ]
+        filtered = [item for item in filtered if item.source_type != WorkQueueSourceType.TASK]
     return filtered
 
 
@@ -163,12 +156,8 @@ def build_work_queue_summary(items: list[WorkQueueItem]) -> WorkQueueSummary:
         linked=sum(1 for item in items if item.linked_tasks_count > 0),
         unlinked=sum(1 for item in items if item.linked_tasks_count == 0),
         overdue=sum(1 for item in items if item.urgency == WorkQueueUrgency.OVERDUE),
-        approaching=sum(
-            1 for item in items if item.urgency == WorkQueueUrgency.APPROACHING
-        ),
-        important=sum(
-            1 for item in items if item.urgency == WorkQueueUrgency.IMPORTANT
-        ),
+        approaching=sum(1 for item in items if item.urgency == WorkQueueUrgency.APPROACHING),
+        important=sum(1 for item in items if item.urgency == WorkQueueUrgency.IMPORTANT),
         upcoming=sum(1 for item in items if item.urgency == WorkQueueUrgency.UPCOMING),
         by_source_type=by_source_type,
         by_task_status=by_task_status,
@@ -190,19 +179,19 @@ class WorkQueueService:
 
     def list_items(
         self,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-        exclude_source_types: Optional[List[WorkQueueSourceType]] = None,
+        client_record_id: int | None = None,
+        business_id: int | None = None,
+        exclude_source_types: list[WorkQueueSourceType] | None = None,
         include_task_history: bool = False,
-        search: Optional[str] = None,
-        source_type: Optional[WorkQueueSourceType] = None,
-        urgency: Optional[WorkQueueUrgency] = None,
-        task_status: Optional[TaskStatus] = None,
-        linked: Optional[WorkQueueLinkedFilter] = None,
-        scope: Optional[WorkQueueScope] = None,
+        search: str | None = None,
+        source_type: WorkQueueSourceType | None = None,
+        urgency: WorkQueueUrgency | None = None,
+        task_status: TaskStatus | None = None,
+        linked: WorkQueueLinkedFilter | None = None,
+        scope: WorkQueueScope | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> List[WorkQueueItem]:
+    ) -> list[WorkQueueItem]:
         ctx = self._context()
         items = self._filtered_items(
             ctx,
@@ -224,16 +213,16 @@ class WorkQueueService:
 
     def list_items_with_total(
         self,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-        exclude_source_types: Optional[List[WorkQueueSourceType]] = None,
+        client_record_id: int | None = None,
+        business_id: int | None = None,
+        exclude_source_types: list[WorkQueueSourceType] | None = None,
         include_task_history: bool = False,
-        search: Optional[str] = None,
-        source_type: Optional[WorkQueueSourceType] = None,
-        urgency: Optional[WorkQueueUrgency] = None,
-        task_status: Optional[TaskStatus] = None,
-        linked: Optional[WorkQueueLinkedFilter] = None,
-        scope: Optional[WorkQueueScope] = None,
+        search: str | None = None,
+        source_type: WorkQueueSourceType | None = None,
+        urgency: WorkQueueUrgency | None = None,
+        task_status: TaskStatus | None = None,
+        linked: WorkQueueLinkedFilter | None = None,
+        scope: WorkQueueScope | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> WorkQueueListResponse:
@@ -261,16 +250,16 @@ class WorkQueueService:
 
     def summary(
         self,
-        client_record_id: Optional[int] = None,
-        business_id: Optional[int] = None,
-        exclude_source_types: Optional[List[WorkQueueSourceType]] = None,
+        client_record_id: int | None = None,
+        business_id: int | None = None,
+        exclude_source_types: list[WorkQueueSourceType] | None = None,
         include_task_history: bool = False,
-        search: Optional[str] = None,
-        source_type: Optional[WorkQueueSourceType] = None,
-        urgency: Optional[WorkQueueUrgency] = None,
-        task_status: Optional[TaskStatus] = None,
-        linked: Optional[WorkQueueLinkedFilter] = None,
-        scope: Optional[WorkQueueScope] = None,
+        search: str | None = None,
+        source_type: WorkQueueSourceType | None = None,
+        urgency: WorkQueueUrgency | None = None,
+        task_status: TaskStatus | None = None,
+        linked: WorkQueueLinkedFilter | None = None,
+        scope: WorkQueueScope | None = None,
     ) -> WorkQueueSummary:
         filters = WorkQueueFilters(
             search=search,
@@ -294,9 +283,9 @@ class WorkQueueService:
         self,
         ctx: WorkQueueContext,
         *,
-        client_record_id: Optional[int],
-        business_id: Optional[int],
-        exclude_source_types: Optional[List[WorkQueueSourceType]],
+        client_record_id: int | None,
+        business_id: int | None,
+        exclude_source_types: list[WorkQueueSourceType] | None,
         include_task_history: bool,
         filters: WorkQueueFilters,
     ) -> list[WorkQueueItem]:
@@ -313,9 +302,9 @@ class WorkQueueService:
     def _summary_items(
         self,
         *,
-        client_record_id: Optional[int],
-        business_id: Optional[int],
-        exclude_source_types: Optional[List[WorkQueueSourceType]],
+        client_record_id: int | None,
+        business_id: int | None,
+        exclude_source_types: list[WorkQueueSourceType] | None,
         include_task_history: bool,
         filters: WorkQueueFilters,
     ) -> list[WorkQueueItem]:
@@ -334,13 +323,13 @@ class WorkQueueService:
         self,
         ctx: WorkQueueContext,
         *,
-        client_record_id: Optional[int],
-        business_id: Optional[int],
-        exclude_source_types: Optional[List[WorkQueueSourceType]],
+        client_record_id: int | None,
+        business_id: int | None,
+        exclude_source_types: list[WorkQueueSourceType] | None,
         include_task_history: bool,
     ) -> list[WorkQueueItem]:
         excluded = set(exclude_source_types or [])
-        system_items: List[WorkQueueItem] = []
+        system_items: list[WorkQueueItem] = []
 
         # VAT, annual reports, and advance payments are client-level obligations —
         # business_id does not narrow them; skip entirely when business_id is set.
@@ -384,8 +373,7 @@ class WorkQueueService:
             return [
                 item
                 for item in items
-                if item.source_type != WorkQueueSourceType.TASK
-                or _is_history_task_row(item)
+                if item.source_type != WorkQueueSourceType.TASK or _is_history_task_row(item)
             ]
         return [
             item
@@ -399,8 +387,8 @@ class WorkQueueService:
         system_items: list[WorkQueueItem],
         *,
         excluded: set[WorkQueueSourceType],
-        client_record_id: Optional[int],
-        business_id: Optional[int],
+        client_record_id: int | None,
+        business_id: int | None,
         include_task_history: bool,
     ) -> list[WorkQueueItem]:
         if WorkQueueSourceType.TASK in excluded or business_id is not None:
@@ -490,9 +478,7 @@ class WorkQueueService:
         item.linked_tasks_count = len(item.linked_tasks)
         if item.linked_tasks_count > 1:
             item.warnings = [
-                warning
-                for warning in item.warnings
-                if warning.key != "multiple_linked_tasks"
+                warning for warning in item.warnings if warning.key != "multiple_linked_tasks"
             ]
             item.warnings.append(
                 WorkQueueWarning(

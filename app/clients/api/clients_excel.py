@@ -9,8 +9,6 @@ from fastapi import (
 )
 from fastapi.responses import FileResponse
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.clients.constants import EXCEL_MEDIA_TYPE, MAX_CLIENT_IMPORT_UPLOAD_SIZE
 from app.clients.schemas.client import ClientImportResponse
 from app.clients.services.client_excel_service import (
@@ -19,6 +17,8 @@ from app.clients.services.client_excel_service import (
 )
 from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.create_client_service import CreateClientService
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 MAX_UPLOAD_SIZE = MAX_CLIENT_IMPORT_UPLOAD_SIZE
 

@@ -1,17 +1,13 @@
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from app.clients.create_policy import preview_vat_reporting_frequency
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.clients.enums import ClientStatus
-from app.common.enums import EntityType
 from app.clients.schemas.client import (
     ClientConflictInfo,
-    CreateClientRequest,
     ClientImpactPreviewRequest,
     ClientUpdateRequest,
+    CreateClientRequest,
 )
 from app.clients.schemas.client_record_response import (
     ClientRecordListResponse,
@@ -19,14 +15,17 @@ from app.clients.schemas.client_record_response import (
     CreateClientRecordResponse,
 )
 from app.clients.schemas.impact import ClientCreationImpactResponse
+from app.clients.services.client_lifecycle_service import ClientLifecycleService
+from app.clients.services.client_query_service import ClientQueryService
+from app.clients.services.client_update_service import ClientUpdateService
 from app.clients.services.create_client_service import (
     ClientCreationConflictError,
     CreateClientService,
 )
-from app.clients.services.client_lifecycle_service import ClientLifecycleService
-from app.clients.services.client_query_service import ClientQueryService
-from app.clients.services.client_update_service import ClientUpdateService
 from app.clients.services.impact_preview_service import compute_creation_impact
+from app.common.enums import EntityType
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/clients",
@@ -95,11 +94,11 @@ def create_client(
 @router.get("", response_model=ClientRecordListResponse)
 def list_clients(
     db: DBSession,
-    search: Optional[str] = Query(None),
-    status_filter: Optional[ClientStatus] = Query(None, alias="status"),
-    entity_type: Optional[EntityType] = Query(None),
-    accountant_id: Optional[int] = Query(None, ge=1),
-    tax_year: Optional[int] = Query(None, ge=2000, le=2100),
+    search: str | None = Query(None),
+    status_filter: ClientStatus | None = Query(None, alias="status"),
+    entity_type: EntityType | None = Query(None),
+    accountant_id: int | None = Query(None, ge=1),
+    tax_year: int | None = Query(None, ge=2000, le=2100),
     sort_by: str = Query(
         "official_name",
         pattern="^(official_name|full_name|created_at|status|entity_type)$",
@@ -128,7 +127,7 @@ def list_clients(
 def get_client(
     client_id: int,
     db: DBSession,
-    tax_year: Optional[int] = Query(None, ge=2000, le=2100),
+    tax_year: int | None = Query(None, ge=2000, le=2100),
 ):
     """Get client by ID (client_id = ClientRecord.id)."""
     service = ClientQueryService(db)

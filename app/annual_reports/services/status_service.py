@@ -1,12 +1,5 @@
-from typing import Optional
 from datetime import datetime
 
-from app.audit.constants import (
-    ACTION_ANNUAL_REPORT_DEADLINE_UPDATED,
-    ENTITY_ANNUAL_REPORT,
-)
-from app.audit.services.entity_audit_writer import EntityAuditWriter
-from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.annual_reports.models.annual_report_enums import (
     AnnualReportStatus,
     FilingDeadlineType,
@@ -17,10 +10,19 @@ from app.annual_reports.schemas.annual_report_responses import (
     AnnualReportDetailResponse,
     AnnualReportResponse,
 )
+from app.audit.constants import (
+    ACTION_ANNUAL_REPORT_DEADLINE_UPDATED,
+    ENTITY_ANNUAL_REPORT,
+)
+from app.audit.services.entity_audit_writer import EntityAuditWriter
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.utils.time_utils import utcnow
+
+from . import financial_service
 from .constants import STAGE_TO_STATUS, VALID_TRANSITIONS
 from .deadlines import extended_deadline, standard_deadline
 from .messages import (
+    ANNUAL_REPORT_NOT_FOUND,
     CUSTOM_DEADLINE_LABEL,
     DEADLINE_UPDATED_NOTE,
     INVALID_ANNUAL_REPORT_STATUS,
@@ -31,9 +33,7 @@ from .messages import (
     REPORT_AMEND_ONLY_SUBMITTED_ERROR,
     REPORT_NOT_READY_FOR_SUBMISSION,
     STATUS_CHANGE_CANCEL_SIGNATURE_REASON,
-    ANNUAL_REPORT_NOT_FOUND,
 )
-from . import financial_service
 from .status_signature_helper import AnnualReportSignatureHelper
 
 
@@ -85,13 +85,13 @@ class AnnualReportStatusService(AnnualReportSignatureHelper):
         new_status: str,
         changed_by: int,
         changed_by_name: str,
-        note: Optional[str] = None,
-        ita_reference: Optional[str] = None,
-        assessment_amount: Optional[float] = None,
-        refund_due: Optional[float] = None,
-        tax_due: Optional[float] = None,
-        submitted_at: Optional[datetime] = None,
-        submission_method: Optional[str] = None,
+        note: str | None = None,
+        ita_reference: str | None = None,
+        assessment_amount: float | None = None,
+        refund_due: float | None = None,
+        tax_due: float | None = None,
+        submitted_at: datetime | None = None,
+        submission_method: str | None = None,
     ) -> AnnualReportResponse:
         report = self._get_or_raise_for_update(report_id)
         valid_statuses = {e.value for e in AnnualReportStatus}
@@ -187,11 +187,9 @@ class AnnualReportStatusService(AnnualReportSignatureHelper):
         deadline_type: str,
         changed_by: int,
         changed_by_name: str,
-        custom_deadline_note: Optional[str] = None,
+        custom_deadline_note: str | None = None,
     ) -> AnnualReportResponse:
-        updated = self._update_deadline(
-            report_id, deadline_type, changed_by, custom_deadline_note
-        )
+        updated = self._update_deadline(report_id, deadline_type, changed_by, custom_deadline_note)
         return self._to_responses([updated])[0]
 
     def _update_deadline(
@@ -286,8 +284,6 @@ class AnnualReportStatusService(AnnualReportSignatureHelper):
             changed_by_name=actor_name,
             note=reason,
         )
-        AnnualReportDetailRepository(self.db).update_meta(
-            report_id, amendment_reason=reason
-        )
+        AnnualReportDetailRepository(self.db).update_meta(report_id, amendment_reason=reason)
 
         return self.get_detail_report(report_id)

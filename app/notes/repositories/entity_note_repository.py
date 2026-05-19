@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -17,7 +16,7 @@ class EntityNoteRepository(BaseRepository[EntityNote]):
         entity_type: str,
         entity_id: int,
         note: str,
-        created_by: Optional[int] = None,
+        created_by: int | None = None,
     ) -> EntityNote:
         obj = EntityNote(
             entity_type=entity_type,
@@ -42,9 +41,7 @@ class EntityNoteRepository(BaseRepository[EntityNote]):
             EntityNote.entity_id == entity_id,
             EntityNote.deleted_at.is_(None),
         ]
-        total = (
-            self.db.scalar(select(func.count(EntityNote.id)).where(*base_where)) or 0
-        )
+        total = self.db.scalar(select(func.count(EntityNote.id)).where(*base_where)) or 0
         items = self.db.scalars(
             select(EntityNote)
             .where(*base_where)
@@ -54,14 +51,12 @@ class EntityNoteRepository(BaseRepository[EntityNote]):
         ).all()
         return items, total
 
-    def get_by_id(self, note_id: int) -> Optional[EntityNote]:
+    def get_by_id(self, note_id: int) -> EntityNote | None:
         return self.db.scalars(
-            select(EntityNote).where(
-                EntityNote.id == note_id, EntityNote.deleted_at.is_(None)
-            )
+            select(EntityNote).where(EntityNote.id == note_id, EntityNote.deleted_at.is_(None))
         ).first()
 
-    def update(self, note_id: int, **fields) -> Optional[EntityNote]:
+    def update(self, note_id: int, **fields) -> EntityNote | None:
         obj = self.get_by_id(note_id)
         if not obj:
             return None

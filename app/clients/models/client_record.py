@@ -1,8 +1,9 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Text, column
-from app.database import Base
-from app.utils.time_utils import utcnow
+
 from app.clients.enums import ClientStatus
+from app.database import Base
 from app.utils.enum_utils import pg_enum
+from app.utils.time_utils import utcnow
 
 
 class ClientRecord(Base):
@@ -12,9 +13,7 @@ class ClientRecord(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    legal_entity_id = Column(
-        Integer, ForeignKey("legal_entities.id"), nullable=False, index=True
-    )
+    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False, index=True)
 
     office_client_number = Column(Integer, nullable=True)
     accountant_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)

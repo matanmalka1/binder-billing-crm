@@ -6,12 +6,11 @@ from unittest.mock import (
 )  # used in unit tests that don't need Pydantic validation
 
 from app.common.enums import DeadlineRuleType, ObligationType, SubmissionMethod, VatType
-from app.vat_reports.services.vat_report_queries import deadline_fields_from_snapshot
 from app.vat_reports.api.serializers import serialize_enriched_work_item
-from app.vat_reports.services.intake import create_work_item
 from app.vat_reports.repositories.vat_work_item_repository import VatWorkItemRepository
+from app.vat_reports.services.intake import create_work_item
+from app.vat_reports.services.vat_report_queries import deadline_fields_from_snapshot
 from tests.tax_calendar.service.linking_helpers import make_entry, vat_client
-
 
 # ── deadline_fields_from_snapshot ────────────────────────────────────────────
 
@@ -23,9 +22,7 @@ def test_snapshot_statutory_filer_uses_due_date_effective():
     item.due_date_original = date(2026, 2, 16)
     item.due_date_effective = date(2026, 2, 16)
 
-    result = deadline_fields_from_snapshot(
-        item, submission_method=SubmissionMethod.MANUAL
-    )
+    result = deadline_fields_from_snapshot(item, submission_method=SubmissionMethod.MANUAL)
 
     assert result["submission_deadline"] == date(2026, 2, 16)
     assert result["statutory_deadline"] == date(2026, 2, 16)
@@ -40,9 +37,7 @@ def test_snapshot_online_filer_uses_effective_no_extra_extension():
     item.due_date_original = date(2026, 2, 16)
     item.due_date_effective = date(2026, 2, 16)
 
-    result = deadline_fields_from_snapshot(
-        item, submission_method=SubmissionMethod.ONLINE
-    )
+    result = deadline_fields_from_snapshot(item, submission_method=SubmissionMethod.ONLINE)
 
     assert result["submission_deadline"] == date(2026, 2, 16)
     assert result["statutory_deadline"] == date(2026, 2, 16)
@@ -56,9 +51,7 @@ def test_snapshot_standard_month_submission_equals_effective():
     item.due_date_original = date(2026, 3, 15)
     item.due_date_effective = date(2026, 3, 15)
 
-    result = deadline_fields_from_snapshot(
-        item, submission_method=SubmissionMethod.ONLINE
-    )
+    result = deadline_fields_from_snapshot(item, submission_method=SubmissionMethod.ONLINE)
 
     assert result["submission_deadline"] == date(2026, 3, 15)
     assert result["statutory_deadline"] == date(2026, 3, 15)
@@ -70,9 +63,7 @@ def test_snapshot_falls_back_to_effective_when_original_is_none():
     item.due_date_original = None
     item.due_date_effective = date(2026, 2, 16)
 
-    result = deadline_fields_from_snapshot(
-        item, submission_method=SubmissionMethod.MANUAL
-    )
+    result = deadline_fields_from_snapshot(item, submission_method=SubmissionMethod.MANUAL)
 
     assert result["submission_deadline"] == date(2026, 2, 16)
     assert result["statutory_deadline"] == date(2026, 2, 16)
@@ -104,9 +95,7 @@ def test_serializer_prefers_snapshot_over_computed_deadline(test_db):
         created_by=1,
     )
 
-    assert item.due_date_effective == date(2026, 2, 16), (
-        "snapshot must use entry.due_date=16th"
-    )
+    assert item.due_date_effective == date(2026, 2, 16), "snapshot must use entry.due_date=16th"
 
     result = serialize_enriched_work_item(
         item,

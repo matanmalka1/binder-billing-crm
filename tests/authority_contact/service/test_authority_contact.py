@@ -63,17 +63,13 @@ def test_get_contact_missing_raises_not_found(test_db):
 def test_list_contacts_filters_and_paginates(test_db):
     client = _client(test_db)
     repo = AuthorityContactRepository(test_db)
-    repo.create(
-        client_record_id=client.id, contact_type=ContactType.VAT_BRANCH, name="VAT 1"
-    )
+    repo.create(client_record_id=client.id, contact_type=ContactType.VAT_BRANCH, name="VAT 1")
     repo.create(
         client_record_id=client.id,
         contact_type=ContactType.ASSESSING_OFFICER,
         name="AO 1",
     )
-    repo.create(
-        client_record_id=client.id, contact_type=ContactType.VAT_BRANCH, name="VAT 2"
-    )
+    repo.create(client_record_id=client.id, contact_type=ContactType.VAT_BRANCH, name="VAT 2")
 
     service = AuthorityContactService(test_db)
     items, total = service.list_client_contacts(
@@ -99,10 +95,6 @@ def test_repository_soft_delete_marks_deleted_metadata(test_db):
     assert deleted is True
     assert repo.get_by_id(contact.id) is None
 
-    persisted = (
-        test_db.query(AuthorityContact)
-        .filter(AuthorityContact.id == contact.id)
-        .first()
-    )
+    persisted = test_db.query(AuthorityContact).filter(AuthorityContact.id == contact.id).first()
     assert persisted.deleted_by == 42
     assert persisted.deleted_at is not None

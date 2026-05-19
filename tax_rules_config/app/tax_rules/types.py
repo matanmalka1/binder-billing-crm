@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Mapping
-
 
 # ── Entity & classification enums ────────────────────────────────────────────
 
@@ -43,9 +42,7 @@ class ObligationKind(StrEnum):
     INCOME_TAX_ADVANCE = "income_tax_advance"
     INCOME_TAX_ANNUAL_REPORT = "income_tax_annual_report"
     INCOME_TAX_ANNUAL_REPORT_SMALL_BUSINESS = "income_tax_annual_report_small_business"
-    NATIONAL_INSURANCE_SELF_EMPLOYED_ADVANCE = (
-        "national_insurance_self_employed_advance"
-    )
+    NATIONAL_INSURANCE_SELF_EMPLOYED_ADVANCE = "national_insurance_self_employed_advance"
     NATIONAL_INSURANCE_EMPLOYER_102 = "national_insurance_employer_102"
     WITHHOLDING_MONTHLY_102 = "withholding_monthly_102"
     WITHHOLDING_ANNUAL_126 = "withholding_annual_126"

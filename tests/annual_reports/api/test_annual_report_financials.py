@@ -3,7 +3,6 @@ from itertools import count
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from tests.helpers.identity import seed_client_identity
 
-
 _client_seq = count(1)
 
 
@@ -35,4 +34,3 @@ def test_create_income_line_accepts_zero_amount(client, test_db, advisor_headers
 
     assert resp.status_code == 201
     assert resp.json()["amount"] == "0.00"
-

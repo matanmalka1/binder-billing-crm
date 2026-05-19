@@ -45,9 +45,7 @@ def registry_periodic_calendar_available(year: int) -> bool:
 def missing_registry_years(start_year: int, end_year: int) -> list[int]:
     """Years in [start_year, end_year] that lack official periodic registry data."""
     return [
-        y
-        for y in range(start_year, end_year + 1)
-        if not registry_periodic_calendar_available(y)
+        y for y in range(start_year, end_year + 1) if not registry_periodic_calendar_available(y)
     ]
 
 
@@ -68,9 +66,7 @@ def get_registry_due_date(
     """
     if not _REGISTRY_AVAILABLE or rule_type not in _REGISTRY_RULE_TYPES:
         return None
-    cal_year, cal_month = _shift_month(
-        period_year, period_month, max(offset_months - 1, 0)
-    )
+    cal_year, cal_month = _shift_month(period_year, period_month, max(offset_months - 1, 0))
     period_key = f"{cal_year}-{cal_month:02d}"
     try:
         raw = _registry_periodic(cal_year, period_key, _REGISTRY_COLUMN)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 from enum import Enum as PyEnum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -31,17 +31,17 @@ class WorkQueueSourceSummary(BaseModel):
     source_type: str
     source_id: int
     label: str
-    route: Optional[str] = None
+    route: str | None = None
 
 
 class LinkedTaskSummary(BaseModel):
     id: int
     title: str
     status: str
-    due_date: Optional[date] = None
-    priority: Optional[str] = None
-    assigned_user_id: Optional[int] = None
-    assigned_role: Optional[str] = None
+    due_date: date | None = None
+    priority: str | None = None
+    assigned_user_id: int | None = None
+    assigned_role: str | None = None
 
 
 class WorkQueueWarning(BaseModel):
@@ -55,21 +55,21 @@ class WorkQueueItem(BaseModel):
     source_type: WorkQueueSourceType
     source_id: int
     title: str
-    description: Optional[str] = None
-    type_label: Optional[str] = None
-    status_label: Optional[str] = None
-    due_date: Optional[date] = None
+    description: str | None = None
+    type_label: str | None = None
+    status_label: str | None = None
+    due_date: date | None = None
     urgency: WorkQueueUrgency
-    client_record_id: Optional[int] = None
-    client_name: Optional[str] = None
-    office_client_number: Optional[int] = None
-    business_id: Optional[int] = None
-    source_summary: Optional[WorkQueueSourceSummary] = None
+    client_record_id: int | None = None
+    client_name: str | None = None
+    office_client_number: int | None = None
+    business_id: int | None = None
+    source_summary: WorkQueueSourceSummary | None = None
     linked_tasks: list[LinkedTaskSummary] = Field(default_factory=list)
     linked_tasks_count: int = 0
     warnings: list[WorkQueueWarning] = Field(default_factory=list)
     available_actions: list[ActionDescriptor] = Field(default_factory=list)
-    metadata: Optional[dict] = None
+    metadata: dict | None = None
 
 
 class WorkQueueSummary(BaseModel):

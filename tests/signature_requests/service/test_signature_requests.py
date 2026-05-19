@@ -134,8 +134,7 @@ def test_create_request_sets_pending_token_and_expiry(test_db, test_user):
     assert req.expires_at is not None
     assert req.expiry_days == 14
     assert [
-        event.event_type
-        for event in SignatureRequestRepository(test_db).list_audit_events(req.id)
+        event.event_type for event in SignatureRequestRepository(test_db).list_audit_events(req.id)
     ] == [
         "created",
         "sent",
@@ -160,9 +159,7 @@ def test_create_pending_requires_signing_link_fields(test_db, test_user):
         )
 
 
-def test_service_expire_overdue_requests_delegates_and_returns_count(
-    test_db, test_user
-):
+def test_service_expire_overdue_requests_delegates_and_returns_count(test_db, test_user):
     business = _business(test_db, "5")
     repo = SignatureRequestRepository(test_db)
     req = _create(repo, business, user_id=test_user.id, title="Service Expire")

@@ -1,5 +1,5 @@
-from io import BytesIO
 from datetime import date
+from io import BytesIO
 
 from tests.helpers.identity import seed_business, seed_client_identity
 
@@ -42,9 +42,7 @@ def test_document_download_and_replace(client, test_db, advisor_headers):
     assert upload_resp.status_code == 201
     doc_id = upload_resp.json()["id"]
 
-    download_resp = client.get(
-        f"/api/v1/documents/{doc_id}/download-url", headers=advisor_headers
-    )
+    download_resp = client.get(f"/api/v1/documents/{doc_id}/download-url", headers=advisor_headers)
     assert download_resp.status_code == 200
     assert "url" in download_resp.json()
 

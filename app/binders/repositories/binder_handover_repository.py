@@ -1,5 +1,4 @@
 from datetime import date
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -23,7 +22,7 @@ class BinderHandoverRepository(BaseRepository[BinderHandover]):
         until_period_month: int,
         binder_ids: list[int],
         created_by: int,
-        notes: Optional[str] = None,
+        notes: str | None = None,
     ) -> BinderHandover:
         from app.utils.time_utils import utcnow
 
@@ -47,7 +46,7 @@ class BinderHandoverRepository(BaseRepository[BinderHandover]):
 
         return handover
 
-    def get_by_id(self, handover_id: int) -> Optional[BinderHandover]:
+    def get_by_id(self, handover_id: int) -> BinderHandover | None:
         return self.db.scalars(
             select(BinderHandover).where(BinderHandover.id == handover_id)
         ).first()

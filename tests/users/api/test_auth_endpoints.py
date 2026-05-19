@@ -14,12 +14,8 @@ def _login(client, email: str, password: str, remember_me: bool = False) -> dict
 
 
 def test_login_remember_me_extends_cookie_ttl(client, test_user):
-    regular = _login(client, test_user.email, "password123", remember_me=False)[
-        "set_cookie"
-    ]
-    remembered = _login(client, test_user.email, "password123", remember_me=True)[
-        "set_cookie"
-    ]
+    regular = _login(client, test_user.email, "password123", remember_me=False)["set_cookie"]
+    remembered = _login(client, test_user.email, "password123", remember_me=True)["set_cookie"]
 
     regular_max_age = f"Max-Age={int(config.JWT_TTL_HOURS * 3600)}"
     remembered_max_age = f"Max-Age={int(config.JWT_TTL_HOURS * 2 * 3600)}"

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -12,14 +11,14 @@ from app.tasks.models.task import Task, TaskPriority, TaskStatus
 
 def _apply_filters(
     stmt,
-    status: Optional[TaskStatus],
-    priority: Optional[TaskPriority],
-    assigned_to_user_id: Optional[int],
-    assigned_role: Optional[str],
-    source_domain: Optional[str],
-    source_id: Optional[int],
-    due_before: Optional[date],
-    due_after: Optional[date],
+    status: TaskStatus | None,
+    priority: TaskPriority | None,
+    assigned_to_user_id: int | None,
+    assigned_role: str | None,
+    source_domain: str | None,
+    source_id: int | None,
+    due_before: date | None,
+    due_after: date | None,
 ):
     if status is not None:
         stmt = stmt.where(Task.status == status)
@@ -49,7 +48,7 @@ class TaskRepository(BaseRepository[Task]):
     def create(
         self,
         title: str,
-        created_by_user_id: Optional[int] = None,
+        created_by_user_id: int | None = None,
         **kwargs,
     ) -> Task:
         task = Task(title=title, created_by_user_id=created_by_user_id, **kwargs)
@@ -59,14 +58,14 @@ class TaskRepository(BaseRepository[Task]):
 
     def list_active(
         self,
-        status: Optional[TaskStatus] = None,
-        priority: Optional[TaskPriority] = None,
-        assigned_to_user_id: Optional[int] = None,
-        assigned_role: Optional[str] = None,
-        source_domain: Optional[str] = None,
-        source_id: Optional[int] = None,
-        due_before: Optional[date] = None,
-        due_after: Optional[date] = None,
+        status: TaskStatus | None = None,
+        priority: TaskPriority | None = None,
+        assigned_to_user_id: int | None = None,
+        assigned_role: str | None = None,
+        source_domain: str | None = None,
+        source_id: int | None = None,
+        due_before: date | None = None,
+        due_after: date | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[list[Task], int]:
@@ -93,9 +92,7 @@ class TaskRepository(BaseRepository[Task]):
         total: int = self.db.scalar(count_stmt) or 0
 
         data_stmt = (
-            base.order_by(Task.created_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
+            base.order_by(Task.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
         )
         items = list(self.db.scalars(data_stmt).all())
         return items, total

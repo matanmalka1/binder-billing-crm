@@ -37,9 +37,7 @@ def test_advisor_can_create_charge(client, advisor_headers, test_db):
     assert data["paid_at"] is None
 
 
-def test_secretary_cannot_mutate_charges(
-    client, secretary_headers, advisor_headers, test_db
-):
+def test_secretary_cannot_mutate_charges(client, secretary_headers, advisor_headers, test_db):
     business = _create_business(test_db)
     create_res = client.post(
         "/api/v1/charges",
@@ -67,28 +65,20 @@ def test_secretary_cannot_mutate_charges(
         == 403
     )
     assert (
-        client.post(
-            f"/api/v1/charges/{charge_id}/issue", headers=secretary_headers
-        ).status_code
+        client.post(f"/api/v1/charges/{charge_id}/issue", headers=secretary_headers).status_code
         == 403
     )
     assert (
-        client.post(
-            f"/api/v1/charges/{charge_id}/mark-paid", headers=secretary_headers
-        ).status_code
+        client.post(f"/api/v1/charges/{charge_id}/mark-paid", headers=secretary_headers).status_code
         == 403
     )
     assert (
-        client.post(
-            f"/api/v1/charges/{charge_id}/cancel", headers=secretary_headers
-        ).status_code
+        client.post(f"/api/v1/charges/{charge_id}/cancel", headers=secretary_headers).status_code
         == 403
     )
 
 
-def test_secretary_can_read_charges(
-    client, secretary_headers, advisor_headers, test_db
-):
+def test_secretary_can_read_charges(client, secretary_headers, advisor_headers, test_db):
     business = _create_business(test_db)
     create_res = client.post(
         "/api/v1/charges",
@@ -116,8 +106,6 @@ def test_secretary_can_read_charges(
 def test_charges_requires_auth(client):
     assert client.get("/api/v1/charges").status_code == 401
     assert (
-        client.get(
-            "/api/v1/charges", headers={"Authorization": "Bearer not-a-jwt"}
-        ).status_code
+        client.get("/api/v1/charges", headers={"Authorization": "Bearer not-a-jwt"}).status_code
         == 401
     )

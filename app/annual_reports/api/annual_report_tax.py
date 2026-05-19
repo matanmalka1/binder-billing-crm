@@ -2,14 +2,13 @@
 
 from fastapi import APIRouter, Depends
 
-from app.users.api.deps import CurrentUser, DBSession, require_role
-from app.users.models.user import UserRole
 from app.annual_reports.schemas.annual_report_financials import (
     TaxCalculationSaveRequest,
     TaxCalculationSaveResponse,
 )
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
-
+from app.users.api.deps import CurrentUser, DBSession, require_role
+from app.users.models.user import UserRole
 
 router = APIRouter(
     prefix="/annual-reports",
@@ -18,9 +17,7 @@ router = APIRouter(
 )
 
 
-@router.post(
-    "/{report_id}/tax-calculation/save", response_model=TaxCalculationSaveResponse
-)
+@router.post("/{report_id}/tax-calculation/save", response_model=TaxCalculationSaveResponse)
 def save_tax_calculation(
     report_id: int,
     body: TaxCalculationSaveRequest,

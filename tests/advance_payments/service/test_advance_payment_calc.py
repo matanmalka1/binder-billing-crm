@@ -4,17 +4,15 @@ from datetime import date
 from decimal import Decimal
 from itertools import count
 
-import pytest
-
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
 from app.advance_payments.services.advance_payment_service import AdvancePaymentService
 from app.businesses.models.business import Business
 from app.common.enums import AdvancePaymentFrequency, VatType
-from app.vat_reports.models.vat_enums import VatWorkItemStatus
-from app.vat_reports.models.vat_work_item import VatWorkItem
 from app.tax_calendar.services.materialization_service import (
     TaxCalendarMaterializationService,
 )
+from app.vat_reports.models.vat_enums import VatWorkItemStatus
+from app.vat_reports.models.vat_work_item import VatWorkItem
 from tests.helpers.identity import seed_client_identity
 
 _seq = count(1)
@@ -42,9 +40,7 @@ def _business(db, advance_rate=None) -> Business:
     return business
 
 
-def _vat_item(
-    db, client_id, period, total_output_net, user_id, status=VatWorkItemStatus.FILED
-):
+def _vat_item(db, client_id, period, total_output_net, user_id, status=VatWorkItemStatus.FILED):
     mat = TaxCalendarMaterializationService(db)
     entry = mat.ensure_periodic_entry("vat", period, 1)
     net = Decimal(str(total_output_net))

@@ -1,21 +1,20 @@
-from typing import Optional
 
 from fastapi import APIRouter, Depends, status
 
+from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
 from app.binders.schemas.binder import (
     BinderHandoverRequest,
     BinderHandoverResponse,
+    BinderIntakeResponse,
     BinderMarkReadyBulkRequest,
     BinderReceiveRequest,
+    BinderReceiveResult,
     BinderResponse,
     BinderReturnRequest,
-    BinderIntakeResponse,
-    BinderReceiveResult,
 )
-from app.binders.services.binder_service import BinderService
-from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_handover_service import BinderHandoverService
-from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
+from app.binders.services.binder_list_service import BinderListService
+from app.binders.services.binder_service import BinderService
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
 
@@ -32,9 +31,7 @@ def fetch_client_and_build_response(binder, db: DBSession) -> BinderResponse:
     return enriched or service.build_binder_response(binder)
 
 
-@router.post(
-    "/receive", response_model=BinderReceiveResult, status_code=status.HTTP_201_CREATED
-)
+@router.post("/receive", response_model=BinderReceiveResult, status_code=status.HTTP_201_CREATED)
 def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUser):
     """Receive material into existing binder or create new one."""
     service = BinderService(db)
@@ -56,9 +53,7 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
 
 
 @router.post("/mark-ready-bulk", response_model=list[BinderResponse])
-def mark_ready_bulk(
-    request: BinderMarkReadyBulkRequest, db: DBSession, user: CurrentUser
-):
+def mark_ready_bulk(request: BinderMarkReadyBulkRequest, db: DBSession, user: CurrentUser):
     """Mark all eligible binders for a client as ready for pickup up to a cutoff period."""
     service = BinderService(db)
     binders = service.mark_ready_bulk(
@@ -83,7 +78,7 @@ def return_binder(
     binder_id: int,
     db: DBSession,
     user: CurrentUser,
-    request: Optional[BinderReturnRequest] = None,
+    request: BinderReturnRequest | None = None,
 ):
     """Return binder to client."""
     service = BinderService(db)
@@ -92,9 +87,7 @@ def return_binder(
         if request and request.pickup_person_name and request.pickup_person_name.strip()
         else user.full_name
     )
-    returned_by = (
-        request.returned_by if request and request.returned_by is not None else user.id
-    )
+    returned_by = request.returned_by if request and request.returned_by is not None else user.id
     binder = service.return_binder(
         binder_id=binder_id,
         pickup_person_name=pickup_person_name,

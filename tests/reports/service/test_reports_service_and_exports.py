@@ -1,7 +1,7 @@
 import os
-from types import SimpleNamespace
 from datetime import date, timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 
@@ -24,9 +24,7 @@ def _client_and_business(db, suffix: str):
     return client, business
 
 
-def _charge(
-    db, client_record_id: int, business_id: int, amount: str, issued_days_ago: int
-):
+def _charge(db, client_record_id: int, business_id: int, amount: str, issued_days_ago: int):
     issued_at = date.today() - timedelta(days=issued_days_ago)
     charge = Charge(
         client_record_id=client_record_id,
@@ -102,6 +100,7 @@ def test_aging_report_service_skips_rows_without_matching_business(test_db):
 
 def test_export_service_excel_import_error(monkeypatch):
     import builtins
+
     from app.reports.services import export_excel
 
     original_import = builtins.__import__
@@ -127,6 +126,7 @@ def test_export_service_excel_import_error(monkeypatch):
 
 def test_export_service_pdf_import_error(monkeypatch):
     import builtins
+
     from app.reports.services import export_pdf
 
     original_import = builtins.__import__
@@ -168,9 +168,7 @@ def test_advance_payment_report_uses_client_record_legal_entity_names(test_db):
         ]
     )
     service.legal_entity_repo = SimpleNamespace(
-        get_by_id=lambda legal_id: SimpleNamespace(
-            id=legal_id, official_name="Advance Client"
-        )
+        get_by_id=lambda legal_id: SimpleNamespace(id=legal_id, official_name="Advance Client")
     )
 
     report = service.get_collections_report(year=2026, month=3)

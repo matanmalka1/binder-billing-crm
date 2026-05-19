@@ -15,9 +15,7 @@ class BinderHandover(Base):
     __tablename__ = "binder_handovers"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    client_record_id = Column(
-        Integer, ForeignKey("client_records.id"), nullable=False, index=True
-    )
+    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
 
     # Name of the person who physically received the binders on the client side.
     received_by_name = Column(String, nullable=False)
@@ -60,12 +58,7 @@ class BinderHandoverBinder(Base):
         index=True,
     )
 
-    __table_args__ = (
-        Index("idx_handover_binder_unique", "handover_id", "binder_id", unique=True),
-    )
+    __table_args__ = (Index("idx_handover_binder_unique", "handover_id", "binder_id", unique=True),)
 
     def __repr__(self):
-        return (
-            f"<BinderHandoverBinder(handover_id={self.handover_id}, "
-            f"binder_id={self.binder_id})>"
-        )
+        return f"<BinderHandoverBinder(handover_id={self.handover_id}, binder_id={self.binder_id})>"

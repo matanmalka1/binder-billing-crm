@@ -8,11 +8,11 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.common.enums import DeadlineRuleType
-from app.tax_calendar.models.deadline_rule import DeadlineRule
-from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.tax_calendar.integrations.tax_rules_registry import (
     registry_periodic_calendar_available,
 )
+from app.tax_calendar.models.deadline_rule import DeadlineRule
+from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 from app.tax_calendar.services.tax_calendar_entry_service import generate_for_year_range
 
 DEFAULT_EFFECTIVE_FROM = date(2023, 1, 1)

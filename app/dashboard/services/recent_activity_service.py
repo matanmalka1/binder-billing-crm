@@ -1,7 +1,10 @@
-from datetime import timezone
+from datetime import UTC
 
 from sqlalchemy.orm import Session
 
+from app.annual_reports.repositories.annual_report_repository import (
+    AnnualReportRepository,
+)
 from app.audit.constants import (
     ACTION_CREATED,
     ACTION_ISSUED,
@@ -14,9 +17,6 @@ from app.audit.constants import (
 )
 from app.audit.models.entity_audit_log import EntityAuditLog
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
-from app.annual_reports.repositories.annual_report_repository import (
-    AnnualReportRepository,
-)
 from app.binders.models.binder import BinderStatus
 from app.binders.models.binder_status_log import BinderStatusLog
 from app.binders.repositories.binder_repository import BinderRepository
@@ -92,9 +92,9 @@ class RecentActivityService:
             if f"binder:{row.id}" in client_names
         )
 
-        return [
-            item for _, item in sorted(items, key=lambda pair: pair[0], reverse=True)
-        ][:_ACTIVITY_LIMIT]
+        return [item for _, item in sorted(items, key=lambda pair: pair[0], reverse=True)][
+            :_ACTIVITY_LIMIT
+        ]
 
     def _serialize(self, row: EntityAuditLog, client_name: str) -> dict:
         return {
@@ -189,7 +189,7 @@ class RecentActivityService:
     def _timestamp(self, row: EntityAuditLog | BinderStatusLog):
         timestamp = getattr(row, "performed_at", None) or row.changed_at
         if timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=timezone.utc)
+            timestamp = timestamp.replace(tzinfo=UTC)
         return timestamp.astimezone()
 
     def _format_date(self, row: EntityAuditLog | BinderStatusLog) -> str:

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import date
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -49,9 +48,9 @@ class ClientOnboardingOrchestrator:
         self,
         client_record_id: int,
         *,
-        actor_id: Optional[int],
+        actor_id: int | None,
         entity_type=None,
-        reference_date: Optional[date] = None,
+        reference_date: date | None = None,
     ) -> ClientOnboardingResult:
         record = self.client_repo.get_by_id(client_record_id)
         if not record:
@@ -70,11 +69,7 @@ class ClientOnboardingOrchestrator:
             best_effort=False,
         )
         today = reference_date or date.today()
-        le = (
-            LegalEntityRepository(self.db).get_by_id(record.legal_entity_id)
-            if record
-            else None
-        )
+        le = LegalEntityRepository(self.db).get_by_id(record.legal_entity_id) if record else None
         vat_type = getattr(le, "vat_reporting_frequency", None) if le else None
         ap_frequency = getattr(le, "advance_payment_frequency", None) if le else None
         ap_entity_type = getattr(le, "entity_type", None) if le else None
@@ -87,7 +82,7 @@ class ClientOnboardingOrchestrator:
         )
         return result
 
-    def _ensure_initial_binder(self, record, actor_id: Optional[int]) -> None:
+    def _ensure_initial_binder(self, record, actor_id: int | None) -> None:
         if self.binder_repo.count_all_by_client(record.id) > 0:
             return
         create_initial_binder(self.db, record, actor_id)
@@ -95,7 +90,7 @@ class ClientOnboardingOrchestrator:
     def _sync_vat_work_items(
         self,
         client_record_id: int,
-        actor_id: Optional[int],
+        actor_id: int | None,
         vat_type,
         reference_date: date,
     ) -> int:
@@ -113,9 +108,7 @@ class ClientOnboardingOrchestrator:
                 )
                 if entry.due_date < reference_date:
                     continue
-                item = self.vat_repo.get_by_client_record_period(
-                    client_record_id, plan.period
-                )
+                item = self.vat_repo.get_by_client_record_period(client_record_id, plan.period)
                 if item is None and actor_id is not None:
                     try:
                         create_work_item(

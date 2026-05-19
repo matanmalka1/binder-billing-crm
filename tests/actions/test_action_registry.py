@@ -1,6 +1,7 @@
+import pytest
+
 from app.actions.action_helpers import build_action, build_confirm
 from app.actions.action_registry import get_annual_report_actions
-import pytest
 
 
 def test_build_action_omits_optional_keys_when_none():

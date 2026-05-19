@@ -1,14 +1,13 @@
 """Repository operations for the AnnualReport entity."""
 
-from typing import Optional
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.common.repositories.base_repository import BaseRepository
-from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
+from app.common.repositories.base_repository import BaseRepository
 from app.utils.time_utils import utcnow
 
 _SORT_COLUMNS = {
@@ -63,7 +62,7 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
 
     def get_by_client_record_year(
         self, client_record_id: int, tax_year: int
-    ) -> Optional[AnnualReport]:
+    ) -> AnnualReport | None:
         return self.db.scalars(
             select(AnnualReport).where(
                 AnnualReport.client_record_id == client_record_id,
@@ -75,8 +74,8 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
     def list_by_status(
         self,
         status: AnnualReportStatus,
-        tax_year: Optional[int] = None,
-        assigned_to: Optional[int] = None,
+        tax_year: int | None = None,
+        assigned_to: int | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[AnnualReport]:
@@ -95,7 +94,7 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
     def count_by_status(
         self,
         status: AnnualReportStatus,
-        tax_year: Optional[int] = None,
+        tax_year: int | None = None,
     ) -> int:
         stmt = scope_to_active_clients_stmt(
             select(func.count(AnnualReport.id)), AnnualReport
@@ -160,13 +159,11 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
 
     def list_by_tax_year_with_client(self, tax_year: int) -> list:
         """Return (AnnualReport, client_record_id, LegalEntity.official_name) for status report."""
-        from app.clients.models.legal_entity import LegalEntity
         from app.clients.models.client_record import ClientRecord
+        from app.clients.models.legal_entity import LegalEntity
 
         return self.db.execute(
-            select(
-                AnnualReport, AnnualReport.client_record_id, LegalEntity.official_name
-            )
+            select(AnnualReport, AnnualReport.client_record_id, LegalEntity.official_name)
             .join(ClientRecord, ClientRecord.id == AnnualReport.client_record_id)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .where(
@@ -178,8 +175,8 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
         ).all()
 
     def update(
-        self, report_id: int, report: Optional[AnnualReport] = None, **fields
-    ) -> Optional[AnnualReport]:
+        self, report_id: int, report: AnnualReport | None = None, **fields
+    ) -> AnnualReport | None:
         """Update report fields. Pass a pre-fetched (optionally locked) ``report`` entity
         to avoid a second SELECT and keep the lock from get_by_id_for_update() alive."""
         entity = report or self.get_by_id(report_id)

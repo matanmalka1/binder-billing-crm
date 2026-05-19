@@ -4,6 +4,13 @@ from itertools import count
 
 import pytest
 
+from app.audit.constants import (
+    ACTION_ENTITY_TYPE_CHANGED,
+    ACTION_UPDATED,
+    ENTITY_CLIENT,
+)
+from app.audit.models.entity_audit_log import EntityAuditLog
+from app.businesses.models.business import Business
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.services.client_update_service import ClientUpdateService
@@ -11,13 +18,6 @@ from app.common.enums import EntityType, IdNumberType, VatType
 from app.core.exceptions import ForbiddenError
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
-from app.businesses.models.business import Business
-from app.audit.constants import (
-    ACTION_ENTITY_TYPE_CHANGED,
-    ACTION_UPDATED,
-    ENTITY_CLIENT,
-)
-from app.audit.models.entity_audit_log import EntityAuditLog
 from tests.helpers.identity import seed_client_identity
 
 _seq = count(1)

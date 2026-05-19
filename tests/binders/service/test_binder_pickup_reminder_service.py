@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -22,9 +22,7 @@ def _service(monkeypatch, binder, last=None):
     )
     monkeypatch.setattr(
         "app.binders.services.binder_pickup_reminder_service.NotificationService",
-        lambda db: SimpleNamespace(
-            notify_client=lambda **kwargs: sent.update(kwargs) or True
-        ),
+        lambda db: SimpleNamespace(notify_client=lambda **kwargs: sent.update(kwargs) or True),
     )
     return BinderPickupReminderService(SimpleNamespace()), sent
 
@@ -56,10 +54,8 @@ def test_send_pickup_reminder_rejects_missing_binder(monkeypatch):
 
 
 def test_send_pickup_reminder_enforces_cooldown(monkeypatch):
-    binder = SimpleNamespace(
-        id=8, status=BinderStatus.READY_FOR_PICKUP, client_record_id=4
-    )
-    last = SimpleNamespace(created_at=datetime.now(timezone.utc) - timedelta(days=2))
+    binder = SimpleNamespace(id=8, status=BinderStatus.READY_FOR_PICKUP, client_record_id=4)
+    last = SimpleNamespace(created_at=datetime.now(UTC) - timedelta(days=2))
     service, _ = _service(monkeypatch, binder, last=last)
 
     with pytest.raises(AppError) as exc:

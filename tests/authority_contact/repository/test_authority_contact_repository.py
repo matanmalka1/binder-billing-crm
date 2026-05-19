@@ -38,15 +38,11 @@ def test_authority_contact_repository_crud_flow(test_db):
         phone="222",
     )
 
-    contacts = repo.list_by_client_record(
-        client_record_id=client.id, page=1, page_size=10
-    )
+    contacts = repo.list_by_client_record(client_record_id=client.id, page=1, page_size=10)
     assert [c.id for c in contacts] == [contact_b.id, contact_a.id]
     assert repo.count_by_client_record(client_record_id=client.id) == 2
     assert (
-        repo.count_by_client_record(
-            client_record_id=client.id, contact_type=ContactType.VAT_BRANCH
-        )
+        repo.count_by_client_record(client_record_id=client.id, contact_type=ContactType.VAT_BRANCH)
         == 1
     )
 

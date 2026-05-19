@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -18,11 +17,11 @@ class AuditLogService:
         self,
         action: AuditAction,
         status: AuditStatus,
-        actor_user_id: Optional[int] = None,
-        target_user_id: Optional[int] = None,
-        email: Optional[str] = None,
-        reason: Optional[str] = None,
-        metadata: Optional[dict] = None,
+        actor_user_id: int | None = None,
+        target_user_id: int | None = None,
+        email: str | None = None,
+        reason: str | None = None,
+        metadata: dict | None = None,
     ) -> None:
         """Intentional pass-through to keep an anti-corruption boundary.
 
@@ -43,12 +42,12 @@ class AuditLogService:
         self,
         page: int = 1,
         page_size: int = 20,
-        action: Optional[AuditAction] = None,
-        target_user_id: Optional[int] = None,
-        actor_user_id: Optional[int] = None,
-        email: Optional[str] = None,
-        from_ts: Optional[datetime] = None,
-        to_ts: Optional[datetime] = None,
+        action: AuditAction | None = None,
+        target_user_id: int | None = None,
+        actor_user_id: int | None = None,
+        email: str | None = None,
+        from_ts: datetime | None = None,
+        to_ts: datetime | None = None,
     ):
         items = self.repo.list(
             page=page,

@@ -2,14 +2,13 @@
 
 import json
 from datetime import datetime
-from typing import Optional
 from uuid import uuid4
 
-from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.enums import ClientStatus
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.clients.repositories.legal_entity_repository import LegalEntityRepository
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.vat_reports.models.vat_enums import (
     CounterpartyIdType,
     DocumentType,
@@ -33,7 +32,6 @@ from app.vat_reports.services.data_entry_common import (
     recalculate_totals,
     resolve_invoice_derived_fields,
 )
-from app.vat_reports.services.vat_amounts import split_gross_amount
 from app.vat_reports.services.messages import (
     VAT_ADD_INVOICE_INVALID_STATUS,
     VAT_AUTO_STATUS_CHANGE_ON_FIRST_INVOICE,
@@ -45,6 +43,7 @@ from app.vat_reports.services.messages import (
     VAT_NET_AMOUNT_POSITIVE_REQUIRED,
     VAT_UNKNOWN_COUNTERPARTY_NAME,
 )
+from app.vat_reports.services.vat_amounts import split_gross_amount
 
 
 def add_invoice(
@@ -54,16 +53,16 @@ def add_invoice(
     item_id: int,
     created_by: int,
     invoice_type: InvoiceType,
-    invoice_number: Optional[str],
-    invoice_date: Optional[datetime],
-    counterparty_name: Optional[str],
+    invoice_number: str | None,
+    invoice_date: datetime | None,
+    counterparty_name: str | None,
     gross_amount: float,
-    counterparty_id: Optional[str] = None,
-    counterparty_id_type: Optional[CounterpartyIdType] = None,
-    expense_category: Optional[ExpenseCategory] = None,
+    counterparty_id: str | None = None,
+    counterparty_id_type: CounterpartyIdType | None = None,
+    expense_category: ExpenseCategory | None = None,
     rate_type: VatRateType = VatRateType.STANDARD,
-    document_type: Optional[DocumentType] = None,
-    business_activity_id: Optional[int] = None,
+    document_type: DocumentType | None = None,
+    business_activity_id: int | None = None,
 ):
     """Add an invoice to a work item. Validation delegated to resolve_invoice_derived_fields."""
     item = work_item_repo.get_by_id(item_id)
@@ -80,23 +79,15 @@ def add_invoice(
             "VAT.CLIENT_RECORD_NOT_FOUND",
         )
     legal_entity = (
-        LegalEntityRepository(db).get_by_id(record.legal_entity_id)
-        if db and record
-        else None
+        LegalEntityRepository(db).get_by_id(record.legal_entity_id) if db and record else None
     )
 
     if record.status == ClientStatus.CLOSED:
         raise AppError(VAT_CLIENT_CLOSED_ADD_INVOICES, "VAT.CLIENT_CLOSED")
 
     if business_activity_id is not None:
-        business = (
-            BusinessRepository(db).get_by_id(business_activity_id) if db else None
-        )
-        if (
-            not business
-            or not record
-            or business.legal_entity_id != record.legal_entity_id
-        ):
+        business = BusinessRepository(db).get_by_id(business_activity_id) if db else None
+        if not business or not record or business.legal_entity_id != record.legal_entity_id:
             raise AppError(
                 VAT_BUSINESS_ACTIVITY_WRONG_CLIENT,
                 "BUSINESS_ACTIVITY.WRONG_CLIENT",
@@ -105,9 +96,7 @@ def add_invoice(
     if gross_amount <= 0:
         raise AppError(VAT_NET_AMOUNT_POSITIVE_REQUIRED, "VAT.NET_NOT_POSITIVE")
 
-    net_amount, vat_amount = split_gross_amount(
-        gross_amount, rate_type, int(item.period[:4])
-    )
+    net_amount, vat_amount = split_gross_amount(gross_amount, rate_type, int(item.period[:4]))
 
     derived = resolve_invoice_derived_fields(
         invoice_type,

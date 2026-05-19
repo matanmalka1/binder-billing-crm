@@ -70,9 +70,7 @@ class BusinessNoteService:
             actor_id=actor_id,
         )
 
-    def delete_note(
-        self, client_id: int, business_id: int, note_id: int, *, actor_id: int
-    ) -> None:
+    def delete_note(self, client_id: int, business_id: int, note_id: int, *, actor_id: int) -> None:
         self._assert_business_belongs_to_client(client_id, business_id)
         self.note_service.delete_note(
             note_id=note_id,
@@ -81,9 +79,7 @@ class BusinessNoteService:
             actor_id=actor_id,
         )
 
-    def _assert_business_belongs_to_client(
-        self, client_id: int, business_id: int
-    ) -> None:
+    def _assert_business_belongs_to_client(self, client_id: int, business_id: int) -> None:
         business = self.business_repo.get_by_id(business_id)
         if not business:
             raise NotFoundError(f"עסק {business_id} לא נמצא", "BUSINESS.NOT_FOUND")

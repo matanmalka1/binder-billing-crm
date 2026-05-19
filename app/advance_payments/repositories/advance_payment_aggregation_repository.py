@@ -2,19 +2,18 @@
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Optional
 
 from sqlalchemy import Integer, String, case, cast, func, select
 from sqlalchemy.orm import Session
 
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
-from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
-from app.common.repositories.base_repository import BaseRepository
 from app.advance_payments.models.advance_payment import (
     AdvancePayment,
     AdvancePaymentStatus,
 )
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
+from app.common.repositories.base_repository import BaseRepository
 
 
 @dataclass(slots=True, frozen=True)
@@ -37,7 +36,7 @@ def advance_payment_matches_month_expr(month: int):
 
 def _overview_filters(
     year: int,
-    month: Optional[int],
+    month: int | None,
     statuses: list[AdvancePaymentStatus],
     due_date: date | None,
     period_months_count: int | None,
@@ -73,12 +72,10 @@ class AdvancePaymentAggregationRepository(BaseRepository):
     def list_overview_payments(
         self,
         year: int,
-        month: Optional[int],
+        month: int | None,
         statuses: list[AdvancePaymentStatus],
     ) -> list[AdvancePayment]:
-        stmt = scope_to_active_clients_stmt(
-            select(AdvancePayment), AdvancePayment
-        ).where(
+        stmt = scope_to_active_clients_stmt(select(AdvancePayment), AdvancePayment).where(
             AdvancePayment.period.like(f"{year}-%"),
             AdvancePayment.deleted_at.is_(None),
         )
@@ -91,7 +88,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
     def list_overview_payment_rows(
         self,
         year: int,
-        month: Optional[int],
+        month: int | None,
         statuses: list[AdvancePaymentStatus],
         page: int,
         page_size: int,
@@ -104,9 +101,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         )
 
         count_stmt = (
-            scope_to_active_clients_stmt(
-                select(func.count(AdvancePayment.id)), AdvancePayment
-            )
+            scope_to_active_clients_stmt(select(func.count(AdvancePayment.id)), AdvancePayment)
             .outerjoin(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .where(*filters)
         )
@@ -163,12 +158,8 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         stmt = scope_to_active_clients_stmt(
             select(
                 AdvancePayment.client_record_id,
-                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label(
-                    "total_expected"
-                ),
-                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label(
-                    "total_paid"
-                ),
+                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
+                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
                 func.coalesce(
                     func.sum(
                         case(
@@ -197,12 +188,8 @@ class AdvancePaymentAggregationRepository(BaseRepository):
         not_paid_expr = AdvancePayment.status != AdvancePaymentStatus.PAID
         rows = self.db.execute(
             select(
-                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label(
-                    "total_expected"
-                ),
-                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label(
-                    "total_paid"
-                ),
+                func.coalesce(func.sum(AdvancePayment.expected_amount), 0).label("total_expected"),
+                func.coalesce(func.sum(AdvancePayment.paid_amount), 0).label("total_paid"),
                 func.count(AdvancePayment.id).label("total_count"),
                 func.sum(
                     case(
@@ -235,7 +222,7 @@ class AdvancePaymentAggregationRepository(BaseRepository):
     def get_overview_kpis(
         self,
         year: int,
-        month: Optional[int],
+        month: int | None,
         statuses: list[AdvancePaymentStatus],
         due_date: date | None = None,
         period_months_count: int | None = None,

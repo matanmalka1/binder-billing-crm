@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy.orm import Session
 
 from app.clients.repositories.client_identity_repository import ClientIdentityRepository
@@ -36,14 +34,14 @@ class ReminderService:
         )
 
     def get_reminders(
-        self, *, status: Optional[str] = None, page: int = 1, page_size: int = 20
+        self, *, status: str | None = None, page: int = 1, page_size: int = 20
     ) -> tuple[list[Reminder], int]:
         status_enum = self._parse_status(status)
         items = self.reminder_repo.list_by_status(status_enum, page, page_size)
         total = self.reminder_repo.count_by_status(status_enum)
         return items, total
 
-    def get_reminder(self, reminder_id: int) -> Optional[Reminder]:
+    def get_reminder(self, reminder_id: int) -> Reminder | None:
         return self.reminder_repo.get_by_id(reminder_id)
 
     def cancel_reminder(self, reminder_id: int) -> Reminder:
@@ -76,16 +74,12 @@ class ReminderService:
             response = ReminderResponse.model_validate(reminder)
             response.client_record_id = client_record_id
             response.client_name = profile.client_name if profile else None
-            response.office_client_number = (
-                profile.office_client_number if profile else None
-            )
+            response.office_client_number = profile.office_client_number if profile else None
             responses.append(response)
         return responses
 
-    def _resolve_client_record_ids(
-        self, reminders: list[Reminder]
-    ) -> dict[int, Optional[int]]:
-        resolved: dict[int, Optional[int]] = {}
+    def _resolve_client_record_ids(self, reminders: list[Reminder]) -> dict[int, int | None]:
+        resolved: dict[int, int | None] = {}
         source_keys_by_reminder_id: dict[int, tuple[WorkQueueSourceType, int]] = {}
         target_task_ids: set[int] = set()
 
@@ -107,9 +101,7 @@ class ReminderService:
 
         task_source_keys_by_reminder_id: dict[int, tuple[WorkQueueSourceType, int]] = {}
         if target_task_ids:
-            tasks_by_id = {
-                task.id: task for task in self.task_repo.list_by_ids(target_task_ids)
-            }
+            tasks_by_id = {task.id: task for task in self.task_repo.list_by_ids(target_task_ids)}
             for reminder in reminders:
                 if reminder.id in resolved or reminder.id in source_keys_by_reminder_id:
                     continue
@@ -145,7 +137,7 @@ class ReminderService:
         return resolved
 
     @staticmethod
-    def _payload_client_record_id(reminder: Reminder) -> Optional[int]:
+    def _payload_client_record_id(reminder: Reminder) -> int | None:
         payload = reminder.payload or {}
         raw = payload.get("client_record_id")
         if raw is None:
@@ -155,7 +147,7 @@ class ReminderService:
         except (TypeError, ValueError):
             return None
 
-    def _parse_status(self, status: Optional[str]) -> ReminderStatus:
+    def _parse_status(self, status: str | None) -> ReminderStatus:
         if status is None:
             return ReminderStatus.SCHEDULED
         valid_statuses = {item.value for item in ReminderStatus}

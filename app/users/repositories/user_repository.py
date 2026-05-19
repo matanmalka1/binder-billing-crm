@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session
@@ -29,10 +28,10 @@ class UserRepository(BaseRepository[User]):
     def __init__(self, db: Session):
         super().__init__(db)
 
-    def get_by_id(self, entity_id: int) -> Optional[User]:
+    def get_by_id(self, entity_id: int) -> User | None:
         return self.db.scalars(select(User).where(User.id == entity_id)).first()
 
-    def get_auth_subject_by_id(self, user_id: int) -> Optional[AuthSubject]:
+    def get_auth_subject_by_id(self, user_id: int) -> AuthSubject | None:
         """Fetch only the columns needed for per-request JWT validation.
 
         Returns an immutable DTO — no ORM identity, no lazy loads.
@@ -58,7 +57,7 @@ class UserRepository(BaseRepository[User]):
             token_version=row.token_version,
         )
 
-    def get_by_email(self, email: str) -> Optional[User]:
+    def get_by_email(self, email: str) -> User | None:
         """Retrieve user by email."""
         return self.db.scalars(select(User).where(User.email == email)).first()
 
@@ -66,8 +65,8 @@ class UserRepository(BaseRepository[User]):
         self,
         page: int = 1,
         page_size: int = 20,
-        is_active: Optional[bool] = None,
-        search: Optional[str] = None,
+        is_active: bool | None = None,
+        search: str | None = None,
     ) -> list[User]:
         """List users with pagination."""
         stmt = self._apply_list_filters(
@@ -80,8 +79,8 @@ class UserRepository(BaseRepository[User]):
 
     def count(
         self,
-        is_active: Optional[bool] = None,
-        search: Optional[str] = None,
+        is_active: bool | None = None,
+        search: str | None = None,
         *,
         include_deleted: bool = False,
     ) -> int:
@@ -97,8 +96,8 @@ class UserRepository(BaseRepository[User]):
         self,
         stmt,
         *,
-        is_active: Optional[bool] = None,
-        search: Optional[str] = None,
+        is_active: bool | None = None,
+        search: str | None = None,
     ):
         if is_active is not None:
             stmt = stmt.where(User.is_active == is_active)
@@ -124,7 +123,7 @@ class UserRepository(BaseRepository[User]):
         email: str,
         password_hash: str,
         role: UserRole,
-        phone: Optional[str] = None,
+        phone: str | None = None,
     ) -> User:
         """Create new user."""
         user = User(
@@ -140,21 +139,19 @@ class UserRepository(BaseRepository[User]):
 
     def update_last_login(self, user_id: int) -> None:
         """Update last login timestamp."""
-        self.db.execute(
-            update(User).where(User.id == user_id).values(last_login_at=utcnow())
-        )
+        self.db.execute(update(User).where(User.id == user_id).values(last_login_at=utcnow()))
         self.db.flush()
 
-    def update(self, user_id: int, **fields) -> Optional[User]:
+    def update(self, user_id: int, **fields) -> User | None:
         """Update user fields."""
         user = self.get_by_id(user_id)
         return self._update_entity(user, **fields)
 
-    def activate(self, user_id: int) -> Optional[User]:
+    def activate(self, user_id: int) -> User | None:
         """Activate user."""
         return self.update(user_id, is_active=True)
 
-    def bump_token_version(self, user_id: int) -> Optional[User]:
+    def bump_token_version(self, user_id: int) -> User | None:
         """Invalidate all active tokens for a user without changing any other field."""
         user = self.get_by_id(user_id)
         if not user:
@@ -164,7 +161,7 @@ class UserRepository(BaseRepository[User]):
         self.db.flush()
         return user
 
-    def deactivate_and_bump_token(self, user_id: int) -> Optional[User]:
+    def deactivate_and_bump_token(self, user_id: int) -> User | None:
         """Deactivate user and invalidate active tokens."""
         user = self.get_by_id(user_id)
         if not user:
@@ -175,9 +172,7 @@ class UserRepository(BaseRepository[User]):
         self.db.flush()
         return user
 
-    def set_password_and_bump_token(
-        self, user_id: int, password_hash: str
-    ) -> Optional[User]:
+    def set_password_and_bump_token(self, user_id: int, password_hash: str) -> User | None:
         """Update password hash and invalidate active tokens."""
         user = self.get_by_id(user_id)
         if not user:

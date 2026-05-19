@@ -1,4 +1,3 @@
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -21,33 +20,25 @@ class DocumentSearchService:
         self.business_repo = BusinessRepository(db)
 
     def search_documents(
-        self, query: str, filename: Optional[str] = None
+        self, query: str, filename: str | None = None
     ) -> list[DocumentSearchResult]:
         if filename and not query:
-            docs = self.doc_repo.search_by_filename(
-                filename, limit=_DOCUMENT_SEARCH_LIMIT
-            )
+            docs = self.doc_repo.search_by_filename(filename, limit=_DOCUMENT_SEARCH_LIMIT)
         else:
             docs = self.doc_repo.search_by_query(query, limit=_DOCUMENT_SEARCH_LIMIT)
         business_cache: dict[int, str] = {}
-        client_map = get_full_records_bulk(
-            self.db, [doc.client_record_id for doc in docs]
-        )
+        client_map = get_full_records_bulk(self.db, [doc.client_record_id for doc in docs])
         results = []
         for doc in docs:
             if doc.business_id and doc.business_id not in business_cache:
                 business = self.business_repo.get_by_id(doc.business_id)
-                business_cache[doc.business_id] = (
-                    business.full_name if business else "לא ידוע"
-                )
+                business_cache[doc.business_id] = business.full_name if business else "לא ידוע"
             client = client_map.get(doc.client_record_id)
             results.append(
                 DocumentSearchResult(
                     id=doc.id,
                     client_record_id=doc.client_record_id,
-                    office_client_number=client["office_client_number"]
-                    if client
-                    else None,
+                    office_client_number=client["office_client_number"] if client else None,
                     client_name=client["full_name"] if client else "לא ידוע",
                     business_id=doc.business_id,
                     business_name=business_cache.get(doc.business_id),

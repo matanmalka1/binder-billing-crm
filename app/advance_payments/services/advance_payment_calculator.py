@@ -30,6 +30,4 @@ def calculate_expected_amount(
     period_months_count=1 → monthly, period_months_count=2 → bi-monthly.
     """
     monthly = (annual_income * advance_rate / Decimal("100")) / Decimal("12")
-    return (monthly * period_months_count).quantize(
-        Decimal("1"), rounding=ROUND_HALF_UP
-    )
+    return (monthly * period_months_count).quantize(Decimal("1"), rounding=ROUND_HALF_UP)

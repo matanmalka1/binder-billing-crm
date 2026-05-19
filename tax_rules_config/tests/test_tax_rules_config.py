@@ -21,7 +21,6 @@ from app.tax_rules.registry import (
 )
 from app.tax_rules.types import ObligationKind
 
-
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 
@@ -51,9 +50,7 @@ def _obligation_kinds(profile) -> set:
 
 class TestValidations:
     def test_osek_patur_no_periodic_vat(self):
-        errors = validate(
-            _profile(entity_type="osek_patur", vat_reporting_frequency="monthly")
-        )
+        errors = validate(_profile(entity_type="osek_patur", vat_reporting_frequency="monthly"))
         assert any("עוסק פטור" in e for e in errors)
 
     def test_osek_patur_exempt_vat_ok(self):
@@ -67,23 +64,17 @@ class TestValidations:
         assert not errors
 
     def test_company_no_self_employed_ni(self):
-        errors = validate(
-            _profile(entity_type="company_ltd", btl_status="self_employed")
-        )
+        errors = validate(_profile(entity_type="company_ltd", btl_status="self_employed"))
         assert any("חברה" in e for e in errors)
 
     def test_advance_without_rate(self):
         errors = validate(
-            _profile(
-                income_tax_advance_frequency="monthly", income_tax_advance_rate=None
-            )
+            _profile(income_tax_advance_frequency="monthly", income_tax_advance_rate=None)
         )
         assert any("income_tax_advance_rate" in e for e in errors)
 
     def test_employee_no_vat(self):
-        errors = validate(
-            _profile(entity_type="employee", vat_reporting_frequency="monthly")
-        )
+        errors = validate(_profile(entity_type="employee", vat_reporting_frequency="monthly"))
         assert any("שכיר" in e for e in errors)
 
     def test_btl_self_employed_no_advance_amount(self):
