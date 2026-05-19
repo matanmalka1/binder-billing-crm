@@ -104,17 +104,21 @@ Loads the client-scoped payment and soft-deletes it by setting `deleted_at` and 
 
 Reads the client advance rate and prior-year VAT summary, derives annual income from VAT using `VAT_RATE`, and returns the rounded expected amount or `None` if data is missing.
 
-### `AdvancePaymentAnalyticsService.list_overview(year, month=None, statuses=None, page=1, page_size=50) -> tuple[list[tuple[AdvancePayment, str, int]], int]`
+### `AdvancePaymentAnalyticsService.list_overview(year, month=None, statuses=None, page=1, page_size=50, client_search=None, due_date=None, period_months_count=None) -> tuple[list[AdvancePaymentOverviewEnrichedRow], int]`
 
-Loads matching payments for the year/month/status filters, fetches client names, sorts rows by client name and period, and slices them for pagination.
+Loads matching payments for the year/month/status/due_date/period_months_count/client_search filters, enriches each row with `office_client_number`, `business_name`, `id_number`, and live turnover, and returns dataclass rows + total count.
 
 ### `AdvancePaymentAnalyticsService.get_annual_kpis_for_client(client_record_id, year) -> dict`
 
 Validates that the client record exists, loads yearly aggregates, and adds `client_record_id`, `year`, and `collection_rate`.
 
-### `AdvancePaymentAnalyticsService.get_overview_kpis(year, month=None, statuses=None) -> dict`
+### `AdvancePaymentAnalyticsService.get_overview_kpis(year, month=None, statuses=None, due_date=None, period_months_count=None, client_search=None) -> dict`
 
-Loads overview totals and adds `collection_rate`.
+Loads overview totals using the same filter set as `list_overview` and adds `collection_rate`.
+
+### `AdvancePaymentAnalyticsService.get_month_batches(year) -> list[MonthBatchSummary]`
+
+Aggregates payments into per-month batch summaries via `AdvancePaymentBatchRepository.batch_summary_by_month`, computes `collection_rate` and `not_paid_count`, and returns the schema rows.
 
 ### `generate_annual_schedule(client_record_id, year, db, period_months_count=1) -> tuple[list[AdvancePayment], int]`
 

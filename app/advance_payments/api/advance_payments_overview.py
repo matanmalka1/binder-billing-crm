@@ -3,9 +3,6 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 
 from app.advance_payments.models.advance_payment import AdvancePaymentStatus
-from app.advance_payments.repositories.advance_payment_batch_repository import (
-    AdvancePaymentBatchRepository,
-)
 from app.advance_payments.schemas.advance_payment import (
     AdvancePaymentOverviewResponse,
     AdvancePaymentOverviewRow,
@@ -99,27 +96,4 @@ def list_advance_payment_batches(
     user: CurrentUser,
     year: int | None = Query(None),
 ):
-    rows = AdvancePaymentBatchRepository(db).batch_summary_by_month(year)
-    result = []
-    for r in rows:
-        total_expected = float(r.total_expected)
-        total_paid = float(r.total_paid)
-        collection_rate = round(total_paid / total_expected * 100, 2) if total_expected > 0 else 0.0
-        result.append(
-            MonthBatchSummary(
-                year=int(r.year),
-                month=int(r.month),
-                due_date=r.due_date,
-                period_months_count=int(r.period_months_count or 1),
-                client_count=int(r.client_count),
-                missing_turnover_count=int(r.snapshot_missing_count or 0),
-                overdue_count=int(r.overdue_count or 0),
-                pending_count=int(r.pending_count or 0),
-                paid_count=int(r.paid_count or 0),
-                not_paid_count=int(r.client_count) - int(r.paid_count or 0),
-                total_expected=total_expected,
-                total_paid=total_paid,
-                collection_rate=collection_rate,
-            )
-        )
-    return result
+    return AdvancePaymentAnalyticsService(db).get_month_batches(year)

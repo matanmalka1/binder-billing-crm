@@ -13,9 +13,13 @@ from app.advance_payments.models.advance_payment import (
 from app.advance_payments.repositories.advance_payment_aggregation_repository import (
     AdvancePaymentAggregationRepository,
 )
+from app.advance_payments.repositories.advance_payment_batch_repository import (
+    AdvancePaymentBatchRepository,
+)
 from app.advance_payments.repositories.turnover_lookup_repository import (
     TurnoverLookupRepository,
 )
+from app.advance_payments.schemas.advance_payment import MonthBatchSummary
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
 
@@ -143,3 +147,32 @@ class AdvancePaymentAnalyticsService:
             **data,
             "collection_rate": self._collection_rate(data["total_paid"], data["total_expected"]),
         }
+
+    # ─── Monthly batches ──────────────────────────────────────────────────────
+
+    def get_month_batches(self, year: int | None) -> list[MonthBatchSummary]:
+        rows = AdvancePaymentBatchRepository(self.db).batch_summary_by_month(year)
+        result: list[MonthBatchSummary] = []
+        for r in rows:
+            total_expected = float(r.total_expected)
+            total_paid = float(r.total_paid)
+            client_count = int(r.client_count)
+            paid_count = int(r.paid_count or 0)
+            result.append(
+                MonthBatchSummary(
+                    year=int(r.year),
+                    month=int(r.month),
+                    due_date=r.due_date,
+                    period_months_count=int(r.period_months_count or 1),
+                    client_count=client_count,
+                    missing_turnover_count=int(r.snapshot_missing_count or 0),
+                    overdue_count=int(r.overdue_count or 0),
+                    pending_count=int(r.pending_count or 0),
+                    paid_count=paid_count,
+                    not_paid_count=client_count - paid_count,
+                    total_expected=total_expected,
+                    total_paid=total_paid,
+                    collection_rate=self._collection_rate(total_paid, total_expected),
+                )
+            )
+        return result
