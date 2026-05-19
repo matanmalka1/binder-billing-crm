@@ -103,13 +103,6 @@ class SeedOrchestrator:
             # CreateClientService → automatically triggers ClientOnboardingOrchestrator
             # which creates: initial binder, TaxCalendar entries, VAT items (eligible only),
             # advance payments, annual report shell.
-            if engine.dialect.name == "postgresql":
-                db.execute(
-                    text(
-                        f"CREATE SEQUENCE IF NOT EXISTS client_office_number_seq START {OFFICE_CLIENT_NUMBER_START}"
-                    )
-                )
-
             client_pairs = clients_builder.create_clients(
                 db, self.rng, self.cfg, seeded_users
             )

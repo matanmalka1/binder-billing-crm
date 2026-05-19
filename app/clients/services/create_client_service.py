@@ -199,7 +199,6 @@ class CreateClientService:
         try:
             client_record = self.record_repo.create(
                 legal_entity_id=legal_entity.id,
-                office_client_number=self.record_repo.get_next_office_client_number(),
                 accountant_id=accountant_id,
                 created_by=actor_id,
             )

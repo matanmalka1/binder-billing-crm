@@ -1,10 +1,14 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Text, column
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Sequence, Text, column
 
 from app.clients.enums import ClientStatus
 from app.common.soft_delete import SoftDeletableMixin
 from app.database import Base
 from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
+
+office_client_number_seq = Sequence(
+    "client_office_number_seq", start=100001, metadata=Base.metadata
+)
 
 
 class ClientRecord(SoftDeletableMixin, Base):
@@ -16,7 +20,12 @@ class ClientRecord(SoftDeletableMixin, Base):
 
     legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False, index=True)
 
-    office_client_number = Column(Integer, nullable=True)
+    office_client_number = Column(
+        Integer,
+        office_client_number_seq,
+        server_default=office_client_number_seq.next_value(),
+        nullable=False,
+    )
     accountant_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     status = Column(pg_enum(ClientStatus), nullable=False, default=ClientStatus.ACTIVE)
     notes = Column(Text, nullable=True)

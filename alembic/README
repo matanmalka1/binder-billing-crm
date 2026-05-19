@@ -5,8 +5,8 @@
 - All schema changes must go through Alembic.
 - Never use `Base.metadata.create_all()` for application schema management.
 - Migration files live in `alembic/versions/`.
-- Current head is `0006_add_advance_payment_period_active_index` (add advance payment period active index).
-- The migration history was reset on 2026-05-17; `0001_initial` is the fresh baseline and `0002` adds overview-query indexes on top of it.
+- Current head is `0001_initial` (revision `b181fad7ce6a`).
+- The migration history was reset on 2026-05-19 for the development database.
 - Production startup must run migrations before the server command:
   `alembic upgrade head && ...`
 
@@ -23,14 +23,28 @@ docker compose up -d postgres
 2. Reset the development schema when applying the fresh baseline:
 
 ```bash
+APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 - <<'PY'
+from sqlalchemy import create_engine, text
+from app.config import config
+
+engine = create_engine(config.DATABASE_URL, isolation_level="AUTOCOMMIT")
+with engine.connect() as conn:
+    conn.execute(text("DROP SCHEMA public CASCADE"))
+    conn.execute(text("CREATE SCHEMA public"))
+engine.dispose()
+PY
+```
+
+3. Apply migrations:
+
+```bash
 APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m alembic upgrade head
 ```
 
-3. Tax-calendar bootstrap runs automatically when the development server starts.
-   To run it manually, use:
+4. Seed demo data:
 
 ```bash
-APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 scripts/bootstrap_tax_calendar.py
+APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 scripts/seed_fake_data.py --reset
 ```
 
 Default local connection:
@@ -41,126 +55,28 @@ postgresql+psycopg2://matanmalka@localhost:5432/binder_crm
 
 ## Current migration
 
-### 0006_add_advance_payment_period_active_index — add advance payment period active index
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Adds partial index `idx_advance_payment_period_active` on
-  `advance_payments (period)` for active rows only (`deleted_at IS NULL`). This
-  supports year-scoped advance-payment overview and batch queries that filter
-  `period` with a bounded `YYYY-01 <= period < next-year-01` range.
-- Notes:
-  `down_revision = "0005_reorder_vat_turnover_lookup_index"`.
-
-### 0005_reorder_vat_turnover_lookup_index — reorder vat turnover lookup index
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Replaces partial index `ix_vat_work_items_turnover_lookup` with column order
-  `vat_work_items (client_record_id, period, status)` for active rows only
-  (`deleted_at IS NULL`). This matches the advance-payment live turnover lookup:
-  client id set, period set, filed status, then grouped by client/period.
-- Notes:
-  `down_revision = "0004_add_client_records_active_created_index"`.
-
-### 0004_add_client_records_active_created_index — add client records active created index
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Adds partial index `ix_client_records_active_created_desc` on
-  `client_records (created_at DESC)` for active rows only
-  (`deleted_at IS NULL`). This supports the default clients list query:
-  active clients ordered by newest first with `LIMIT/OFFSET`.
-- Notes:
-  `down_revision = "0003_add_vat_turnover_lookup_index"`.
-
-### 0003_add_vat_turnover_lookup_index — add vat turnover lookup index
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Adds partial index `ix_vat_work_items_turnover_lookup` on
-  `vat_work_items (client_record_id, status, period)` for active rows only
-  (`deleted_at IS NULL`). This supports the clients list annual turnover batch
-  lookup:
-  `client_record_id IN (...)`, filed status, and bounded yearly period range.
-- Notes:
-  `down_revision = "9a111db38eba"`.
-
-### 9a111db38eba — add idempotency_keys table
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Creates the `idempotency_keys` table for the shared `require_idempotency_key`
-  FastAPI dependency in `app/infrastructure/idempotency/`. Composite primary key
-  `(key, route, user_id)` scopes idempotency to a single user + endpoint.
-  Stores `request_hash`, `status` (`in_progress` | `completed`),
-  `response_status`, `response_body` (`sa.JSON` w/ `JSONB` variant on
-  PostgreSQL — portable to SQLite for tests). Reservation flow inserts an
-  `in_progress` row before running the handler so two concurrent requests
-  with the same key collide on the PK; the loser sees the existing row and
-  either replays a cached `completed` response, returns 409 on hash mismatch,
-  or returns 409 while the original request is still `in_progress`.
-- Wired into:
-  `POST /api/v1/clients/import` (Excel bulk import) and
-  `POST /api/v1/charges/bulk-action`.
-  `POST /api/v1/settings/tax-calendar/bootstrap` intentionally dropped the
-  header (single-row settings update — idempotency adds no value).
-- Notes:
-  `down_revision = "8fa413605e29"`.
-
-### 8fa413605e29 — tighten financial models
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  - Backfills `advance_payments.{expected_amount, calculated_amount}` NULL → 0,
-    then applies NOT NULL on those two derived display columns.
-  - Leaves `turnover_amount` and `advance_rate` nullable — they are source
-    snapshots where NULL means "missing/unknown".
-  - Adds `restored_at`, `restored_by` to `advance_payments` to match `SoftDeletableMixin`
-    (FK to `users.id`).
-- Notes:
-  `down_revision = "0002_add_overview_query_indexes"`.
-
-### 0002_add_overview_query_indexes
-
-- Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
-- What it does:
-  Adds indexes used by notification summary, signature pending lists, annual report
-  overview queries, VAT/advance/calendar projections, and tax calendar year/type filters.
-  Most are partial indexes scoped to `deleted_at IS NULL` to match how queries filter
-  soft-deleted rows.
-- Notes:
-  `down_revision = "0001_initial"`.
-
 ### 0001_initial
 
 - Command:
-  `APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head`
+  `APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m alembic upgrade head`
 - What it does:
   Creates the full current PostgreSQL schema from SQLAlchemy models.
 - Covers:
   users, client identity tables, businesses, binders, annual reports, VAT reports,
   charges, invoices, advance payments, tax calendar entries, reminders, notifications,
   permanent documents, signature requests, correspondence, authority contacts,
-  notes, tasks, and audit tables.
+  notes, tasks, idempotency keys, and audit tables.
 - Notes:
   Generated as a fresh initial migration for an empty database/schema.
   Previous incremental migration history was intentionally reset.
   Includes creation of `client_office_number_seq` starting at `100001`
-  (PostgreSQL sequence used by `ClientRecordRepository.get_next_office_client_number`).
+  for generated office client numbers.
   `down_revision = None`.
 
 ## Required checks after model changes
 
 ```bash
-APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"
+APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m alembic revision --autogenerate -m "<description>"
 ```
 
 Review the generated migration before applying it:
@@ -171,18 +87,18 @@ Review the generated migration before applying it:
 Then run:
 
 ```bash
-APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head
+APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m alembic upgrade head
 ```
 
 ## Daily commands
 
 ```bash
 # Show current revision
-APP_ENV=development ENV_FILE=.env.development python3 -m alembic current
+APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m alembic current
 
 # Show full history
-APP_ENV=development ENV_FILE=.env.development python3 -m alembic history --verbose
+APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m alembic history --verbose
 
 # Upgrade to latest
-APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head
+APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m alembic upgrade head
 ```

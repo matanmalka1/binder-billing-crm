@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sqlalchemy as sa
 from sqlalchemy import asc, case, desc, func, select
 from sqlalchemy.orm import Session
 
@@ -33,7 +32,6 @@ class ClientRecordRepository:
         self,
         *,
         legal_entity_id: int,
-        office_client_number: int | None = None,
         accountant_id: int | None = None,
         status: ClientStatus = ClientStatus.ACTIVE,
         notes: str | None = None,
@@ -41,7 +39,6 @@ class ClientRecordRepository:
     ) -> ClientRecord:
         record = ClientRecord(
             legal_entity_id=legal_entity_id,
-            office_client_number=office_client_number,
             accountant_id=accountant_id,
             status=status,
             notes=notes,
@@ -49,6 +46,7 @@ class ClientRecordRepository:
         )
         self.db.add(record)
         self.db.flush()
+        self.db.refresh(record, ["office_client_number"])
         return record
 
     def update_status(self, client_record_id: int, status: ClientStatus) -> ClientRecord | None:
@@ -358,8 +356,3 @@ class ClientRecordRepository:
         rows = self.db.execute(stmt).all()
         return {status: count for status, count in rows}
 
-    def get_next_office_client_number(self) -> int:
-        if self.db.get_bind().dialect.name == "postgresql":
-            return self.db.execute(sa.text("SELECT nextval('client_office_number_seq')")).scalar()
-        current_max = self.db.scalar(select(func.max(ClientRecord.office_client_number)))
-        return OFFICE_CLIENT_NUMBER_START if current_max is None else current_max + 1
