@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.actions.action_registry import get_binder_actions
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.schemas.binder import BinderResponse
 from app.clients.models.legal_entity import LegalEntity
@@ -52,55 +52,6 @@ class BinderListService:
                 if record.legal_entity_id in legal_entity_by_id
             },
         )
-
-    # TODO: remove after list_active_paginated rollout is fully settled.
-    def _matches_non_status_filters(
-        self,
-        binder: Binder,
-        *,
-        query: str | None,
-        client_name_filter: str | None,
-        binder_number: str | None,
-        year: int | None,
-        client_name: str | None,
-    ) -> bool:
-        if query:
-            query_text = query.lower()
-            name_match = bool(client_name and query_text in client_name.lower())
-            number_match = query_text in binder.binder_number.lower()
-            if not name_match and not number_match:
-                return False
-
-        if client_name_filter and (
-            not client_name or client_name_filter.lower() not in client_name.lower()
-        ):
-            return False
-
-        if binder_number and binder_number.lower() not in binder.binder_number.lower():
-            return False
-
-        if year and (binder.period_start is None or binder.period_start.year != year):
-            return False
-
-        return True
-
-    # TODO: remove after list_active_paginated rollout is fully settled.
-    def _build_binder_counters(self, binders: list[Binder]) -> dict[str, int]:
-        return {
-            "total": len(binders),
-            BinderStatus.IN_OFFICE.value: sum(
-                1 for binder in binders if binder.status == BinderStatus.IN_OFFICE
-            ),
-            BinderStatus.CLOSED_IN_OFFICE.value: sum(
-                1 for binder in binders if binder.status == BinderStatus.CLOSED_IN_OFFICE
-            ),
-            BinderStatus.READY_FOR_PICKUP.value: sum(
-                1 for binder in binders if binder.status == BinderStatus.READY_FOR_PICKUP
-            ),
-            BinderStatus.RETURNED.value: sum(
-                1 for binder in binders if binder.status == BinderStatus.RETURNED
-            ),
-        }
 
     def build_binder_response(
         self,

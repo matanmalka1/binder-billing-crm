@@ -52,46 +52,6 @@ def adjust_column_widths(
 
 
 # ---------------------------------------------------------------------------
-# Header row
-# ---------------------------------------------------------------------------
-
-
-def make_header_row(
-    ws,
-    headers: list[str],
-    *,
-    row: int = 1,
-    fill_color: str = "366092",
-    text_color: str = "FFFFFF",
-) -> None:
-    """
-    Write a styled header row to *ws* at the given *row* index (1-based).
-
-    Parameters
-    ----------
-    ws          : openpyxl Worksheet
-    headers     : ordered list of column labels
-    row         : row index to write into (default 1)
-    fill_color  : background hex colour without '#' (default: dark blue)
-    text_color  : font hex colour without '#' (default: white)
-    """
-    try:
-        from openpyxl.styles import Alignment, Font, PatternFill
-    except ImportError:
-        return
-
-    fill = PatternFill(start_color=fill_color, end_color=fill_color, fill_type="solid")
-    font = Font(bold=True, color=text_color)
-    align = Alignment(horizontal="center", vertical="center")
-
-    for col, header in enumerate(headers, start=1):
-        cell = ws.cell(row=row, column=col, value=header)
-        cell.fill = fill
-        cell.font = font
-        cell.alignment = align
-
-
-# ---------------------------------------------------------------------------
 # Save workbook
 # ---------------------------------------------------------------------------
 
