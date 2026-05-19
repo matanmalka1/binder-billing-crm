@@ -15,6 +15,7 @@ from app.vat_reports.schemas.vat_report import (
     VatWorkItemListResponse,
     VatWorkItemLookupResponse,
     VatWorkItemResponse,
+    VatWorkItemStatusSummaryResponse,
 )
 from app.vat_reports.services.vat_report_service import VatReportService
 
@@ -54,6 +55,25 @@ def get_period_options(
 ):
     service = VatReportService(db)
     return service.get_period_options(client_record_id=client_record_id, year=year)
+
+
+@router.get(
+    "/work-items/status-summary",
+    response_model=VatWorkItemStatusSummaryResponse,
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
+)
+def get_status_summary(
+    db: DBSession,
+    year: int | None = Query(default=None, ge=2000, le=2100),
+    period_type: VatType | None = Query(None),
+    client_name: str | None = Query(None),
+):
+    service = VatReportService(db)
+    return service.get_status_summary(
+        year=year,
+        period_type=period_type,
+        client_name=client_name,
+    )
 
 
 @router.get(

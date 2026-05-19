@@ -75,6 +75,15 @@ class VatWorkItemListResponse(BaseModel):
     total: int
 
 
+class VatWorkItemStatusSummaryResponse(BaseModel):
+    pending_materials: int = 0
+    material_received: int = 0
+    data_entry_in_progress: int = 0
+    ready_for_review: int = 0
+    filed: int = 0
+    canceled: int = 0
+
+
 class VatGroupPeriod(BaseModel):
     period: str
     period_type: VatType

@@ -95,6 +95,9 @@ class VatReportService:
     def list_all_work_items(self, **kwargs):
         return vat_report_queries.list_all_work_items(self.work_item_repo, self.db, **kwargs)
 
+    def get_status_summary(self, **kwargs):
+        return vat_report_queries.get_status_summary(self.work_item_repo, **kwargs)
+
     def list_invoices(self, **kwargs):
         return vat_report_queries.list_invoices(self.invoice_repo, **kwargs)
 

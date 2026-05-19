@@ -1,6 +1,8 @@
 from app.common.enums import VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from app.utils.time_utils import utcnow
+from app.vat_reports.models.vat_work_item import VatWorkItem
 from tests.vat_reports.api.test_vat_reports_utils import (
     create_work_item,
     income_payload,
@@ -114,6 +116,72 @@ def test_list_work_items_supports_status_and_client_name_filters(
     assert body["items"][0]["status"] == "filed"
     assert body["items"][0]["client_name"] == vat_client.full_name
     assert body["items"][0]["id"] != pending_item_id
+
+
+def test_status_summary_returns_all_statuses_and_counts_by_filter(
+    client, test_db, advisor_headers, vat_client
+):
+    pending_resp = client.post(
+        "/api/v1/vat/work-items",
+        headers=advisor_headers,
+        json={
+            "client_record_id": vat_client.id,
+            "period": "2026-01",
+            "mark_pending": True,
+            "pending_materials_note": "חסרים מסמכים",
+        },
+    )
+    assert pending_resp.status_code == 201
+    material_item_id = create_work_item(client, advisor_headers, vat_client, "2026-02")
+    data_entry_item_id = create_work_item(client, advisor_headers, vat_client, "2026-03")
+    ready_item_id = create_work_item(client, advisor_headers, vat_client, "2026-04")
+    filed_item_id = create_work_item(client, advisor_headers, vat_client, "2026-05")
+    deleted_item_id = create_work_item(client, advisor_headers, vat_client, "2026-06")
+    _ = create_work_item(client, advisor_headers, vat_client, "2027-01")
+
+    for item_id in [data_entry_item_id, ready_item_id, filed_item_id]:
+        add_resp = client.post(
+            f"/api/v1/vat/work-items/{item_id}/invoices",
+            headers=advisor_headers,
+            json=income_payload(invoice_number=f"INV-SUM-{item_id}"),
+        )
+        assert add_resp.status_code == 201
+
+    ready_resp = client.post(
+        f"/api/v1/vat/work-items/{ready_item_id}/ready-for-review",
+        headers=advisor_headers,
+    )
+    assert ready_resp.status_code == 200
+    filed_ready_resp = client.post(
+        f"/api/v1/vat/work-items/{filed_item_id}/ready-for-review",
+        headers=advisor_headers,
+    )
+    assert filed_ready_resp.status_code == 200
+    file_resp = client.post(
+        f"/api/v1/vat/work-items/{filed_item_id}/file",
+        headers=advisor_headers,
+        json={"submission_method": "online"},
+    )
+    assert file_resp.status_code == 200
+
+    deleted_item = test_db.get(VatWorkItem, deleted_item_id)
+    deleted_item.deleted_at = utcnow()
+    test_db.commit()
+
+    response = client.get(
+        f"/api/v1/vat/work-items/status-summary?year=2026&client_name={vat_client.full_name}",
+        headers=advisor_headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "pending_materials": 1,
+        "material_received": 1,
+        "data_entry_in_progress": 1,
+        "ready_for_review": 1,
+        "filed": 1,
+        "canceled": 0,
+    }
 
 
 def test_list_work_items_supports_filter_by_client_name_and_id_number(

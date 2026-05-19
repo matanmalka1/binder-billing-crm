@@ -44,6 +44,9 @@ class VatWorkItemWriteRepository(BaseRepository[VatWorkItem]):
     def count_by_status(self, status, **kwargs) -> int:
         return self._query.count_by_status(status, **kwargs)
 
+    def count_by_status_summary(self, **kwargs) -> dict[VatWorkItemStatus, int]:
+        return self._query.count_by_status_summary(**kwargs)
+
     def list_all(self, **kwargs) -> list[VatWorkItem]:
         return self._query.list_all(**kwargs)
 

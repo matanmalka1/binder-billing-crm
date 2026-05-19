@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.enums import VatType
 from app.common.repositories.base_repository import BaseRepository
@@ -106,6 +107,33 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
         stmt = self._filtered_query(status, period, client_record_ids, period_type)
         count_stmt = select(func.count()).select_from(stmt.subquery())
         return self.db.scalar(count_stmt)
+
+    def count_by_status_summary(
+        self,
+        *,
+        year: int | None = None,
+        period_type: VatType | None = None,
+        client_name: str | None = None,
+    ) -> dict[VatWorkItemStatus, int]:
+        stmt = (
+            scope_to_active_clients_stmt(
+                select(VatWorkItem.status, func.count(VatWorkItem.id)),
+                VatWorkItem,
+            )
+            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .where(VatWorkItem.deleted_at.is_(None))
+        )
+        if year is not None:
+            stmt = stmt.where(VatWorkItem.period.startswith(f"{year}-"))
+        if period_type is not None:
+            stmt = stmt.where(VatWorkItem.period_type == period_type)
+        if client_name:
+            term = f"%{client_name.strip()}%"
+            stmt = stmt.where(
+                LegalEntity.official_name.ilike(term) | LegalEntity.id_number.ilike(term)
+            )
+        rows = self.db.execute(stmt.group_by(VatWorkItem.status)).all()
+        return {status: int(count) for status, count in rows}
 
     def list_all(
         self,

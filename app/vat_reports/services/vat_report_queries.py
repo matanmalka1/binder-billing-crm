@@ -9,6 +9,7 @@ from app.vat_reports.repositories.vat_work_item_write_repository import (
     VatWorkItemWriteRepository as VatWorkItemRepository,
 )
 from app.vat_reports.services.messages import VAT_ITEM_NOT_FOUND
+from app.vat_reports.schemas.vat_report import VatWorkItemStatusSummaryResponse
 
 
 def deadline_fields_from_snapshot(item, submission_method: SubmissionMethod | None = None) -> dict:
@@ -133,6 +134,23 @@ def list_all_work_items(
         period_type=period_type,
     )
     return items, total
+
+
+def get_status_summary(
+    work_item_repo: VatWorkItemRepository,
+    *,
+    year: int | None = None,
+    period_type: VatType | None = None,
+    client_name: str | None = None,
+) -> VatWorkItemStatusSummaryResponse:
+    counts = work_item_repo.count_by_status_summary(
+        year=year,
+        period_type=period_type,
+        client_name=client_name,
+    )
+    return VatWorkItemStatusSummaryResponse(
+        **{status.value: counts.get(status, 0) for status in VatWorkItemStatus}
+    )
 
 
 def list_invoices(
