@@ -28,7 +28,12 @@ def get_group_items(
     if entry is None:
         raise NotFoundError("רשומת יומן מס לא נמצאה", "TAX_CALENDAR.NOT_FOUND")
 
-    rows = _rows_for_entry(repo, entry)
+    rows = _rows_for_entry(
+        repo,
+        entry,
+        client_search=client_search,
+        client_record_id=client_record_id,
+    )
     today = date.today()
     items = [
         _to_item(
@@ -42,10 +47,6 @@ def get_group_items(
         )
         for source_type, row, client, legal_entity in rows
     ]
-    if client_search:
-        items = [item for item in items if _matches_client_search(item, client_search)]
-    if client_record_id is not None:
-        items = [item for item in items if item.client_record_id == client_record_id]
     total = len(items)
     start = (page - 1) * page_size
 
@@ -59,13 +60,22 @@ def get_group_items(
     )
 
 
-def _rows_for_entry(repo: TaxCalendarGroupedRepository, entry):
+def _rows_for_entry(
+    repo: TaxCalendarGroupedRepository,
+    entry,
+    *,
+    client_search: str | None,
+    client_record_id: int | None,
+):
+    kwargs = {"client_search": client_search, "client_record_id": client_record_id}
     if entry.obligation_type == ObligationType.VAT:
-        return [("vat_work_item", *row) for row in repo.list_vat_items(entry.id)]
+        return [("vat_work_item", *row) for row in repo.list_vat_items(entry.id, **kwargs)]
     if entry.obligation_type == ObligationType.ADVANCE_PAYMENT:
-        return [("advance_payment", *row) for row in repo.list_advance_items(entry.id)]
+        return [
+            ("advance_payment", *row) for row in repo.list_advance_items(entry.id, **kwargs)
+        ]
     if entry.obligation_type == ObligationType.ANNUAL_REPORT:
-        return [("annual_report", *row) for row in repo.list_annual_items(entry.id)]
+        return [("annual_report", *row) for row in repo.list_annual_items(entry.id, **kwargs)]
     return []
 
 
@@ -103,13 +113,3 @@ def _status_value(status) -> str:
     return status.value if hasattr(status, "value") else str(status)
 
 
-def _matches_client_search(item: TaxCalendarGroupItem, search: str) -> bool:
-    normalized = search.strip().lower()
-    if not normalized:
-        return True
-    values = [
-        item.client_name,
-        item.id_number,
-        str(item.office_client_number) if item.office_client_number is not None else None,
-    ]
-    return any(value and normalized in value.lower() for value in values)
