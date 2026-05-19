@@ -14,6 +14,8 @@ from app.utils.time_utils import utcnow
 @dataclass(frozen=True)
 class AuthSubject:
     id: int
+    full_name: str
+    email: str
     role: UserRole
     is_active: bool
     token_version: int
@@ -36,14 +38,21 @@ class UserRepository(BaseRepository[User]):
         Returns an immutable DTO — no ORM identity, no lazy loads.
         """
         row = self.db.execute(
-            select(User.id, User.role, User.is_active, User.token_version).where(
-                User.id == user_id
-            )
+            select(
+                User.id,
+                User.full_name,
+                User.email,
+                User.role,
+                User.is_active,
+                User.token_version,
+            ).where(User.id == user_id)
         ).first()
         if row is None:
             return None
         return AuthSubject(
             id=row.id,
+            full_name=row.full_name,
+            email=row.email,
             role=row.role,
             is_active=row.is_active,
             token_version=row.token_version,

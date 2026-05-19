@@ -105,3 +105,9 @@ class TaskRepository(BaseRepository[Task]):
         if not include_history:
             stmt = stmt.where(Task.status == TaskStatus.OPEN)
         return list(self.db.scalars(stmt).all())
+
+    def list_by_ids(self, task_ids: set[int]) -> list[Task]:
+        if not task_ids:
+            return []
+        stmt = select(Task).where(Task.id.in_(task_ids), Task.deleted_at.is_(None))
+        return list(self.db.scalars(stmt).all())

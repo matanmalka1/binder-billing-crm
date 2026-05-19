@@ -54,7 +54,7 @@ def test_authenticate_success_and_logout_bump_token_and_write_audit(test_db):
     assert after_login.last_login_at is not None
     assert after_login.token_version == 0
 
-    service.logout(after_login)
+    service.logout_user(user_id=after_login.id, email=after_login.email)
     after_logout = repo.get_by_id(user.id)
     assert after_logout.token_version == 1
 

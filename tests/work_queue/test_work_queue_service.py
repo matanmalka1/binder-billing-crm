@@ -175,9 +175,42 @@ def test_work_queue_advance_payment_batch_loads_all_client_identities(test_db):
         for item in items
     }
     assert identities[first.client_id][0].startswith("Task Test Client")
-    assert identities[first.client_id][1] == 1
+    assert identities[first.client_id][1] == 100001
     assert identities[second.client_id][0].startswith("Task Test Client")
-    assert identities[second.client_id][1] == 3
+    assert identities[second.client_id][1] == 100003
+
+
+def test_work_queue_batch_loads_charge_client_identities_once(test_db, monkeypatch):
+    first = create_business(test_db)
+    second = create_business(test_db)
+    _add_overdue_charge(test_db, first)
+    _add_overdue_charge(test_db, second)
+    calls = []
+
+    from app.work_queue.services import common
+
+    original = common.load_client_profiles
+
+    def wrapped(db, client_record_ids):
+        ids = list(client_record_ids)
+        calls.append(ids)
+        return original(db, ids)
+
+    monkeypatch.setattr(common, "load_client_profiles", wrapped)
+
+    items = WorkQueueService(test_db).list_items(
+        exclude_source_types=[
+            WorkQueueSourceType.VAT_WORK_ITEM,
+            WorkQueueSourceType.ANNUAL_REPORT,
+            WorkQueueSourceType.ADVANCE_PAYMENT,
+            WorkQueueSourceType.BINDER,
+        ]
+    )
+
+    charge_items = [i for i in items if i.source_type == WorkQueueSourceType.CHARGE]
+    assert len(charge_items) == 2
+    assert len(calls) == 1
+    assert set(calls[0]) == {first.client_id, second.client_id}
 
 
 def test_work_queue_excludes_requested_source_types(test_db, monkeypatch):
@@ -596,6 +629,31 @@ def test_summary_is_computed_before_pagination_and_respects_filters(test_db):
     assert searched.total == 1
     assert searched.by_source_type[WorkQueueSourceType.TASK] == 1
     assert manual.id is not None
+
+
+def test_summary_without_search_skips_client_display_loading(test_db, monkeypatch):
+    biz = create_business(test_db)
+    _add_overdue_charge(test_db, biz)
+
+    def fail_client_display_load(*args, **kwargs):
+        raise AssertionError("summary should not load client display without search")
+
+    monkeypatch.setattr(
+        "app.work_queue.services.common.load_client_profiles",
+        fail_client_display_load,
+    )
+
+    summary = WorkQueueService(test_db).summary(
+        exclude_source_types=[
+            WorkQueueSourceType.VAT_WORK_ITEM,
+            WorkQueueSourceType.ANNUAL_REPORT,
+            WorkQueueSourceType.ADVANCE_PAYMENT,
+            WorkQueueSourceType.BINDER,
+        ]
+    )
+
+    assert summary.total == 1
+    assert summary.by_source_type[WorkQueueSourceType.CHARGE] == 1
 
 
 def test_summary_respects_history_mode(test_db):

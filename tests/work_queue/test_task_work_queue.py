@@ -311,7 +311,7 @@ def test_task_linked_to_charge_exposes_client_info(test_db):
     assert match is not None
     assert match.client_record_id == biz.client_id
     assert match.client_name is not None
-    assert match.office_client_number == biz.client_id
+    assert match.office_client_number == 100001
 
 
 def test_task_linked_to_charge_appears_in_client_filtered_work_queue(test_db):

@@ -15,5 +15,6 @@ def cancel_reminder(
     db: DBSession,
     _user: CurrentUser,
 ):
-    reminder = ReminderService(db).cancel_reminder(reminder_id)
-    return ReminderResponse.model_validate(reminder)
+    service = ReminderService(db)
+    reminder = service.cancel_reminder(reminder_id)
+    return service.to_response(reminder)

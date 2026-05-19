@@ -16,6 +16,7 @@ def binder_items(ctx: WorkQueueContext) -> list[WorkQueueItem]:
     binders = BinderRepository(ctx.db).list_overdue_pickup(
         overdue_days=_STALE_PICKUP_THRESHOLD_DAYS
     )
+    ctx.preload_client_identities(binder.client_record_id for binder in binders)
     items = []
     for binder in binders:
         ready_at = binder.ready_for_pickup_at

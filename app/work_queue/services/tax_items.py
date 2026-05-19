@@ -42,13 +42,15 @@ def vat_work_item_items(
 
     get_overdue_unfiled returns full VatWorkItem objects — no per-row query.
     """
+    vat_items = [
+        vat_item
+        for vat_item in VatComplianceRepository(ctx.db).get_overdue_unfiled(ctx.today)
+        if client_record_id is None or vat_item.client_record_id == client_record_id
+    ]
+    ctx.preload_client_identities(vat_item.client_record_id for vat_item in vat_items)
+
     items = []
-    for vat_item in VatComplianceRepository(ctx.db).get_overdue_unfiled(ctx.today):
-        if (
-            client_record_id is not None
-            and vat_item.client_record_id != client_record_id
-        ):
-            continue
+    for vat_item in vat_items:
         due_date = _vat_due_date(vat_item)
         metadata = vat_work_item_metadata(vat_item, due_date)
         items.append(
@@ -80,7 +82,9 @@ def annual_report_items(
     )
     if client_record_id is not None:
         stmt = stmt.where(annual_report.client_record_id == client_record_id)
-    return [_annual_report_item(ctx, report) for report in ctx.db.scalars(stmt)]
+    reports = list(ctx.db.scalars(stmt))
+    ctx.preload_client_identities(report.client_record_id for report in reports)
+    return [_annual_report_item(ctx, report) for report in reports]
 
 
 def _annual_report_item(ctx: WorkQueueContext, report) -> WorkQueueItem:

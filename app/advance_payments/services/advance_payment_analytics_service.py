@@ -102,12 +102,9 @@ class AdvancePaymentAnalyticsService:
                 by_client[p.client_record_id].append((p.period, p.period_months_count))
 
         result: dict[tuple[int, str], Optional[object]] = {}
-        for client_id, period_list in by_client.items():
-            turnover_by_period = turnover_repo.get_turnover_for_many(
-                client_id, period_list
-            )
-            for period, (turnover, _) in turnover_by_period.items():
-                result[(client_id, period)] = turnover
+        turnover_by_period = turnover_repo.get_turnover_for_many_clients(dict(by_client))
+        for key, (turnover, _) in turnover_by_period.items():
+            result[key] = turnover
         return result
 
     # ─── KPIs ─────────────────────────────────────────────────────────────────

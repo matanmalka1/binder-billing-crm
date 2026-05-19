@@ -21,7 +21,6 @@ def create_reminder(
     db: DBSession,
     user: CurrentUser,
 ):
-    reminder = ReminderService(db).create_from_request(
-        request, created_by_user_id=user.id
-    )
-    return ReminderResponse.model_validate(reminder)
+    service = ReminderService(db)
+    reminder = service.create_from_request(request, created_by_user_id=user.id)
+    return service.to_response(reminder)

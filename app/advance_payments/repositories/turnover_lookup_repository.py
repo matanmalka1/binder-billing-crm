@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import Literal, Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.common.repositories.base_repository import BaseRepository
@@ -13,6 +13,18 @@ from app.vat_reports.models.vat_work_item import VatWorkItem
 # Only FILED items represent settled, authoritative turnover figures.
 _FINAL_STATUSES = [VatWorkItemStatus.FILED]
 _PENDING_STATUSES = [VatWorkItemStatus.READY_FOR_REVIEW]
+
+
+def _expand_period(period: str, months_count: int) -> list[str]:
+    year = int(period[:4])
+    month = int(period[5:7])
+    result = []
+    for offset in range(months_count):
+        absolute = year * 12 + month - 1 + offset
+        result_year = absolute // 12
+        result_month = absolute % 12 + 1
+        result.append(f"{result_year}-{result_month:02d}")
+    return result
 
 
 class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
@@ -32,12 +44,7 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
         For bi-monthly advances, sums both months' vat_work_items.
         Returns (None, None) if no filed/submitted vat_work_items found.
         """
-        year = int(period[:4])
-        start_month = int(period[5:7])
-        periods = [
-            f"{year}-{str(start_month + i).zfill(2)}"
-            for i in range(period_months_count)
-        ]
+        periods = _expand_period(period, period_months_count)
 
         rows = self.db.execute(
             select(VatWorkItem.id, VatWorkItem.total_output_net).where(
@@ -66,10 +73,7 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
         """
         all_periods = set()
         for period, months_count in periods:
-            year = int(period[:4])
-            start_month = int(period[5:7])
-            for i in range(months_count):
-                all_periods.add(f"{year}-{str(start_month + i).zfill(2)}")
+            all_periods.update(_expand_period(period, months_count))
 
         rows = self.db.execute(
             select(
@@ -81,22 +85,74 @@ class TurnoverLookupRepository(BaseRepository[VatWorkItem]):
                 VatWorkItem.deleted_at.is_(None),
             )
         ).all()
-        by_period = {r.period: (r.id, Decimal(str(r.total_output_net))) for r in rows}
+        by_period = {r.period: (Decimal(str(r.total_output_net)), r.id) for r in rows}
 
         result: dict[str, tuple[Optional[Decimal], Optional[int]]] = {}
         for period, months_count in periods:
-            year = int(period[:4])
-            start_month = int(period[5:7])
-            sub_periods = [
-                f"{year}-{str(start_month + i).zfill(2)}" for i in range(months_count)
-            ]
+            sub_periods = _expand_period(period, months_count)
             found = [by_period[p] for p in sub_periods if p in by_period]
             if not found:
                 result[period] = (None, None)
             else:
-                total = sum(t for _, t in found)
-                primary_id = found[0][0]
+                total = sum(turnover for turnover, _ in found)
+                primary_id = found[0][1]
                 result[period] = (total, primary_id)
+        return result
+
+    def get_turnover_for_many_clients(
+        self,
+        periods_by_client: dict[int, list[tuple[str, int]]],
+    ) -> dict[tuple[int, str], tuple[Optional[Decimal], Optional[int]]]:
+        """Batch lookup for multiple clients using grouped VAT rows."""
+        if not periods_by_client:
+            return {}
+
+        all_periods = set()
+        client_ids = set(periods_by_client)
+        for periods in periods_by_client.values():
+            for period, months_count in periods:
+                all_periods.update(_expand_period(period, months_count))
+
+        rows = self.db.execute(
+            select(
+                VatWorkItem.client_record_id,
+                VatWorkItem.period,
+                func.min(VatWorkItem.id).label("vat_work_item_id"),
+                func.coalesce(func.sum(VatWorkItem.total_output_net), 0).label(
+                    "total_output_net"
+                ),
+            )
+            .where(
+                VatWorkItem.client_record_id.in_(client_ids),
+                VatWorkItem.period.in_(all_periods),
+                VatWorkItem.status.in_(_FINAL_STATUSES),
+                VatWorkItem.deleted_at.is_(None),
+            )
+            .group_by(VatWorkItem.client_record_id, VatWorkItem.period)
+        ).all()
+        by_client_period = {
+            (row.client_record_id, row.period): (
+                Decimal(str(row.total_output_net)),
+                row.vat_work_item_id,
+            )
+            for row in rows
+        }
+
+        result: dict[tuple[int, str], tuple[Optional[Decimal], Optional[int]]] = {}
+        for client_record_id, periods in periods_by_client.items():
+            for period, months_count in periods:
+                sub_periods = _expand_period(period, months_count)
+                found = [
+                    by_client_period[(client_record_id, sub_period)]
+                    for sub_period in sub_periods
+                    if (client_record_id, sub_period) in by_client_period
+                ]
+                if not found:
+                    result[(client_record_id, period)] = (None, None)
+                    continue
+                total = sum(turnover for turnover, _ in found)
+                primary_id = found[0][1]
+                result[(client_record_id, period)] = (total, primary_id)
         return result
 
     def get_prefill_turnover(

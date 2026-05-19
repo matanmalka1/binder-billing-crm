@@ -177,8 +177,16 @@ def build_work_queue_summary(items: list[WorkQueueItem]) -> WorkQueueSummary:
 
 class WorkQueueService:
     def __init__(self, db: Session):
-        self.ctx = WorkQueueContext(db, israel_today())
-        self.task_repo = TaskRepository(self.ctx.db)
+        self.db = db
+        self.today = israel_today()
+        self.task_repo = TaskRepository(self.db)
+
+    def _context(self, *, resolve_client_identity: bool = True) -> WorkQueueContext:
+        return WorkQueueContext(
+            self.db,
+            self.today,
+            resolve_client_identity=resolve_client_identity,
+        )
 
     def list_items(
         self,
@@ -195,7 +203,9 @@ class WorkQueueService:
         limit: int = 50,
         offset: int = 0,
     ) -> List[WorkQueueItem]:
+        ctx = self._context()
         items = self._filtered_items(
+            ctx,
             client_record_id=client_record_id,
             business_id=business_id,
             exclude_source_types=exclude_source_types,
@@ -227,7 +237,9 @@ class WorkQueueService:
         limit: int = 50,
         offset: int = 0,
     ) -> WorkQueueListResponse:
+        ctx = self._context()
         all_items = self._filtered_items(
+            ctx,
             client_record_id=client_record_id,
             business_id=business_id,
             exclude_source_types=exclude_source_types,
@@ -260,25 +272,27 @@ class WorkQueueService:
         linked: Optional[WorkQueueLinkedFilter] = None,
         scope: Optional[WorkQueueScope] = None,
     ) -> WorkQueueSummary:
+        filters = WorkQueueFilters(
+            search=search,
+            source_type=source_type,
+            urgency=urgency,
+            task_status=task_status,
+            linked=linked,
+            scope=scope,
+        )
         return build_work_queue_summary(
-            self._filtered_items(
+            self._summary_items(
                 client_record_id=client_record_id,
                 business_id=business_id,
                 exclude_source_types=exclude_source_types,
                 include_task_history=include_task_history,
-                filters=WorkQueueFilters(
-                    search=search,
-                    source_type=source_type,
-                    urgency=urgency,
-                    task_status=task_status,
-                    linked=linked,
-                    scope=scope,
-                ),
+                filters=filters,
             )
         )
 
     def _filtered_items(
         self,
+        ctx: WorkQueueContext,
         *,
         client_record_id: Optional[int],
         business_id: Optional[int],
@@ -287,6 +301,27 @@ class WorkQueueService:
         filters: WorkQueueFilters,
     ) -> list[WorkQueueItem]:
         items = self._build_items(
+            ctx,
+            client_record_id=client_record_id,
+            business_id=business_id,
+            exclude_source_types=exclude_source_types,
+            include_task_history=include_task_history,
+        )
+        items = self._apply_mode(items, include_task_history=include_task_history)
+        return apply_work_queue_filters(items, filters)
+
+    def _summary_items(
+        self,
+        *,
+        client_record_id: Optional[int],
+        business_id: Optional[int],
+        exclude_source_types: Optional[List[WorkQueueSourceType]],
+        include_task_history: bool,
+        filters: WorkQueueFilters,
+    ) -> list[WorkQueueItem]:
+        ctx = self._context(resolve_client_identity=bool(filters.search))
+        items = self._build_items(
+            ctx,
             client_record_id=client_record_id,
             business_id=business_id,
             exclude_source_types=exclude_source_types,
@@ -297,6 +332,7 @@ class WorkQueueService:
 
     def _build_items(
         self,
+        ctx: WorkQueueContext,
         *,
         client_record_id: Optional[int],
         business_id: Optional[int],
@@ -310,20 +346,20 @@ class WorkQueueService:
         # business_id does not narrow them; skip entirely when business_id is set.
         if business_id is None:
             if WorkQueueSourceType.VAT_WORK_ITEM not in excluded:
-                system_items.extend(vat_work_item_items(self.ctx, client_record_id))
+                system_items.extend(vat_work_item_items(ctx, client_record_id))
             if WorkQueueSourceType.ANNUAL_REPORT not in excluded:
-                system_items.extend(annual_report_items(self.ctx, client_record_id))
+                system_items.extend(annual_report_items(ctx, client_record_id))
             if WorkQueueSourceType.ADVANCE_PAYMENT not in excluded:
-                system_items.extend(advance_payment_items(self.ctx, client_record_id))
+                system_items.extend(advance_payment_items(ctx, client_record_id))
 
         if WorkQueueSourceType.CHARGE not in excluded:
-            system_items.extend(charge_items(self.ctx, client_record_id, business_id))
+            system_items.extend(charge_items(ctx, client_record_id, business_id))
 
         # Stale binders are not client-scoped in the current query surface; include
         # when no client/business filter is active.
         if client_record_id is None and business_id is None:
             if WorkQueueSourceType.BINDER not in excluded:
-                system_items.extend(binder_items(self.ctx))
+                system_items.extend(binder_items(ctx))
 
         for item in system_items:
             item.available_actions = source_actions(
@@ -332,6 +368,7 @@ class WorkQueueService:
             )
 
         items = self._merge_tasks(
+            ctx,
             system_items,
             excluded=excluded,
             client_record_id=client_record_id,
@@ -358,6 +395,7 @@ class WorkQueueService:
 
     def _merge_tasks(
         self,
+        ctx: WorkQueueContext,
         system_items: list[WorkQueueItem],
         *,
         excluded: set[WorkQueueSourceType],
@@ -379,7 +417,7 @@ class WorkQueueService:
             for source_type in [normalize_source_domain(task.source_domain)]
             if source_type is not None
         }
-        source_states = load_source_states(self.ctx.db, linked_keys)
+        source_states = load_source_states(ctx.db, linked_keys)
         rows = list(system_items)
 
         for task in tasks:
@@ -393,14 +431,14 @@ class WorkQueueService:
                     self._attach_task(source_item, task_summary(task))
                     continue
 
-            standalone = task_item(self.ctx, task)
+            standalone = task_item(ctx, task)
             if source_type is not None and task_source_id is not None:
                 state = source_states.get((source_type.value, task_source_id))
                 if state is not None and client_record_id is not None:
                     if state.client_record_id != client_record_id:
                         continue
                 if state is not None:
-                    self.ctx.attach_client_identity(standalone, state.client_record_id)
+                    ctx.attach_client_identity(standalone, state.client_record_id)
                     standalone.source_summary = WorkQueueSourceSummary(
                         source_type=source_type.value,
                         source_id=task_source_id,
@@ -492,7 +530,7 @@ class WorkQueueService:
         if item.linked_tasks_count > 1:
             self._label_linked_task_actions(item)
         if task.due_date is not None:
-            task_urgency = urgency(task.due_date, self.ctx.today)
+            task_urgency = urgency(task.due_date, self.today)
             if _URGENCY_SORT[task_urgency] < _URGENCY_SORT[item.urgency]:
                 item.urgency = task_urgency
                 item.due_date = task.due_date

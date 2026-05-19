@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.users.api.deps import CurrentUser, DBSession
 from app.reminders.schemas.reminders import ReminderResponse
 from app.reminders.services.reminder_service import ReminderService
+from app.users.api.deps import CurrentUser, DBSession
 
 get_router = APIRouter()
 
@@ -15,9 +15,10 @@ def get_reminder(
     db: DBSession,
     _user: CurrentUser,
 ):
-    reminder = ReminderService(db).get_reminder(reminder_id)
+    service = ReminderService(db)
+    reminder = service.get_reminder(reminder_id)
     if not reminder:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="התזכורת לא נמצאה"
         )
-    return ReminderResponse.model_validate(reminder)
+    return service.to_response(reminder)

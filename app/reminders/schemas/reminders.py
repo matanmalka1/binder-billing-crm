@@ -26,6 +26,9 @@ class ReminderResponse(BaseModel):
     target_task_id: Optional[int] = None
     notification_template_key: Optional[str] = None
     payload: Optional[dict[str, Any]] = None
+    client_record_id: Optional[int] = None
+    client_name: Optional[str] = None
+    office_client_number: Optional[int] = None
     created_by_user_id: Optional[int] = None
     fired_at: Optional[ApiDateTime] = None
     failure_reason: Optional[str] = None

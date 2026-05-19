@@ -8,7 +8,6 @@ from app.users.api.constants import (
     COOKIE_SAMESITE,
     REMEMBER_ME_TTL_MULTIPLIER,
 )
-from app.users.repositories.user_repository import UserRepository
 from app.users.schemas.auth import LoginRequest, LoginResponse, UserResponse
 from app.users.services.auth_service import AuthService
 from app.config import config
@@ -65,9 +64,7 @@ def logout(db: DBSession, current_user: CurrentUser, response: Response):
     any Bearer token held outside the cookie — are rejected immediately.
     """
     auth_service = AuthService(db)
-    user = UserRepository(db).get_by_id(current_user.id)
-    if user:
-        auth_service.logout(user)
+    auth_service.logout_user(user_id=current_user.id, email=current_user.email)
 
     response.delete_cookie(
         key=COOKIE_NAME,

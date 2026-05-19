@@ -3,11 +3,9 @@ from __future__ import annotations
 from datetime import date
 from typing import Dict, Iterable, NamedTuple, Optional
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.clients.models.client_record import ClientRecord
-from app.clients.models.legal_entity import LegalEntity
+from app.clients.repositories.client_identity_repository import ClientIdentityRepository
 from app.common.source_types import normalize_source_domain as normalize_source_domain
 from app.common.source_types import source_route as source_route
 from app.work_queue.schemas.work_queue import (
@@ -105,34 +103,38 @@ def load_client_profiles(
     db: Session, client_record_ids: Iterable[int]
 ) -> Dict[int, ClientWorkQueueProfile]:
     """Fetch dashboard identity fields only for the client ids present in the result set."""
-    ids = list(client_record_ids)
-    if not ids:
-        return {}
-    stmt = (
-        select(
-            ClientRecord.id,
-            LegalEntity.official_name,
-            ClientRecord.office_client_number,
-        )
-        .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-        .where(ClientRecord.id.in_(ids), ClientRecord.deleted_at.is_(None))
-    )
     return {
-        row[0]: ClientWorkQueueProfile(name=row[1], office_number=row[2])
-        for row in db.execute(stmt).all()
+        client_id: ClientWorkQueueProfile(
+            name=profile.client_name,
+            office_number=profile.office_client_number,
+        )
+        for client_id, profile in ClientIdentityRepository(db)
+        .get_display_map(client_record_ids)
+        .items()
     }
 
 
 class WorkQueueContext:
-    def __init__(self, db: Session, today: date):
+    def __init__(self, db: Session, today: date, *, resolve_client_identity: bool = True):
         self.db = db
         self.today = today
+        self.resolve_client_identity = resolve_client_identity
         self._client_profiles: Optional[Dict[int, ClientWorkQueueProfile]] = None
         self._pending_ids: set[int] = set()
 
     def register_client_id(self, client_record_id: int) -> None:
         """Collect a client id for lazy batch name resolution."""
+        if not self.resolve_client_identity:
+            return
         self._pending_ids.add(client_record_id)
+
+    def preload_client_identities(self, client_record_ids: Iterable[int]) -> None:
+        """Register all visible clients before row serialization resolves names."""
+        if not self.resolve_client_identity:
+            return
+        for client_record_id in client_record_ids:
+            self.register_client_id(client_record_id)
+        self._resolve_profiles()
 
     def _resolve_profiles(self) -> Dict[int, ClientWorkQueueProfile]:
         missing = self._pending_ids - set(self._client_profiles or {})

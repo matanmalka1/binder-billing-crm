@@ -81,22 +81,22 @@ class AuthService:
         logger.info(f"Successful login for user: {email}")
         return user
 
-    def logout(self, user: User) -> None:
+    def logout_user(self, *, user_id: int, email: str) -> None:
         """
         Invalidate all active tokens for the user by bumping token_version.
 
         This ensures that any token — whether sent via cookie or Authorization header —
         is rejected on the next request, even before the JWT expiry time.
         """
-        self.user_repo.bump_token_version(user.id)
+        self.user_repo.bump_token_version(user_id)
         self.audit_log_service.log(
             action=AuditAction.LOGOUT,
             status=AuditStatus.SUCCESS,
-            actor_user_id=user.id,
-            target_user_id=user.id,
-            email=user.email,
+            actor_user_id=user_id,
+            target_user_id=user_id,
+            email=email,
         )
-        logger.info(f"User logged out and token invalidated: {user.email}")
+        logger.info(f"User logged out and token invalidated: {email}")
 
     @staticmethod
     def generate_token(user: User, ttl_hours: int | None = None) -> str:

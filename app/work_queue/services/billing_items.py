@@ -38,8 +38,7 @@ def advance_payment_items(
     if client_record_id is not None:
         stmt = stmt.where(AdvancePayment.client_record_id == client_record_id)
     payments = list(ctx.db.scalars(stmt))
-    for payment in payments:
-        ctx.register_client_id(payment.client_record_id)
+    ctx.preload_client_identities(payment.client_record_id for payment in payments)
     items: list[WorkQueueItem] = []
     for payment in payments:
         metadata = advance_payment_metadata(payment)
@@ -75,7 +74,9 @@ def charge_items(
         stmt = stmt.where(Charge.client_record_id == client_record_id)
     if business_id is not None:
         stmt = stmt.where(Charge.business_id == business_id)
-    return [_charge_item(ctx, charge) for charge in ctx.db.scalars(stmt)]
+    charges = list(ctx.db.scalars(stmt))
+    ctx.preload_client_identities(charge.client_record_id for charge in charges)
+    return [_charge_item(ctx, charge) for charge in charges]
 
 
 def _charge_item(ctx: WorkQueueContext, charge) -> WorkQueueItem:
