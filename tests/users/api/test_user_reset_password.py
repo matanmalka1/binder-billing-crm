@@ -22,7 +22,7 @@ def test_reset_password_endpoint_success(client, test_db, advisor_headers):
     response = client.post(
         f"/api/v1/users/{target.id}/reset-password",
         headers=advisor_headers,
-        json={"new_password": "newpassword123"},
+        json={"new_password": "Newpassword123!"},
     )
 
     assert response.status_code == 200
@@ -35,7 +35,7 @@ def test_reset_password_endpoint_returns_404_for_missing_user(client, advisor_he
     response = client.post(
         "/api/v1/users/999999/reset-password",
         headers=advisor_headers,
-        json={"new_password": "newpassword123"},
+        json={"new_password": "Newpassword123!"},
     )
 
     assert response.status_code == 404

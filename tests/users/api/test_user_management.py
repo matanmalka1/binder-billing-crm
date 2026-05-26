@@ -25,7 +25,7 @@ def test_advisor_can_create_list_and_get_users(client, advisor_headers):
             "email": "new.secretary@example.com",
             "phone": "050-1234567",
             "role": "secretary",
-            "password": "password123",
+            "password": "Password123!",
         },
     )
     assert create_response.status_code == 201

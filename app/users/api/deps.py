@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -8,20 +8,17 @@ from app.database import get_db
 from app.core.logging_config import set_actor_context
 from app.users.models.user import UserRole
 from app.users.repositories.user_repository import AuthSubject, UserRepository
-from app.users.services.auth_service import AuthService
+from app.users.services.token_service import decode_access_token
 
 security = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
-    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)],
     db: Annotated[Session, Depends(get_db)],
 ) -> AuthSubject:
     """Extract and validate current user from JWT token."""
     token = credentials.credentials if credentials else None
-    if not token:
-        token = request.cookies.get("access_token")
 
     if not token:
         raise HTTPException(
@@ -29,7 +26,7 @@ def get_current_user(
             detail="חסר טוקן אימות",
         )
 
-    payload = AuthService.decode_token(token)
+    payload = decode_access_token(token)
 
     if not payload or "sub" not in payload:
         raise HTTPException(

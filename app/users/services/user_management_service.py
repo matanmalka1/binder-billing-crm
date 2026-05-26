@@ -19,7 +19,6 @@ IMMUTABLE_UPDATE_FIELDS = {
     "is_active",
 }
 
-MIN_PASSWORD_LENGTH = 8
 _USER_EMAIL_EXISTS = "כבר קיים משתמש עם המייל {email}"
 _USER_IMMUTABLE_FIELDS = "לא ניתן לעדכן שדות שאינם ניתנים לשינוי: {disallowed}"
 _USER_NO_FIELDS_PROVIDED = "חובה לספק לפחות שדה אחד הניתן לשינוי"

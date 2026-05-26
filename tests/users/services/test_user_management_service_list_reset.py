@@ -57,11 +57,11 @@ def test_list_users_and_reset_password(test_db, test_user):
         actor_user_id=test_user.id,
         actor_role=UserRole.ADVISOR,
         target_user_id=target.id,
-        new_password="newpassword123",
+        new_password="Newpassword123!",
     )
     assert updated.id == target.id
     assert updated.token_version == before_token_version + 1
-    assert AuthService.verify_password("newpassword123", updated.password_hash) is True
+    assert AuthService.verify_password("Newpassword123!", updated.password_hash) is True
 
     audit_repo = UserAuditLogRepository(test_db)
     password_reset_logs = audit_repo.list(
@@ -78,7 +78,7 @@ def test_list_users_and_reset_password(test_db, test_user):
             actor_user_id=test_user.id,
             actor_role=UserRole.ADVISOR,
             target_user_id=999999,
-            new_password="newpassword123",
+            new_password="Newpassword123!",
         )
 
 

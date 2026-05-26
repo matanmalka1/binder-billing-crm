@@ -1,5 +1,6 @@
 {
-  "pythonPath": ".venv/bin/python",
+  "venvPath": "/absolute/path/to/backend",
+  "venv": ".venv",
   "include": ["app", "tests", "scripts"],
   "extraPaths": [".", "tax_rules_config/app"],
   "reportArgumentType": "none",

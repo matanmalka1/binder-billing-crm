@@ -8,6 +8,7 @@ from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.repositories.user_audit_log_repository import UserAuditLogRepository
 from app.users.repositories.user_repository import UserRepository
 from app.users.services.auth_service import AuthService
+from app.users.services.token_service import decode_access_token
 
 
 def _user(test_db, *, email: str, is_active: bool = True) -> User:
@@ -73,13 +74,14 @@ def test_decode_token_rejects_missing_fields_expired_and_invalid_tokens(test_use
             "sub": str(test_user.id),
             "role": test_user.role.value,
             "tv": test_user.token_version,
+            "type": "access",
             "iat": now,
             "exp": now + timedelta(hours=1),
         },
         settings.JWT_SECRET,
-        algorithm="HS256",
+        algorithm=settings.JWT_ALGORITHM,
     )
-    assert AuthService.decode_token(missing_required_token) is None
+    assert decode_access_token(missing_required_token) is None
 
     expired_token = jwt.encode(
         {
@@ -87,12 +89,13 @@ def test_decode_token_rejects_missing_fields_expired_and_invalid_tokens(test_use
             "email": test_user.email,
             "role": test_user.role.value,
             "tv": test_user.token_version,
+            "type": "access",
             "iat": now - timedelta(hours=2),
             "exp": now - timedelta(hours=1),
         },
         settings.JWT_SECRET,
-        algorithm="HS256",
+        algorithm=settings.JWT_ALGORITHM,
     )
-    assert AuthService.decode_token(expired_token) is None
+    assert decode_access_token(expired_token) is None
 
-    assert AuthService.decode_token("not-a-jwt") is None
+    assert decode_access_token("not-a-jwt") is None

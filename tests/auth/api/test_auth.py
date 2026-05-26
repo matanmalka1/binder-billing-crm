@@ -13,20 +13,22 @@ def test_login_returns_valid_jwt(client, test_user):
     assert response.status_code == 200
     data = response.json()
 
-    assert "token" in data
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
     assert "user" in data
     assert data["user"]["id"] == test_user.id
     assert data["user"]["full_name"] == "Test User"
     assert data["user"]["role"] == "advisor"
 
     # Validate JWT structure
-    token = data["token"]
-    payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+    token = data["access_token"]
+    payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
 
     assert "sub" in payload
     assert "email" in payload
     assert "role" in payload
     assert "tv" in payload
+    assert payload["type"] == "access"
     assert "iat" in payload
     assert "exp" in payload
     assert payload["email"] == "test@example.com"

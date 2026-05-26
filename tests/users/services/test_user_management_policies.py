@@ -17,8 +17,15 @@ def test_ensure_advisor_rejects_non_advisor_roles():
 
 
 def test_validate_password_enforces_minimum_length():
-    validate_password("12345678")
+    validate_password("Password123!")
 
     with pytest.raises(AppError) as exc_info:
         validate_password("short")
+    assert exc_info.value.code == "USER.INVALID_PASSWORD"
+
+
+@pytest.mark.parametrize("password", ["", "        ", "password123!", "PASSWORD123!", "Password123"])
+def test_validate_password_enforces_complexity(password):
+    with pytest.raises(AppError) as exc_info:
+        validate_password(password)
     assert exc_info.value.code == "USER.INVALID_PASSWORD"

@@ -32,8 +32,32 @@ services:
       - key: AUTH_LOGIN_RATE_LIMIT
         value: "5/minute"
 
-      - key: JWT_TTL_HOURS
-        value: "8"
+      - key: JWT_ALGORITHM
+        value: HS256
+
+      - key: AUTH_ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "15"
+
+      - key: AUTH_REFRESH_TOKEN_EXPIRE_DAYS
+        value: "30"
+
+      - key: REFRESH_COOKIE_NAME
+        value: refresh_token
+
+      - key: REFRESH_COOKIE_PATH
+        value: /api/v1/auth
+
+      - key: REFRESH_COOKIE_SAMESITE
+        value: none
+
+      - key: PASSWORD_RESET_TOKEN_EXPIRE_MINUTES
+        value: "30"
+
+      - key: PASSWORD_RESET_DEV_LOG
+        value: "false"
+
+      - key: FRONTEND_PASSWORD_RESET_URL
+        sync: false
 
       # Sentry (optional)
       - key: SENTRY_ENABLED

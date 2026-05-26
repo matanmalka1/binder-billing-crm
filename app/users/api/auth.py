@@ -1,77 +1,65 @@
-from datetime import timedelta
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, Cookie, HTTPException, Request, Response, status
 
 from app.config import settings
 from app.middleware.rate_limiting import get_email_key, limiter
-from app.users.api.constants import (
-    COOKIE_NAME,
-    COOKIE_SAMESITE,
-    REMEMBER_ME_TTL_MULTIPLIER,
+from app.users.api.auth_cookies import clear_refresh_cookie, set_refresh_cookie
+from app.users.api.constants import REFRESH_COOKIE_NAME
+from app.users.api.deps import DBSession
+from app.users.schemas.auth import (
+    AuthTokenResponse,
+    LoginRequest,
+    RefreshResponse,
+    UserResponse,
 )
-from app.users.api.deps import CurrentUser, DBSession
-from app.users.schemas.auth import LoginRequest, LoginResponse, UserResponse
 from app.users.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login", response_model=AuthTokenResponse)
 @limiter.limit(settings.AUTH_LOGIN_RATE_LIMIT, key_func=get_email_key("auth_login"))
 def login(request: Request, payload: LoginRequest, db: DBSession, response: Response):
-    """Authenticate user and return user info (JWT is set as HttpOnly cookie)."""
     auth_service = AuthService(db)
 
-    user = auth_service.authenticate(payload.email, payload.password)
+    bundle = auth_service.login(payload.email, payload.password)
 
-    if not user:
+    if not bundle:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="אימייל או סיסמה שגויים",
         )
 
-    ttl_hours = settings.JWT_TTL_HOURS
-    if payload.rememberMe:
-        ttl_hours = settings.JWT_TTL_HOURS * REMEMBER_ME_TTL_MULTIPLIER
+    set_refresh_cookie(response, bundle.refresh_token)
 
-    token = auth_service.generate_token(user, ttl_hours=ttl_hours)
-
-    response.set_cookie(
-        key=COOKIE_NAME,
-        value=token,
-        httponly=True,
-        secure=settings.APP_ENV == "production",
-        samesite=COOKIE_SAMESITE,
-        path="/",
-        max_age=int(timedelta(hours=ttl_hours).total_seconds()),
-    )
-
-    return LoginResponse(
-        token=token,
+    return AuthTokenResponse(
+        access_token=bundle.access_token,
         user=UserResponse(
-            id=user.id,
-            full_name=user.full_name,
-            role=user.role,
-            email=user.email,
+            id=bundle.user.id,
+            full_name=bundle.user.full_name,
+            role=bundle.user.role,
+            email=bundle.user.email,
         ),
     )
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(db: DBSession, current_user: CurrentUser, response: Response):
-    """
-    Invalidate the user's token server-side and clear the auth cookie.
-
-    Bumps token_version on the User record so all active tokens — including
-    any Bearer token held outside the cookie — are rejected immediately.
-    """
+@router.post("/refresh", response_model=RefreshResponse)
+def refresh(
+    db: DBSession,
+    refresh_token: Annotated[str | None, Cookie(alias=REFRESH_COOKIE_NAME)] = None,
+):
     auth_service = AuthService(db)
-    auth_service.logout_user(user_id=current_user.id, email=current_user.email)
+    access_token = auth_service.refresh_access_token(refresh_token)
+    return RefreshResponse(access_token=access_token)
 
-    response.delete_cookie(
-        key=COOKIE_NAME,
-        path="/",
-        httponly=True,
-        secure=settings.APP_ENV == "production",
-        samesite=COOKIE_SAMESITE,
-    )
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    db: DBSession,
+    response: Response,
+    refresh_token: Annotated[str | None, Cookie(alias=REFRESH_COOKIE_NAME)] = None,
+):
+    auth_service = AuthService(db)
+    auth_service.logout_by_refresh_token(refresh_token)
+    clear_refresh_cookie(response)

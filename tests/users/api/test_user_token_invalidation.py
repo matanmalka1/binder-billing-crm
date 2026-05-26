@@ -22,7 +22,7 @@ def _login(client, email: str, password: str) -> str:
         json={"email": email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["token"]
+    return response.json()["access_token"]
 
 
 def test_password_reset_invalidates_old_token(client, advisor_headers, test_db):
@@ -32,7 +32,7 @@ def test_password_reset_invalidates_old_token(client, advisor_headers, test_db):
     reset_response = client.post(
         f"/api/v1/users/{user.id}/reset-password",
         headers=advisor_headers,
-        json={"new_password": "newpassword123"},
+        json={"new_password": "Newpassword123!"},
     )
     assert reset_response.status_code == 200
 

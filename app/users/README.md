@@ -1,7 +1,7 @@
 # Users Module
 
-> Last audited: 2026-03-22
-> Audit basis: source review (`app/users/**`) + test run (`pytest tests/auth tests/users -q`) => 47 passed.
+> Last audited: 2026-05-26
+> Audit basis: source review (`app/users/**`) + test run (`pytest tests/auth tests/users tests/middleware/test_rate_limiting.py tests/core/test_config_additional.py -q`) => 86 passed.
 
 Manages authentication, user lifecycle administration, role-based access checks, and user audit logs.
 
@@ -13,7 +13,6 @@ Current status after this audit:
 - Documentation drift existed and was corrected in this file (paths, test inventory, and behavior notes).
 
 Known gaps and hardening opportunities:
-- Login has no built-in rate limiting/account lockout in this module.
 - `JWT_SECRET` rotation/revocation strategy is not documented here.
 - Audit log query accepts `from`/`to` without validating `from <= to`.
 - Duplicate-email handling is service-level pre-check + DB unique constraint; concurrent create conflicts may surface as DB errors if not normalized globally.
@@ -22,7 +21,9 @@ Known gaps and hardening opportunities:
 
 This module provides:
 - Login/logout with JWT-based authentication.
-- Auth token handling via `Authorization: Bearer` and HttpOnly cookie (`access_token`).
+- Short-lived access tokens via `Authorization: Bearer`.
+- Long-lived refresh tokens via HttpOnly cookie scoped to `/api/v1/auth`.
+- Self-service password reset via one-time hashed reset tokens.
 - Advisor-only user management APIs (create/list/get/update/activate/deactivate/reset password).
 - Token invalidation via `token_version` bumps (logout, deactivate, password reset).
 - User audit logging for authentication and management actions.
@@ -53,6 +54,16 @@ This module provides:
 - `metadata_json` (optional JSON string)
 - `created_at`
 
+`PasswordResetToken` fields:
+- `id` (PK)
+- `user_id` (FK to users)
+- `token_hash` (SHA-256 hash, unique)
+- `expires_at`
+- `used_at` (optional)
+- `created_at`
+- `requested_ip` (optional)
+- `user_agent` (optional)
+
 Audit action enum values:
 - `login_success`
 - `login_failure`
@@ -64,11 +75,11 @@ Audit action enum values:
 - `password_reset`
 
 Implementation references:
-- Models: `app/users/models/user.py`, `app/users/models/user_audit_log.py`
+- Models: `app/users/models/user.py`, `app/users/models/user_audit_log.py`, `app/users/models/password_reset_token.py`
 - Schemas: `app/users/schemas/auth.py`, `app/users/schemas/user_management.py`
-- Repositories: `app/users/repositories/user_repository.py`, `app/users/repositories/user_audit_log_repository.py`
-- Services: `app/users/services/auth_service.py`, `app/users/services/user_management_service.py`, `app/users/services/audit_log_service.py`
-- API: `app/users/api/auth.py`, `app/users/api/users.py`, `app/users/api/users_audit.py`, `app/users/api/deps.py`
+- Repositories: `app/users/repositories/user_repository.py`, `app/users/repositories/user_audit_log_repository.py`, `app/users/repositories/password_reset_token_repository.py`
+- Services: `app/users/services/auth_service.py`, `app/users/services/token_service.py`, `app/users/services/password_reset_service.py`, `app/users/services/user_management_service.py`, `app/users/services/audit_log_service.py`
+- API: `app/users/api/auth.py`, `app/users/api/auth_cookies.py`, `app/users/api/password_reset.py`, `app/users/api/users.py`, `app/users/api/users_audit.py`, `app/users/api/deps.py`
 
 ## API
 
@@ -79,21 +90,40 @@ Routers are mounted under `/api/v1`.
 #### Login
 - `POST /api/v1/auth/login`
 - Public endpoint
-- Body supports `rememberMe` (camelCase alias) and `remember_me` (snake_case).
+- Body: `email`, `password`
 - Response includes:
-  - `token` (JWT)
+  - `access_token` (short-lived JWT)
+  - `token_type`
   - `user` (`id`, `full_name`, `role`, `email`)
 - Also sets HttpOnly cookie:
-  - `access_token`
+  - `refresh_token`
+  - `Path=/api/v1/auth`
   - `SameSite=lax` in non-production, `none` in production
   - `secure=true` in production
 
+#### Refresh
+- `POST /api/v1/auth/refresh`
+- Reads `refresh_token` from HttpOnly cookie.
+- Response includes a new `access_token`.
+
 #### Logout
 - `POST /api/v1/auth/logout`
-- Requires authenticated user
 - Returns `204 No Content`
-- Invalidates active tokens by bumping user `token_version`
-- Deletes `access_token` cookie
+- Reads `refresh_token` from HttpOnly cookie when present.
+- Invalidates active tokens by bumping user `token_version`.
+- Deletes `refresh_token` cookie.
+
+#### Forgot password
+- `POST /api/v1/auth/forgot-password`
+- Public endpoint.
+- Always returns the same generic message.
+- Creates a one-time hashed reset token only when the email belongs to an active user.
+
+#### Reset password
+- `POST /api/v1/auth/reset-password`
+- Public endpoint.
+- Body: `token`, `new_password`
+- Marks the reset token as used, updates the password, and bumps `token_version`.
 
 ### User management endpoints (advisor-only)
 
@@ -122,11 +152,10 @@ Base prefix: `/api/v1/users`
 
 ## Behavior Notes
 
-- Auth dependency checks bearer token first; if absent, falls back to `access_token` cookie.
+- Auth dependency accepts only `Authorization: Bearer <access_token>`.
 - Token payload must decode and then pass runtime checks for `sub` and `tv` against DB user state.
 - Inactive users cannot log in and cannot pass current-user dependency checks.
-- `rememberMe=true` doubles token TTL (`JWT_TTL_HOURS * 2`).
-- Password validation requires minimum length of 8 characters.
+- Password validation requires 8-128 characters, at least one uppercase letter, one lowercase letter, and one special character.
 - Duplicate email in create/update raises `USER.CONFLICT`.
 - Empty update payloads and immutable-field update attempts are rejected.
 - Auth and user-management actions are written to `user_audit_logs`.
@@ -146,6 +175,8 @@ Users domain service errors include:
 - `USER.INVALID_UPDATE`
 - `USER.NO_FIELDS_PROVIDED`
 - `USER.NOT_FOUND`
+- `AUTH.INVALID_REFRESH_TOKEN`
+- `AUTH.INVALID_PASSWORD_RESET_TOKEN`
 
 ## Cross-Domain Integration
 
@@ -161,6 +192,7 @@ Auth + users suites:
 - `tests/auth/service/test_jwt_expiration.py`
 - `tests/users/api/test_auth_deps.py`
 - `tests/users/api/test_auth_endpoints.py`
+- `tests/users/api/test_auth_password_reset.py`
 - `tests/users/api/test_user_audit_logs.py`
 - `tests/users/api/test_user_management.py`
 - `tests/users/api/test_user_reset_password.py`
@@ -178,5 +210,5 @@ Auth + users suites:
 Run this domain:
 
 ```bash
-pytest tests/auth tests/users -q
+JWT_SECRET=test-secret pytest -q tests/auth tests/users tests/middleware/test_rate_limiting.py tests/core/test_config_additional.py
 ```

@@ -1,32 +1,42 @@
 from app.config import settings
 
 
-def _login(client, email: str, password: str, remember_me: bool = False) -> dict:
+def _login(client, email: str, password: str) -> dict:
     response = client.post(
         "/api/v1/auth/login",
-        json={"email": email, "password": password, "rememberMe": remember_me},
+        json={"email": email, "password": password},
     )
     assert response.status_code == 200
     return {
-        "token": response.json()["token"],
+        "access_token": response.json()["access_token"],
         "set_cookie": response.headers["set-cookie"],
     }
 
 
-def test_login_remember_me_extends_cookie_ttl(client, test_user):
-    regular = _login(client, test_user.email, "password123", remember_me=False)["set_cookie"]
-    remembered = _login(client, test_user.email, "password123", remember_me=True)["set_cookie"]
+def test_login_sets_refresh_cookie_ttl(client, test_user):
+    set_cookie = _login(client, test_user.email, "password123")["set_cookie"]
 
-    regular_max_age = f"Max-Age={int(settings.JWT_TTL_HOURS * 3600)}"
-    remembered_max_age = f"Max-Age={int(settings.JWT_TTL_HOURS * 2 * 3600)}"
+    max_age = f"Max-Age={settings.AUTH_REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60}"
 
-    assert regular_max_age in regular
-    assert remembered_max_age in remembered
+    assert "refresh_token=" in set_cookie
+    assert max_age in set_cookie
+    assert "HttpOnly" in set_cookie
+    assert "Path=/api/v1/auth" in set_cookie
+
+
+def test_refresh_returns_new_access_token(client, test_user):
+    login = _login(client, test_user.email, "password123")
+
+    response = client.post("/api/v1/auth/refresh")
+
+    assert response.status_code == 200
+    assert response.json()["access_token"]
+    assert response.json()["token_type"] == "bearer"
 
 
 def test_logout_invalidates_old_token_and_clears_cookie(client, test_user):
     login = _login(client, test_user.email, "password123")
-    token = login["token"]
+    token = login["access_token"]
 
     protected_before = client.get(
         "/api/v1/clients",
@@ -34,12 +44,9 @@ def test_logout_invalidates_old_token_and_clears_cookie(client, test_user):
     )
     assert protected_before.status_code == 200
 
-    logout_response = client.post(
-        "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    logout_response = client.post("/api/v1/auth/logout")
     assert logout_response.status_code == 204
-    assert "access_token=" in logout_response.headers["set-cookie"]
+    assert "refresh_token=" in logout_response.headers["set-cookie"]
 
     protected_after = client.get(
         "/api/v1/clients",

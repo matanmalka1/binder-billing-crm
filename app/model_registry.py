@@ -36,6 +36,7 @@ import app.signature_requests.models.signature_request  # noqa: F401
 import app.tasks.models.task  # noqa: F401
 import app.tax_calendar.models.deadline_rule  # noqa: F401
 import app.tax_calendar.models.tax_calendar_entry  # noqa: F401
+import app.users.models.password_reset_token  # noqa: F401
 import app.users.models.user  # noqa: F401
 import app.users.models.user_audit_log  # noqa: F401
 import app.vat_reports.models.vat_audit_log  # noqa: F401

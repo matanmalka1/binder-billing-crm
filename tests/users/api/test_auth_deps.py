@@ -5,6 +5,7 @@ import jwt
 from app.config import settings
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from app.users.services.token_service import generate_access_token
 
 
 def test_users_endpoint_requires_token(client):
@@ -26,14 +27,15 @@ def test_users_endpoint_rejects_invalid_and_malformed_tokens(client):
         {
             "sub": "not-an-int",
             "email": "malformed@example.com",
-            "role": "advisor",
-            "iat": now,
-            "exp": now + timedelta(hours=1),
-            "tv": "x",
-        },
-        settings.JWT_SECRET,
-        algorithm="HS256",
-    )
+                "role": "advisor",
+                "iat": now,
+                "exp": now + timedelta(hours=1),
+                "tv": "x",
+                "type": "access",
+            },
+            settings.JWT_SECRET,
+            algorithm=settings.JWT_ALGORITHM,
+        )
     malformed_response = client.get(
         "/api/v1/users",
         headers={"Authorization": f"Bearer {malformed_token}"},
@@ -54,7 +56,7 @@ def test_inactive_user_token_is_rejected(client, test_db):
     test_db.commit()
     test_db.refresh(user)
 
-    token = AuthService.generate_token(user)
+    token = generate_access_token(user)
     response = client.get(
         "/api/v1/users",
         headers={"Authorization": f"Bearer {token}"},
@@ -63,7 +65,7 @@ def test_inactive_user_token_is_rejected(client, test_db):
     assert response.json()["error"]["message"] == "המשתמש לא נמצא או שאינו פעיל"
 
 
-def test_cookie_fallback_authenticates_without_authorization_header(client, auth_token):
+def test_access_cookie_does_not_authenticate_without_authorization_header(client, auth_token):
     client.cookies.set("access_token", auth_token)
     response = client.get("/api/v1/users")
-    assert response.status_code == 200
+    assert response.status_code == 401

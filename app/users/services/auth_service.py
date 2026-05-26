@@ -1,17 +1,36 @@
-from datetime import UTC, datetime, timedelta
+from dataclasses import dataclass
 
 import bcrypt
-import jwt
 from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.core.exceptions import AppError
 from app.core.logging_config import get_logger
 from app.users.models.user import User
 from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.repositories.user_repository import UserRepository
 from app.users.services.audit_log_service import AuditLogService
+from app.users.services.token_service import (
+    decode_refresh_token,
+    generate_access_token,
+    generate_refresh_token,
+)
 
 logger = get_logger(__name__)
+
+@dataclass(frozen=True)
+class AuthBundle:
+    access_token: str
+    refresh_token: str
+    user: User
+
+
+class InvalidRefreshTokenError(AppError):
+    def __init__(self) -> None:
+        super().__init__(
+            "טוקן הרענון אינו תקין או שפג תוקפו",
+            "AUTH.INVALID_REFRESH_TOKEN",
+            status_code=401,
+        )
 
 
 class AuthService:
@@ -35,36 +54,37 @@ class AuthService:
 
     def authenticate(self, email: str, password: str) -> User | None:
         """Authenticate user by email and password."""
-        user = self.user_repo.get_by_email(email)
+        normalized_email = email.strip().lower()
+        user = self.user_repo.get_by_email(normalized_email)
 
         if not user:
-            logger.warning(f"Failed login attempt for email: {email}")
+            logger.warning(f"Failed login attempt for email: {normalized_email}")
             self.audit_log_service.log(
                 action=AuditAction.LOGIN_FAILURE,
                 status=AuditStatus.FAILURE,
-                email=email,
+                email=normalized_email,
                 reason="user_not_found",
             )
             return None
 
         if not user.is_active:
-            logger.warning(f"Inactive user login attempt for email: {email}")
+            logger.warning(f"Inactive user login attempt for email: {normalized_email}")
             self.audit_log_service.log(
                 action=AuditAction.LOGIN_FAILURE,
                 status=AuditStatus.FAILURE,
                 target_user_id=user.id,
-                email=email,
+                email=normalized_email,
                 reason="inactive_user",
             )
             return None
 
         if not self.verify_password(password, user.password_hash):
-            logger.warning(f"Invalid password for email: {email}")
+            logger.warning(f"Invalid password for email: {normalized_email}")
             self.audit_log_service.log(
                 action=AuditAction.LOGIN_FAILURE,
                 status=AuditStatus.FAILURE,
                 target_user_id=user.id,
-                email=email,
+                email=normalized_email,
                 reason="invalid_password",
             )
             return None
@@ -77,8 +97,14 @@ class AuthService:
             target_user_id=user.id,
             email=user.email,
         )
-        logger.info(f"Successful login for user: {email}")
+        logger.info(f"Successful login for user: {normalized_email}")
         return user
+
+    def login(self, email: str, password: str) -> AuthBundle | None:
+        user = self.authenticate(email, password)
+        if user is None:
+            return None
+        return self.issue_auth_bundle(user)
 
     def logout_user(self, *, user_id: int, email: str) -> None:
         """
@@ -98,38 +124,47 @@ class AuthService:
         logger.info(f"User logged out and token invalidated: {email}")
 
     @staticmethod
-    def generate_token(user: User, ttl_hours: int | None = None) -> str:
-        """
-        Generate JWT token for authenticated user.
+    def issue_auth_bundle(user: User) -> AuthBundle:
+        return AuthBundle(
+            access_token=generate_access_token(user),
+            refresh_token=generate_refresh_token(user),
+            user=user,
+        )
 
-        Embeds token_version so the server can invalidate tokens
-        without a token blacklist.
-        """
-        ttl = ttl_hours if ttl_hours is not None else settings.JWT_TTL_HOURS
-        now = datetime.now(UTC)
-        payload = {
-            "sub": str(user.id),
-            "email": user.email,
-            "role": user.role.value,
-            "tv": user.token_version,
-            "iat": now,
-            "exp": now + timedelta(hours=ttl),
-        }
-        return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
+    def refresh_access_token(self, refresh_token: str | None) -> str:
+        if not refresh_token:
+            raise InvalidRefreshTokenError()
 
-    @staticmethod
-    def decode_token(token: str) -> dict | None:
-        """Decode and validate JWT token. Returns payload or None."""
+        payload = decode_refresh_token(refresh_token)
+        if not payload:
+            raise InvalidRefreshTokenError()
+
         try:
-            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
-            required_fields = {"sub", "email", "role", "exp", "iat"}
-            if not required_fields.issubset(payload):
-                logger.debug("Token missing required fields")
-                return None
-            return payload
-        except jwt.ExpiredSignatureError:
-            logger.debug("Token has expired")
-            return None
-        except jwt.InvalidTokenError as e:
-            logger.debug(f"Invalid token: {e}")
-            return None
+            user_id = int(payload["sub"])
+            token_version = int(payload["tv"])
+        except (ValueError, KeyError) as exc:
+            raise InvalidRefreshTokenError() from exc
+
+        user = self.user_repo.get_by_id(user_id)
+        if not user or not user.is_active or user.token_version != token_version:
+            raise InvalidRefreshTokenError()
+
+        return generate_access_token(user)
+
+    def logout_by_refresh_token(self, refresh_token: str | None) -> None:
+        if not refresh_token:
+            return
+
+        payload = decode_refresh_token(refresh_token)
+        if not payload:
+            return
+
+        try:
+            user_id = int(payload["sub"])
+        except (ValueError, KeyError):
+            return
+
+        user = self.user_repo.get_by_id(user_id)
+        if not user:
+            return
+        self.logout_user(user_id=user.id, email=user.email)

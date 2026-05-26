@@ -73,3 +73,12 @@ max-locals = 25
 
 [tool.pylint.format]
 max-line-length = 100
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+[tool.vulture]
+paths = ["app", "tests", "alembic"]
+exclude = [".venv", "venv", "migrations", "seed"]
+ignore_decorators = ["@app.*", "@router.*"]
+min_confidence = 80
+sort_by_size = true

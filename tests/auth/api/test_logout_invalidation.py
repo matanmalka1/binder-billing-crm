@@ -22,7 +22,7 @@ def _login(client, email: str, password: str) -> str:
         json={"email": email, "password": password},
     )
     assert response.status_code == 200
-    return response.json()["token"]
+    return response.json()["access_token"]
 
 
 def test_logout_invalidates_bearer_token(client, test_db):
@@ -37,11 +37,7 @@ def test_logout_invalidates_bearer_token(client, test_db):
     )
     assert pre_logout.status_code == 200
 
-    # Logout using the same token
-    logout_response = client.post(
-        "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    logout_response = client.post("/api/v1/auth/logout")
     assert logout_response.status_code == 204
 
     # Same token must now be rejected
@@ -52,10 +48,9 @@ def test_logout_invalidates_bearer_token(client, test_db):
     assert post_logout.status_code == 401
 
 
-def test_logout_requires_authentication(client):
-    """Logout without a valid token must return 401."""
+def test_logout_without_refresh_cookie_is_noop(client):
     response = client.post("/api/v1/auth/logout")
-    assert response.status_code == 401
+    assert response.status_code == 204
 
 
 def test_logout_is_audited(client, advisor_headers, test_db):
@@ -65,10 +60,7 @@ def test_logout_is_audited(client, advisor_headers, test_db):
     user = _create_user(test_db, email="logout.audit@example.com")
     token = _login(client, user.email, "password123")
 
-    client.post(
-        "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    client.post("/api/v1/auth/logout")
 
     logs_response = client.get("/api/v1/users/audit-logs", headers=advisor_headers)
     assert logs_response.status_code == 200
@@ -81,10 +73,7 @@ def test_new_login_after_logout_works(client, test_db):
     user = _create_user(test_db, email="logout.relogin@example.com")
     old_token = _login(client, user.email, "password123")
 
-    client.post(
-        "/api/v1/auth/logout",
-        headers={"Authorization": f"Bearer {old_token}"},
-    )
+    client.post("/api/v1/auth/logout")
 
     new_token = _login(client, user.email, "password123")
     assert new_token != old_token

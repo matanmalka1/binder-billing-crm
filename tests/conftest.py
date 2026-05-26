@@ -29,6 +29,7 @@ from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.services.bootstrap import seed_default_deadline_rules
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
+from app.users.services.token_service import generate_access_token
 from tests.helpers.identity import seed_business, seed_client_identity
 
 
@@ -164,7 +165,7 @@ def test_user(test_db):
 @pytest.fixture(scope="function")
 def auth_token(test_user):
     """Generate auth token for test user."""
-    return AuthService.generate_token(test_user)
+    return generate_access_token(test_user)
 
 
 @pytest.fixture(scope="function")
@@ -186,7 +187,7 @@ def secretary_user(test_db):
 @pytest.fixture(scope="function")
 def secretary_token(secretary_user):
     """Generate auth token for secretary user."""
-    return AuthService.generate_token(secretary_user)
+    return generate_access_token(secretary_user)
 
 
 @pytest.fixture(scope="function")

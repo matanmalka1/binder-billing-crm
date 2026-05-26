@@ -54,5 +54,8 @@ htmlcov/
 # macOS
 .DS_Store
 
-# Local dev/test storage 
+# Local dev/test storage
 storage/
+
+# Local pyright config (contains machine-specific absolute paths)
+pyrightconfig.json

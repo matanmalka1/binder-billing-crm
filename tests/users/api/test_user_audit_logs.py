@@ -56,7 +56,7 @@ def test_user_actions_are_persisted_in_audit_log(client, advisor_headers, test_d
     reset_response = client.post(
         f"/api/v1/users/{target.id}/reset-password",
         headers=advisor_headers,
-        json={"new_password": "newpassword123"},
+        json={"new_password": "Newpassword123!"},
     )
     assert reset_response.status_code == 200
 

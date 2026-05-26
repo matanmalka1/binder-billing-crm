@@ -64,7 +64,15 @@ class Settings(BaseSettings):
     DATABASE_URL: str = _DEFAULT_DATABASE_URL
 
     JWT_SECRET: str = ""
-    JWT_TTL_HOURS: int = 8
+    JWT_ALGORITHM: str = "HS256"
+    AUTH_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    AUTH_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    REFRESH_COOKIE_NAME: str = "refresh_token"
+    REFRESH_COOKIE_PATH: str = "/api/v1/auth"
+    REFRESH_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+    PASSWORD_RESET_DEV_LOG: bool = False
+    FRONTEND_PASSWORD_RESET_URL: str = "http://localhost:5173/reset-password"
 
     # Raw comma-separated string; read list via .CORS_ALLOWED_ORIGINS property.
     # Accepts env var CORS_ALLOWED_ORIGINS or constructor kwarg CORS_ALLOWED_ORIGINS.
@@ -131,6 +139,9 @@ class Settings(BaseSettings):
 
         if "AUTH_LOGIN_RATE_LIMIT" not in values and os.getenv("AUTH_LOGIN_RATE_LIMIT") is None:
             values["AUTH_LOGIN_RATE_LIMIT"] = "10000/minute" if app_env == "test" else "5/minute"
+
+        if "REFRESH_COOKIE_SAMESITE" not in values and os.getenv("REFRESH_COOKIE_SAMESITE") is None:
+            values["REFRESH_COOKIE_SAMESITE"] = "none" if app_env == "production" else "lax"
 
         return values
 

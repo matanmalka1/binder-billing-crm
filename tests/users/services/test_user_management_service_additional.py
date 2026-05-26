@@ -14,7 +14,7 @@ def test_user_management_create_and_update_validation(test_db, test_user):
         full_name="New User",
         email="new.user@example.com",
         role=UserRole.SECRETARY,
-        password="password123",
+        password="Password123!",
     )
     assert created.email == "new.user@example.com"
 
@@ -25,7 +25,7 @@ def test_user_management_create_and_update_validation(test_db, test_user):
             full_name="Dup User",
             email="new.user@example.com",
             role=UserRole.SECRETARY,
-            password="password123",
+            password="Password123!",
         )
 
     with pytest.raises(AppError):
@@ -49,7 +49,7 @@ def test_user_management_create_and_update_validation(test_db, test_user):
         full_name="Another User",
         email="another.user@example.com",
         role=UserRole.SECRETARY,
-        password="password123",
+        password="Password123!",
     )
     with pytest.raises(ConflictError):
         service.update_user(
