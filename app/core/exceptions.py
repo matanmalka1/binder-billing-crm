@@ -78,11 +78,13 @@ def _request_id(request: Request) -> str | None:
 def validation_error_details(errors: list[dict]) -> list[dict]:
     result = []
     for err in errors:
-        result.append({
-            "field": _field_path(err.get("loc", ())),
-            "message": err.get("msg", ""),
-            "type": err.get("type", ""),
-        })
+        result.append(
+            {
+                "field": _field_path(err.get("loc", ())),
+                "message": err.get("msg", ""),
+                "type": err.get("type", ""),
+            }
+        )
     return result
 
 
@@ -131,4 +133,3 @@ class ConflictError(AppError):
 class ForbiddenError(AppError):
     def __init__(self, message: str, code: str):
         super().__init__(message, code, status_code=403)
-

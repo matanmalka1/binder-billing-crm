@@ -274,6 +274,7 @@ class CreateClientService:
             impact=impact,
         )
 
+
 def create_client_identity_only(db, **kwargs) -> ClientRecord:
     client_record, _ = CreateClientService(db).create_client(**kwargs)
     return client_record

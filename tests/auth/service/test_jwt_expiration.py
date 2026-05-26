@@ -31,9 +31,9 @@ def test_jwt_expiration_is_enforced():
         "email": "test@example.com",
         "role": "advisor",
         "iat": past_time,
-            "tv": 0,
-            "type": "access",
-            "exp": past_time + timedelta(hours=1),  # Expired 9 hours ago
+        "tv": 0,
+        "type": "access",
+        "exp": past_time + timedelta(hours=1),  # Expired 9 hours ago
     }
 
     expired_token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)

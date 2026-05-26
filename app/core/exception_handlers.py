@@ -20,9 +20,7 @@ from app.core.logging_config import get_logger, set_request_error
 logger = get_logger(__name__)
 
 
-async def http_exception_handler(
-    request: Request, exc: StarletteHTTPException
-) -> JSONResponse:
+async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
     logger.warning(
         f"HTTP exception: {exc.status_code} - {exc.detail}",
         extra={"path": request.url.path},

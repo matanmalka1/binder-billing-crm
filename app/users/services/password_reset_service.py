@@ -59,8 +59,7 @@ class PasswordResetService:
         self.token_repo.create(
             user_id=user.id,
             token_hash=_hash_token(raw_token),
-            expires_at=utcnow()
-            + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
+            expires_at=utcnow() + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
             requested_ip=requested_ip,
             user_agent=user_agent,
         )

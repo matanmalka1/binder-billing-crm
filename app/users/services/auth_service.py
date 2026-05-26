@@ -17,6 +17,7 @@ from app.users.services.token_service import (
 
 logger = get_logger(__name__)
 
+
 @dataclass(frozen=True)
 class AuthBundle:
     access_token: str

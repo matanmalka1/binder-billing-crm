@@ -27,15 +27,15 @@ def test_users_endpoint_rejects_invalid_and_malformed_tokens(client):
         {
             "sub": "not-an-int",
             "email": "malformed@example.com",
-                "role": "advisor",
-                "iat": now,
-                "exp": now + timedelta(hours=1),
-                "tv": "x",
-                "type": "access",
-            },
-            settings.JWT_SECRET,
-            algorithm=settings.JWT_ALGORITHM,
-        )
+            "role": "advisor",
+            "iat": now,
+            "exp": now + timedelta(hours=1),
+            "tv": "x",
+            "type": "access",
+        },
+        settings.JWT_SECRET,
+        algorithm=settings.JWT_ALGORITHM,
+    )
     malformed_response = client.get(
         "/api/v1/users",
         headers={"Authorization": f"Bearer {malformed_token}"},

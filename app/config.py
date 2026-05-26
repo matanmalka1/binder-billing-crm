@@ -11,10 +11,7 @@ except Exception:
     load_dotenv = None
 
 _DEFAULT_CORS = (
-    "http://localhost:3000,"
-    "http://localhost:5173,"
-    "http://127.0.0.1:3000,"
-    "http://127.0.0.1:5173"
+    "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173"
 )
 
 
@@ -164,7 +161,9 @@ class Settings(BaseSettings):
                 raise ValueError(f"LOG_FORMAT חייב להיות json ב-{self.APP_ENV}")
 
             if self.SENTRY_ENABLED and not self.SENTRY_DSN:
-                raise ValueError(f"SENTRY_DSN חייב להיות מוגדר כאשר SENTRY_ENABLED=true ב-{self.APP_ENV}")
+                raise ValueError(
+                    f"SENTRY_DSN חייב להיות מוגדר כאשר SENTRY_ENABLED=true ב-{self.APP_ENV}"
+                )
 
         return self
 

@@ -24,7 +24,9 @@ def test_validate_password_enforces_minimum_length():
     assert exc_info.value.code == "USER.INVALID_PASSWORD"
 
 
-@pytest.mark.parametrize("password", ["", "        ", "password123!", "PASSWORD123!", "Password123"])
+@pytest.mark.parametrize(
+    "password", ["", "        ", "password123!", "PASSWORD123!", "Password123"]
+)
 def test_validate_password_enforces_complexity(password):
     with pytest.raises(AppError) as exc_info:
         validate_password(password)
