@@ -52,7 +52,6 @@ def info():
 setup_exception_handlers(app)
 setup_rate_limiting(app)
 
-app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ALLOWED_ORIGINS,
@@ -60,6 +59,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestIDMiddleware)
 
 register_routers(app)
 

@@ -38,3 +38,17 @@ def health_check(db: Session = Depends(get_db)) -> HealthCheckResponse | JSONRes
     if result["status"] != "healthy":
         return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=result)
     return HealthCheckResponse(**result)
+
+
+@router.get(
+    "/ready",
+    response_model=HealthCheckResponse,
+    responses={status.HTTP_503_SERVICE_UNAVAILABLE: {"model": HealthCheckResponse}},
+    status_code=status.HTTP_200_OK,
+)
+def readiness_check(db: Session = Depends(get_db)) -> HealthCheckResponse | JSONResponse:
+    """Return readiness status for platform health checks."""
+    result = HealthService(db).check()
+    if result["status"] != "healthy":
+        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=result)
+    return HealthCheckResponse(**result)

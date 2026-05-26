@@ -55,7 +55,7 @@ For every HTTP request:
 - Rate limiting uses SlowAPI and currently protects `POST /api/v1/auth/login`.
 - Login rate limiting keys by normalized email when available, falling back to client IP.
 - The middleware is non-domain-specific and applies across all routes.
-- `RequestIDMiddleware` is registered before CORS middleware in `app/main.py`.
+- `RequestIDMiddleware` is registered after CORS middleware in `app/main.py`, so it runs first on the request path and can propagate `X-Request-ID` across CORS-handled responses.
 
 ## Error Envelope
 
