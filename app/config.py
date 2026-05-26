@@ -100,8 +100,8 @@ class Settings(BaseSettings):
 
     NOTIFICATIONS_ENABLED: bool = False
 
-    SENDGRID_API_KEY: str = ""
-    SENDGRID_API_URL: str = "https://api.sendgrid.com/v3/mail/send"
+    BREVO_API_KEY: str = ""
+    BREVO_API_URL: str = "https://api.brevo.com/v3/smtp/email"
     EMAIL_FROM_ADDRESS: str = ""
     EMAIL_FROM_NAME: str = ""
 

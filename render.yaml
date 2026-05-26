@@ -82,15 +82,15 @@ services:
       - key: CORS_ALLOWED_ORIGINS
         sync: false
 
-      # Notifications (SendGrid)
+      # Notifications (Brevo)
       - key: NOTIFICATIONS_ENABLED
-        value: "false"
+        value: "true"
 
-      - key: SENDGRID_API_KEY
+      - key: BREVO_API_KEY
         sync: false
 
-      - key: SENDGRID_API_URL
-        value: https://api.sendgrid.com/v3/mail/send
+      - key: BREVO_API_URL
+        value: https://api.brevo.com/v3/smtp/email
 
       - key: EMAIL_FROM_ADDRESS
         sync: false

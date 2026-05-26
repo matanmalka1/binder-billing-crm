@@ -60,8 +60,8 @@ class NotificationService:
         live_delivery = settings.APP_ENV in ("staging", "production")
         self.email = EmailChannel(
             enabled=settings.NOTIFICATIONS_ENABLED and live_delivery,
-            api_key=settings.SENDGRID_API_KEY,
-            api_url=settings.SENDGRID_API_URL,
+            api_key=settings.BREVO_API_KEY,
+            api_url=settings.BREVO_API_URL,
             from_address=settings.EMAIL_FROM_ADDRESS,
             from_name=settings.EMAIL_FROM_NAME,
         )
