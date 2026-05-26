@@ -57,7 +57,7 @@ services:
         value: "false"
 
       - key: FRONTEND_PASSWORD_RESET_URL
-        sync: false
+        value: https://binder-billing-crm-frontend.onrender.com/reset-password
 
       # Sentry (optional)
       - key: SENTRY_ENABLED
