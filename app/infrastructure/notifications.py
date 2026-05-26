@@ -69,6 +69,18 @@ class EmailChannel:
         }
         return self._send_payload(payload, success_log_recipient=recipient)
 
+    def send_html(
+        self, recipient: str, html_content: str, plain_text: str, subject: str
+    ) -> tuple[bool, str | None]:
+        payload = {
+            "sender": {"email": self._from_address, "name": self._from_name or "CRM"},
+            "to": [{"email": recipient}],
+            "subject": subject,
+            "textContent": plain_text,
+            "htmlContent": html_content,
+        }
+        return self._send_payload(payload, success_log_recipient=recipient)
+
     def _send_payload(
         self,
         payload: dict[str, Any],

@@ -1,4 +1,5 @@
 import hashlib
+import html as html_lib
 import secrets
 from datetime import timedelta
 
@@ -69,17 +70,24 @@ class PasswordResetService:
         if settings.PASSWORD_RESET_DEV_LOG:
             logger.info("[DEV ONLY] Password reset URL for %s: %s", normalized_email, reset_url)
 
-        content = (
+        plain_text = (
             f"שלום {user.full_name},\n\n"
             "התקבלה בקשה לאיפוס הסיסמה שלך.\n"
             f"לאיפוס הסיסמה יש להיכנס לקישור הבא: {reset_url}\n\n"
             f"הקישור תקף למשך {settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES} דקות.\n"
             "אם לא ביקשת לאפס סיסמה, אפשר להתעלם מההודעה."
         )
-        ok, error = self.email_channel.send(
+        html_content = _build_reset_email_html(
+            full_name=user.full_name,
+            reset_url=reset_url,
+            expires_minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
+            from_name=settings.EMAIL_FROM_NAME,
+        )
+        ok, error = self.email_channel.send_html(
             user.email,
-            content,
-            subject="איפוס סיסמה",
+            html_content=html_content,
+            plain_text=plain_text,
+            subject="איפוס סיסמה | מערכת ניהול תיקים",
         )
         if not ok:
             logger.error("Password reset email failed for %s: %s", normalized_email, error)
@@ -103,3 +111,91 @@ class PasswordResetService:
         user.token_version += 1
         self.db.commit()
         return _RESET_MESSAGE
+
+
+def _build_reset_email_html(
+    *,
+    full_name: str,
+    reset_url: str,
+    expires_minutes: int,
+    from_name: str,
+) -> str:
+    safe_name = html_lib.escape(full_name)
+    safe_url = html_lib.escape(reset_url)
+    safe_from = html_lib.escape(from_name)
+    safe_expires = html_lib.escape(str(expires_minutes))
+
+    return f"""<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>איפוס סיסמה</title>
+</head>
+<body style="margin:0;padding:0;background:#F4F4F5;font-family:Arial,sans-serif;direction:rtl;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F4F5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#1E293B;padding:28px 40px;text-align:right;">
+              <span style="color:#ffffff;font-size:18px;font-weight:700;letter-spacing:-0.3px;">{safe_from}</span>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:40px 40px 32px;text-align:right;">
+              <p style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0F172A;">איפוס סיסמה</p>
+              <p style="margin:0 0 28px;font-size:15px;color:#64748B;">שלום {safe_name},</p>
+
+              <p style="margin:0 0 28px;font-size:15px;color:#334155;line-height:1.7;">
+                התקבלה בקשה לאיפוס הסיסמה שלך.<br>
+                לחץ על הכפתור הבא כדי לבחור סיסמה חדשה:
+              </p>
+
+              <!-- CTA Button -->
+              <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                <tr>
+                  <td style="background:#1E293B;border-radius:8px;">
+                    <a href="{safe_url}"
+                       style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;letter-spacing:-0.2px;">
+                      איפוס סיסמה
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 6px;font-size:13px;color:#94A3B8;">
+                הקישור תקף למשך <strong>{safe_expires} דקות</strong>.
+              </p>
+              <p style="margin:0;font-size:13px;color:#94A3B8;">
+                אם לא ביקשת לאפס סיסמה — אפשר להתעלם מהודעה זו.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <hr style="border:none;border-top:1px solid #E2E8F0;margin:0;">
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 40px;text-align:right;">
+              <p style="margin:0;font-size:12px;color:#CBD5E1;">
+                הודעה זו נשלחה אוטומטית ממערכת ניהול התיקים של {safe_from}. אין להשיב להודעה זו.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
