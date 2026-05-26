@@ -20,8 +20,13 @@ def run_startup_expiry() -> None:
     db = SessionLocal()
     try:
         count = expire_overdue_requests(SignatureRequestRepository(db))
+        db.commit()
         if count:
             logger.info("Expired %d overdue signature request(s) on startup", count)
+    except Exception:
+        db.rollback()
+        logger.exception("Startup signature expiry failed")
+        raise
     finally:
         db.close()
 
@@ -59,7 +64,9 @@ async def _run_job(name: str, task: Callable) -> None:
         db = SessionLocal()
         try:
             task(db)
+            db.commit()
         except Exception:
+            db.rollback()
             logger.exception("%s failed", name)
         finally:
             db.close()

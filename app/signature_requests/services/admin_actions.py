@@ -63,6 +63,7 @@ def expire_overdue_requests(repo: SignatureRequestRepository) -> int:
     for req in expired_reqs:
         repo.update(
             req.id,
+            req=req,
             status=SignatureRequestStatus.EXPIRED,
             signing_token=None,
         )

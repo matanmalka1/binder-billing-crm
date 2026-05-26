@@ -27,10 +27,6 @@ Last verified from code, migrations, and tests: 2026-05-17.
   - Current state: invoice references can be attached internally, but there is no invoice API, provider client, or call from `BillingService.issue_charge()`.
   - Relevant code: `app/invoice/services/invoice_service.py`, `app/charge/services/billing_service.py`, `app/config.py`
 
-- [ ] Decide and enable production notification delivery.
-  - Current state: SendGrid/WhatsApp adapters exist, but `render.yaml` sets `NOTIFICATIONS_ENABLED=false`.
-  - Relevant code: `app/infrastructure/notifications.py`, `app/notification/services/notification_delivery_service.py`, `render.yaml`
-
 - [ ] Add batched alert counts for client sidebar navigation.
   - Current state: notification/work-queue summaries exist per client, but no batched endpoint exists for all sidebar clients.
   - Relevant code: `app/notification/api/notifications.py`, `app/work_queue/api/routes.py`, `../frontend/src/components/layout/ClientSidebar/ClientSidebar.tsx`
