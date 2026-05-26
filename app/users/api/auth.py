@@ -6,7 +6,7 @@ from app.config import settings
 from app.middleware.rate_limiting import get_email_key, limiter
 from app.users.api.auth_cookies import clear_refresh_cookie, set_refresh_cookie
 from app.users.api.constants import REFRESH_COOKIE_NAME
-from app.users.api.deps import DBSession
+from app.users.api.deps import CurrentUser, DBSession
 from app.users.schemas.auth import (
     AuthTokenResponse,
     LoginRequest,
@@ -52,6 +52,16 @@ def refresh(
     auth_service = AuthService(db)
     access_token = auth_service.refresh_access_token(refresh_token)
     return RefreshResponse(access_token=access_token)
+
+
+@router.get("/me", response_model=UserResponse)
+def me(current_user: CurrentUser) -> UserResponse:
+    return UserResponse(
+        id=current_user.id,
+        full_name=current_user.full_name,
+        role=current_user.role,
+        email=current_user.email,
+    )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

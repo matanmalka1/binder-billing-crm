@@ -106,6 +106,11 @@ Routers are mounted under `/api/v1`.
 - Reads `refresh_token` from HttpOnly cookie.
 - Response includes a new `access_token`.
 
+#### Current user
+- `GET /api/v1/auth/me`
+- Requires `Authorization: Bearer <access_token>`.
+- Response includes `id`, `full_name`, `role`, `email`.
+
 #### Logout
 - `POST /api/v1/auth/logout`
 - Returns `204 No Content`

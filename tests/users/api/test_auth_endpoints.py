@@ -34,6 +34,19 @@ def test_refresh_returns_new_access_token(client, test_user):
     assert response.json()["token_type"] == "bearer"
 
 
+def test_me_returns_current_user(client, test_user):
+    login = _login(client, test_user.email, "password123")
+
+    response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {login['access_token']}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == test_user.id
+    assert response.json()["email"] == test_user.email
+
+
 def test_logout_invalidates_old_token_and_clears_cookie(client, test_user):
     login = _login(client, test_user.email, "password123")
     token = login["access_token"]
