@@ -29,8 +29,24 @@ services:
       - key: LOG_HIGH_QUERY_COUNT
         value: "20"
 
+      - key: AUTH_LOGIN_RATE_LIMIT
+        value: "5/minute"
+
       - key: JWT_TTL_HOURS
         value: "8"
+
+      # Sentry (optional)
+      - key: SENTRY_ENABLED
+        value: "false"
+
+      - key: SENTRY_DSN
+        sync: false
+
+      - key: SENTRY_ENVIRONMENT
+        value: production
+
+      - key: SENTRY_TRACES_SAMPLE_RATE
+        value: "0.0"
 
       # Set in Render dashboard — do not commit secrets
       - key: DATABASE_URL

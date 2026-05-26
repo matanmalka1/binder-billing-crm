@@ -83,6 +83,13 @@ class Settings(BaseSettings):
     LOG_SLOW_QUERY_MS: int = 250
     LOG_HIGH_QUERY_COUNT: int = 20
 
+    AUTH_LOGIN_RATE_LIMIT: str = "5/minute"
+
+    SENTRY_ENABLED: bool = False
+    SENTRY_DSN: str = ""
+    SENTRY_ENVIRONMENT: str = ""
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.0
+
     NOTIFICATIONS_ENABLED: bool = False
 
     SENDGRID_API_KEY: str = ""
@@ -119,6 +126,12 @@ class Settings(BaseSettings):
         if "LOG_SQL" not in values and os.getenv("LOG_SQL") is None:
             values["LOG_SQL"] = app_env == "development"
 
+        if "SENTRY_ENVIRONMENT" not in values and os.getenv("SENTRY_ENVIRONMENT") is None:
+            values["SENTRY_ENVIRONMENT"] = app_env
+
+        if "AUTH_LOGIN_RATE_LIMIT" not in values and os.getenv("AUTH_LOGIN_RATE_LIMIT") is None:
+            values["AUTH_LOGIN_RATE_LIMIT"] = "10000/minute" if app_env == "test" else "5/minute"
+
         return values
 
     @model_validator(mode="after")
@@ -138,6 +151,9 @@ class Settings(BaseSettings):
 
             if self.LOG_FORMAT != "json":
                 raise ValueError(f"LOG_FORMAT חייב להיות json ב-{self.APP_ENV}")
+
+            if self.SENTRY_ENABLED and not self.SENTRY_DSN:
+                raise ValueError(f"SENTRY_DSN חייב להיות מוגדר כאשר SENTRY_ENABLED=true ב-{self.APP_ENV}")
 
         return self
 

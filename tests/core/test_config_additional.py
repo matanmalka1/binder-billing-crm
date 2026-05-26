@@ -179,3 +179,32 @@ def test_settings_singleton_exists():
     import app.config as config_mod
 
     assert isinstance(config_mod.settings, config_mod.Settings)
+
+
+def test_sentry_environment_defaults_to_app_env(monkeypatch):
+    monkeypatch.delenv("SENTRY_ENVIRONMENT", raising=False)
+
+    s = Settings(APP_ENV="development", JWT_SECRET="secret")
+
+    assert s.SENTRY_ENVIRONMENT == "development"
+
+
+def test_sentry_enabled_requires_dsn_in_production():
+    with pytest.raises(ValidationError, match="SENTRY_DSN"):
+        Settings(
+            APP_ENV="production",
+            JWT_SECRET="secret",
+            DATABASE_URL=_REMOTE_DB,
+            CORS_ALLOWED_ORIGINS="https://example.com",
+            LOG_FORMAT="json",
+            SENTRY_ENABLED=True,
+            SENTRY_DSN="",
+        )
+
+
+def test_login_rate_limit_is_relaxed_in_test_env(monkeypatch):
+    monkeypatch.delenv("AUTH_LOGIN_RATE_LIMIT", raising=False)
+
+    s = Settings(APP_ENV="test", JWT_SECRET="secret")
+
+    assert s.AUTH_LOGIN_RATE_LIMIT == "10000/minute"

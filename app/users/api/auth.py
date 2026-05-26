@@ -1,8 +1,9 @@
 from datetime import timedelta
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
 
 from app.config import settings
+from app.middleware.rate_limiting import get_email_key, limiter
 from app.users.api.constants import (
     COOKIE_NAME,
     COOKIE_SAMESITE,
@@ -16,11 +17,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(request: LoginRequest, db: DBSession, response: Response):
+@limiter.limit(settings.AUTH_LOGIN_RATE_LIMIT, key_func=get_email_key("auth_login"))
+def login(request: Request, payload: LoginRequest, db: DBSession, response: Response):
     """Authenticate user and return user info (JWT is set as HttpOnly cookie)."""
     auth_service = AuthService(db)
 
-    user = auth_service.authenticate(request.email, request.password)
+    user = auth_service.authenticate(payload.email, payload.password)
 
     if not user:
         raise HTTPException(
@@ -29,7 +31,7 @@ def login(request: LoginRequest, db: DBSession, response: Response):
         )
 
     ttl_hours = settings.JWT_TTL_HOURS
-    if request.rememberMe:
+    if payload.rememberMe:
         ttl_hours = settings.JWT_TTL_HOURS * REMEMBER_ME_TTL_MULTIPLIER
 
     token = auth_service.generate_token(user, ttl_hours=ttl_hours)

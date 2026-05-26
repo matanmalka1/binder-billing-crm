@@ -8,13 +8,16 @@ from app.config import settings
 from app.core.env_validator import EnvValidator
 from app.core.exception_handlers import setup_exception_handlers
 from app.core.logging_config import get_logger, setup_logging
+from app.core.sentry import configure_sentry
 from app.lifespan import lifespan
+from app.middleware.rate_limiting import setup_rate_limiting
 from app.middleware.request_id import RequestIDMiddleware
 from app.router_registry import register_routers
 
 EnvValidator.validate()
 
 setup_logging(level=settings.LOG_LEVEL, log_format=settings.LOG_FORMAT)
+configure_sentry(settings)
 logger = get_logger(__name__)
 if settings.APP_ENV == "development":
     logger.info("CORS allowed origins: %s", settings.CORS_ALLOWED_ORIGINS)
@@ -47,6 +50,7 @@ def info():
 
 
 setup_exception_handlers(app)
+setup_rate_limiting(app)
 
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
