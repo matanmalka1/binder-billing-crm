@@ -1,5 +1,7 @@
 from datetime import date
 
+from sqlalchemy import select
+
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.clients.services.client_onboarding_orchestrator import (
     ClientOnboardingOrchestrator,
@@ -43,12 +45,11 @@ def _run_onboarding(db, client_record_id: int, entity_type: EntityType) -> None:
 
 
 def _advance_payments(db, client_record_id: int):
-    return (
-        db.query(AdvancePayment)
+    return db.scalars(
+        select(AdvancePayment)
         .filter(AdvancePayment.client_record_id == client_record_id)
         .order_by(AdvancePayment.period.asc())
-        .all()
-    )
+    ).all()
 
 
 def test_company_ltd_monthly_advance_frequency_creates_monthly_payments(test_db):

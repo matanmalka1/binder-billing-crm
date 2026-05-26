@@ -1,6 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
+from sqlalchemy import select, func
 from tax_rules import get_financial
 
 from app.advance_payments.models.advance_payment import AdvancePayment
@@ -76,21 +77,17 @@ def test_preview_impact_matches_actual_future_generation(test_db):
         actor_id=1,
         reference_date=reference_date,
     )
-    vat_work_items_count = (
-        test_db.query(VatWorkItem).filter(VatWorkItem.client_record_id == client_record.id).count()
+    vat_work_items_count = test_db.scalar(
+        select(func.count()).select_from(VatWorkItem).filter(VatWorkItem.client_record_id == client_record.id)
     )
-    advance_payments_count = (
-        test_db.query(AdvancePayment)
-        .filter(AdvancePayment.client_record_id == client_record.id)
-        .count()
+    advance_payments_count = test_db.scalar(
+        select(func.count()).select_from(AdvancePayment).filter(AdvancePayment.client_record_id == client_record.id)
     )
-    reports_count = (
-        test_db.query(AnnualReport)
-        .filter(AnnualReport.client_record_id == client_record.id)
-        .count()
+    reports_count = test_db.scalar(
+        select(func.count()).select_from(AnnualReport).filter(AnnualReport.client_record_id == client_record.id)
     )
-    binders_count = (
-        test_db.query(Binder).filter(Binder.client_record_id == client_record.id).count()
+    binders_count = test_db.scalar(
+        select(func.count()).select_from(Binder).filter(Binder.client_record_id == client_record.id)
     )
 
     assert binders_count == 1

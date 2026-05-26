@@ -1,5 +1,7 @@
 from datetime import date
 
+from sqlalchemy import select
+
 from app.businesses.models.business import Business
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
@@ -40,10 +42,8 @@ def _business(test_db, suffix: str) -> Business:
 
 
 def _client_record_id(test_db, business: Business) -> int:
-    return (
-        test_db.query(ClientRecord.id)
-        .filter(ClientRecord.legal_entity_id == business.legal_entity_id)
-        .scalar()
+    return test_db.scalar(
+        select(ClientRecord.id).filter(ClientRecord.legal_entity_id == business.legal_entity_id)
     )
 
 

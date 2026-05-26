@@ -1,5 +1,7 @@
 from datetime import date
 
+from sqlalchemy import select
+
 from app.businesses.models.business import Business
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
@@ -60,11 +62,9 @@ def _business(test_db, suffix: str) -> Business:
 
 def _seed_notification(test_db, business_id: int, content: str, **kwargs):
     business = test_db.get(Business, business_id)
-    cr = (
-        test_db.query(ClientRecord)
-        .filter(ClientRecord.legal_entity_id == business.legal_entity_id)
-        .first()
-    )
+    cr = test_db.scalars(
+        select(ClientRecord).filter(ClientRecord.legal_entity_id == business.legal_entity_id)
+    ).first()
     repo = NotificationRepository(test_db)
     return repo.create(
         client_record_id=cr.id,
@@ -204,11 +204,9 @@ def test_secretary_can_list(client, test_db, secretary_headers):
 
 def test_secretary_cannot_send(client, test_db, secretary_headers):
     b1 = _business(test_db, "sec2")
-    cr = (
-        test_db.query(ClientRecord)
-        .filter(ClientRecord.legal_entity_id == b1.legal_entity_id)
-        .first()
-    )
+    cr = test_db.scalars(
+        select(ClientRecord).filter(ClientRecord.legal_entity_id == b1.legal_entity_id)
+    ).first()
     resp = client.post(
         "/api/v1/notifications/send",
         json={

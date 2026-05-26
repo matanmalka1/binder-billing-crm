@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+from sqlalchemy import update
 
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.services.binder_intake_service import BinderIntakeService
@@ -123,8 +124,10 @@ def test_receive_backfills_period_start_for_existing_binder_without_period(test_
 def test_receive_raises_when_all_businesses_locked(test_db, test_user):
     client = _client(test_db, "BI-SVC-LOCKED-001", office_client_number=100303)
     _business(test_db, client.id)
-    test_db.query(Business).filter(Business.legal_entity_id == client.legal_entity_id).update(
-        {"status": BusinessStatus.FROZEN}
+    test_db.execute(
+        update(Business)
+        .where(Business.legal_entity_id == client.legal_entity_id)
+        .values(status=BusinessStatus.FROZEN)
     )
     test_db.commit()
 

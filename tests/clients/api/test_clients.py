@@ -3,6 +3,8 @@ Tests for POST/GET /api/v1/clients.
 Uses valid Israeli ID numbers (pass Luhn checksum).
 """
 
+from sqlalchemy import func, select
+
 from app.businesses.models.business import Business
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
@@ -77,14 +79,12 @@ def test_create_client_creates_client_and_initial_business(client, test_db, advi
     assert data["business"]["client_id"] == data["client"]["id"]
     assert data["client"]["office_client_number"] == 100001
 
-    stored_business = (
-        test_db.query(Business)
-        .filter(
+    stored_business = test_db.scalars(
+        select(Business).filter(
             Business.id == data["business"]["id"],
             Business.business_name == "Created Business",
         )
-        .one()
-    )
+    ).one()
     assert stored_business.opened_at.isoformat() == "2026-04-19"
 
 
@@ -147,10 +147,11 @@ def test_create_client_rejects_blank_business_before_creating_client(
 
     assert response.status_code == 422
     assert (
-        test_db.query(ClientRecord)
-        .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-        .filter(LegalEntity.id_number == "ONB-BLANK")
-        .count()
+        test_db.scalar(
+            select(func.count()).select_from(ClientRecord)
+            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .filter(LegalEntity.id_number == "ONB-BLANK")
+        )
         == 0
     )
 

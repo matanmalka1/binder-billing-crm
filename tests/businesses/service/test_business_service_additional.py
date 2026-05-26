@@ -2,6 +2,8 @@ from datetime import date
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from sqlalchemy import select
+
 import pytest
 from sqlalchemy.exc import IntegrityError
 
@@ -219,15 +221,13 @@ def test_restore_business_restores_soft_deleted_business_and_writes_audit(test_d
     assert restored.status == BusinessStatus.ACTIVE
     assert restored.restored_by == 9
 
-    audit = (
-        test_db.query(EntityAuditLog)
-        .filter(
+    audit = test_db.scalars(
+        select(EntityAuditLog).filter(
             EntityAuditLog.entity_type == ENTITY_BUSINESS,
             EntityAuditLog.entity_id == business.id,
             EntityAuditLog.action == ACTION_RESTORED,
         )
-        .one()
-    )
+    ).one()
     assert audit.performed_by == 9
 
 

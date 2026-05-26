@@ -1,3 +1,5 @@
+from sqlalchemy import select
+
 from app.common.enums import VatType
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
@@ -260,7 +262,7 @@ def test_period_options_bimonthly_uses_odd_months_and_marks_opened(
 ):
     from app.clients.models.legal_entity import LegalEntity
 
-    le = test_db.query(LegalEntity).filter(LegalEntity.id == vat_client.legal_entity_id).first()
+    le = test_db.scalars(select(LegalEntity).filter(LegalEntity.id == vat_client.legal_entity_id)).first()
     le.vat_reporting_frequency = VatType.BIMONTHLY
     test_db.commit()
 

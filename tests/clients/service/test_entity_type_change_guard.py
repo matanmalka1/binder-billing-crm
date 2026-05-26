@@ -3,6 +3,7 @@ from datetime import date
 from itertools import count
 
 import pytest
+from sqlalchemy import select
 
 from app.audit.constants import (
     ACTION_ENTITY_TYPE_CHANGED,
@@ -47,8 +48,8 @@ def _setup(db) -> tuple:
         entity_type=EntityType.OSEK_MURSHE,
         vat_reporting_frequency=VatType.MONTHLY,
     )
-    cr = db.query(ClientRecord).filter(ClientRecord.id == seeded.id).one()
-    le = db.query(LegalEntity).filter(LegalEntity.id == seeded.legal_entity_id).one()
+    cr = db.scalars(select(ClientRecord).filter(ClientRecord.id == seeded.id)).one()
+    le = db.scalars(select(LegalEntity).filter(LegalEntity.id == seeded.legal_entity_id)).one()
 
     biz = Business(
         legal_entity_id=le.id,
@@ -90,7 +91,7 @@ def test_advisor_can_change_entity_type(test_db):
     )
 
     test_db.refresh(cr)
-    le = test_db.query(LegalEntity).filter(LegalEntity.id == cr.legal_entity_id).one()
+    le = test_db.scalars(select(LegalEntity).filter(LegalEntity.id == cr.legal_entity_id)).one()
     assert le.entity_type == EntityType.COMPANY_LTD
 
 
@@ -105,15 +106,13 @@ def test_entity_type_change_logs_audit_entry(test_db):
         entity_type=EntityType.COMPANY_LTD,
     )
 
-    audit_entries = (
-        test_db.query(EntityAuditLog)
-        .filter(
+    audit_entries = test_db.scalars(
+        select(EntityAuditLog).filter(
             EntityAuditLog.entity_type == ENTITY_CLIENT,
             EntityAuditLog.entity_id == cr.id,
             EntityAuditLog.action == ACTION_UPDATED,
         )
-        .all()
-    )
+    ).all()
     matching_entries = [
         entry for entry in audit_entries if entry.note == ACTION_ENTITY_TYPE_CHANGED
     ]

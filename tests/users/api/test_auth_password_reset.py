@@ -1,6 +1,8 @@
 import hashlib
 from datetime import timedelta
 
+from sqlalchemy import select, func
+
 from app.users.models.password_reset_token import PasswordResetToken
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
@@ -32,7 +34,7 @@ def test_forgot_password_returns_generic_message_and_stores_hashed_token(client,
 
     assert response.status_code == 200
     assert response.json()["message"] == "אם קיים משתמש עם האימייל הזה, נשלחו הוראות לאיפוס סיסמה"
-    records = test_db.query(PasswordResetToken).filter_by(user_id=user.id).all()
+    records = test_db.scalars(select(PasswordResetToken).filter(PasswordResetToken.user_id == user.id)).all()
     assert len(records) == 1
     assert len(records[0].token_hash) == 64
     assert records[0].used_at is None
@@ -46,7 +48,7 @@ def test_forgot_password_does_not_reveal_missing_user(client, test_db):
 
     assert response.status_code == 200
     assert response.json()["message"] == "אם קיים משתמש עם האימייל הזה, נשלחו הוראות לאיפוס סיסמה"
-    assert test_db.query(PasswordResetToken).count() == 0
+    assert test_db.scalar(select(func.count()).select_from(PasswordResetToken)) == 0
 
 
 def test_reset_password_uses_token_once_and_invalidates_existing_access_token(client, test_db):

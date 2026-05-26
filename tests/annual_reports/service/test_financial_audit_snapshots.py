@@ -2,6 +2,8 @@ import json
 from decimal import Decimal
 from itertools import count
 
+from sqlalchemy import select
+
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.financial_service import AnnualReportFinancialService
 from app.audit.constants import (
@@ -40,13 +42,12 @@ def test_income_delete_stores_old_value_snapshot(test_db, test_user):
 
     service.delete_income(report.id, line.id, actor_id=test_user.id)
 
-    entry = (
-        test_db.query(EntityAuditLog)
+    entry = test_db.scalars(
+        select(EntityAuditLog)
         .filter(EntityAuditLog.entity_type == ENTITY_ANNUAL_REPORT)
         .filter(EntityAuditLog.entity_id == report.id)
         .filter(EntityAuditLog.action == ACTION_INCOME_DELETED)
-        .one()
-    )
+    ).one()
     assert json.loads(entry.old_value) == {
         "line_id": line.id,
         "source_type": "salary",
@@ -68,13 +69,12 @@ def test_expense_delete_stores_old_value_snapshot(test_db, test_user):
 
     service.delete_expense(report.id, line.id, actor_id=test_user.id)
 
-    entry = (
-        test_db.query(EntityAuditLog)
+    entry = test_db.scalars(
+        select(EntityAuditLog)
         .filter(EntityAuditLog.entity_type == ENTITY_ANNUAL_REPORT)
         .filter(EntityAuditLog.entity_id == report.id)
         .filter(EntityAuditLog.action == ACTION_EXPENSE_DELETED)
-        .one()
-    )
+    ).one()
     assert json.loads(entry.old_value) == {
         "line_id": line.id,
         "category": "office_rent",

@@ -1,6 +1,8 @@
 import json
 from itertools import count
 
+from sqlalchemy import select
+
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.annual_reports.services.annual_report_service import AnnualReportService
 from app.annual_reports.services.detail_service import AnnualReportDetailService
@@ -32,13 +34,12 @@ def _create_report(db, user):
 
 
 def _entry(db, report_id, action):
-    return (
-        db.query(EntityAuditLog)
+    return db.scalars(
+        select(EntityAuditLog)
         .filter(EntityAuditLog.entity_type == ENTITY_ANNUAL_REPORT)
         .filter(EntityAuditLog.entity_id == report_id)
         .filter(EntityAuditLog.action == action)
-        .one()
-    )
+    ).one()
 
 
 def test_detail_update_writes_generic_audit(test_db, test_user):
@@ -69,13 +70,12 @@ def test_detail_update_skips_audit_when_values_do_not_change(test_db, test_user)
 
     service.update_detail(report.id, actor_id=test_user.id, donation_amount=250)
 
-    entries = (
-        test_db.query(EntityAuditLog)
+    entries = test_db.scalars(
+        select(EntityAuditLog)
         .filter(EntityAuditLog.entity_type == ENTITY_ANNUAL_REPORT)
         .filter(EntityAuditLog.entity_id == report.id)
         .filter(EntityAuditLog.action == ACTION_ANNUAL_REPORT_DETAIL_UPDATED)
-        .all()
-    )
+    ).all()
     assert len(entries) == 1
 
 

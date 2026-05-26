@@ -1,6 +1,8 @@
 import json
 from itertools import count
 
+from sqlalchemy import select
+
 from app.audit.constants import ACTION_CANCELED, ACTION_ISSUED, ACTION_PAID
 from app.audit.models.entity_audit_log import EntityAuditLog
 from app.businesses.models.business import BusinessStatus
@@ -75,10 +77,9 @@ def _charge(service, business, actor_id):
 
 
 def _audit_entry(db, charge_id: int, action: str) -> EntityAuditLog:
-    return (
-        db.query(EntityAuditLog)
+    return db.scalars(
+        select(EntityAuditLog)
         .filter(EntityAuditLog.entity_type == "charge")
         .filter(EntityAuditLog.entity_id == charge_id)
         .filter(EntityAuditLog.action == action)
-        .one()
-    )
+    ).one()

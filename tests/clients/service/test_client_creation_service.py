@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy import select
 
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
@@ -41,19 +42,19 @@ def test_create_client_creates_identity_graph(test_db):
         actor_id=7,
     )
 
-    person = test_db.query(Person).filter(Person.id_number == "123456780").one()
-    legal_entity = (
-        test_db.query(LegalEntity).filter(LegalEntity.id == client_record.legal_entity_id).one()
-    )
-    link = (
-        test_db.query(PersonLegalEntityLink)
-        .filter(
+    person = test_db.scalars(select(Person).filter(Person.id_number == "123456780")).one()
+    legal_entity = test_db.scalars(
+        select(LegalEntity).filter(LegalEntity.id == client_record.legal_entity_id)
+    ).one()
+    link = test_db.scalars(
+        select(PersonLegalEntityLink).filter(
             PersonLegalEntityLink.person_id == person.id,
             PersonLegalEntityLink.legal_entity_id == legal_entity.id,
         )
-        .one()
-    )
-    stored_record = test_db.query(ClientRecord).filter(ClientRecord.id == client_record.id).one()
+    ).one()
+    stored_record = test_db.scalars(
+        select(ClientRecord).filter(ClientRecord.id == client_record.id)
+    ).one()
 
     assert stored_record.id == client_record.id
     assert stored_record.office_client_number == client_record.office_client_number

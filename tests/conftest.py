@@ -24,6 +24,8 @@ from app.clients.models.legal_entity import LegalEntity  # noqa: F401
 from app.clients.models.person import Person  # noqa: F401
 from app.clients.models.person_legal_entity_link import PersonLegalEntityLink  # noqa: F401
 from app.common.enums import IdNumberType
+from sqlalchemy import select
+
 from app.database import Base, get_db
 from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.services.bootstrap import seed_default_deadline_rules
@@ -34,7 +36,7 @@ from tests.helpers.identity import seed_business, seed_client_identity
 
 
 def _ensure_client_identity_graph(session, client) -> None:
-    existing = session.query(ClientRecord).filter(ClientRecord.id == client.id).first()
+    existing = session.scalars(select(ClientRecord).filter(ClientRecord.id == client.id)).first()
     if existing:
         return
     seeded = seed_client_identity(
@@ -81,7 +83,7 @@ def test_db():
 
     db = TestSessionLocal()
     seed_default_deadline_rules(db)
-    for rule in db.query(DeadlineRule).all():
+    for rule in db.scalars(select(DeadlineRule)).all():
         rule.effective_from = date(1900, 1, 1)
     db.flush()
 

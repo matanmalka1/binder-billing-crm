@@ -2,6 +2,7 @@ from datetime import date
 from itertools import count
 
 import pytest
+from sqlalchemy import select
 
 from app.advance_payments.models.advance_payment import AdvancePayment
 from app.advance_payments.repositories.advance_payment_repository import (
@@ -98,14 +99,12 @@ def test_generate_annual_schedule_is_idempotent_for_existing_periods(test_db):
     assert len(created) == 11
     assert all(p.period != existing.period for p in created)
 
-    rows = (
-        test_db.query(AdvancePayment)
-        .filter(
+    rows = test_db.scalars(
+        select(AdvancePayment).filter(
             AdvancePayment.client_record_id == business.client_record_id,
             AdvancePayment.period.like("2026-%"),
         )
-        .all()
-    )
+    ).all()
     assert len(rows) == 12
 
 
