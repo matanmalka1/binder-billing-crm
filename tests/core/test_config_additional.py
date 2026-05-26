@@ -1,67 +1,181 @@
-import builtins
 import importlib
+import os
 
 import pytest
+from pydantic import ValidationError
 
-import app.config as config_mod
-from app.core.exceptions import AppError
+from app.config import Settings
+
+_REMOTE_DB = "postgresql+psycopg2://user:pass@remotehost:5432/db"
 
 
-def _restore_config_module(monkeypatch):
+# ── JWT_SECRET ────────────────────────────────────────────────────────────────
+
+
+def test_missing_jwt_secret_raises():
+    with pytest.raises(ValidationError, match="JWT_SECRET"):
+        Settings(APP_ENV="development", JWT_SECRET="")
+
+
+# ── staging/production CORS requirement ───────────────────────────────────────
+
+
+@pytest.mark.parametrize("env", ["staging", "production"])
+def test_prod_staging_without_cors_raises(env):
+    with pytest.raises(ValidationError, match="CORS_ALLOWED_ORIGINS"):
+        Settings(
+            APP_ENV=env,
+            JWT_SECRET="secret",
+            DATABASE_URL=_REMOTE_DB,
+            CORS_ALLOWED_ORIGINS="",
+            LOG_FORMAT="json",
+        )
+
+
+@pytest.mark.parametrize("env", ["staging", "production"])
+def test_prod_staging_with_cors_ok(env):
+    s = Settings(
+        APP_ENV=env,
+        JWT_SECRET="secret",
+        DATABASE_URL=_REMOTE_DB,
+        CORS_ALLOWED_ORIGINS="https://example.com",
+        LOG_FORMAT="json",
+    )
+    assert s.CORS_ALLOWED_ORIGINS == ["https://example.com"]
+
+
+# ── localhost DATABASE_URL in prod/staging ────────────────────────────────────
+
+
+@pytest.mark.parametrize("env", ["staging", "production"])
+@pytest.mark.parametrize(
+    "db_url",
+    [
+        "postgresql+psycopg2://user:pass@localhost:5432/db",
+        "postgresql+psycopg2://user:pass@127.0.0.1:5432/db",
+    ],
+)
+def test_prod_staging_localhost_db_raises(env, db_url):
+    with pytest.raises(ValidationError):
+        Settings(
+            APP_ENV=env,
+            JWT_SECRET="secret",
+            DATABASE_URL=db_url,
+            CORS_ALLOWED_ORIGINS="https://example.com",
+            LOG_FORMAT="json",
+        )
+
+
+# ── LOG_FORMAT defaults ───────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("env", ["staging", "production"])
+def test_log_format_default_json_in_prod(env, monkeypatch):
+    monkeypatch.delenv("LOG_FORMAT", raising=False)
+    s = Settings(
+        APP_ENV=env,
+        JWT_SECRET="secret",
+        DATABASE_URL=_REMOTE_DB,
+        CORS_ALLOWED_ORIGINS="https://example.com",
+    )
+    assert s.LOG_FORMAT == "json"
+
+
+@pytest.mark.parametrize("env", ["development", "test"])
+def test_log_format_default_text_in_dev(env, monkeypatch):
+    monkeypatch.delenv("LOG_FORMAT", raising=False)
+    s = Settings(APP_ENV=env, JWT_SECRET="secret")
+    assert s.LOG_FORMAT == "text"
+
+
+def test_log_format_must_be_json_in_staging_raises():
+    with pytest.raises(ValidationError, match="LOG_FORMAT"):
+        Settings(
+            APP_ENV="staging",
+            JWT_SECRET="secret",
+            DATABASE_URL=_REMOTE_DB,
+            CORS_ALLOWED_ORIGINS="https://example.com",
+            LOG_FORMAT="text",
+        )
+
+
+# ── APP_ENV=local normalizes to development ───────────────────────────────────
+
+
+def test_local_normalizes_to_development(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "local")
+    import app.config as config_mod
+
+    config_mod._load_env_files()
+    assert os.environ["APP_ENV"] == "development"
+    monkeypatch.setenv("APP_ENV", "test")  # restore
+
+
+# ── ENV_FILE respected ────────────────────────────────────────────────────────
+
+
+def test_load_env_files_uses_env_file_when_provided(monkeypatch, tmp_path):
+    env_file = tmp_path / "custom.env"
+    env_file.write_text("SOME_VAR=hello\n")
+    monkeypatch.setenv("ENV_FILE", str(env_file))
     monkeypatch.setenv("JWT_SECRET", "test-secret")
-    importlib.reload(config_mod)
 
+    captured: dict = {}
 
-def test_config_raises_when_jwt_secret_missing(monkeypatch):
-    monkeypatch.delenv("JWT_SECRET", raising=False)
-    monkeypatch.delenv("ENV_FILE", raising=False)
+    import app.config as config_mod
 
-    original_import = builtins.__import__
+    original = config_mod.load_dotenv
 
-    def _import(name, *args, **kwargs):
-        if name == "dotenv":
-            raise ImportError("dotenv missing")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _import)
-
-    with pytest.raises(AppError) as exc_info:
-        importlib.reload(config_mod)
-
-    assert exc_info.value.code == "CONFIG.JWT_SECRET_MISSING"
-    _restore_config_module(monkeypatch)
-
-
-def test_config_import_handles_missing_dotenv_dependency(monkeypatch):
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
-
-    original_import = builtins.__import__
-
-    def _import(name, *args, **kwargs):
-        if name == "dotenv":
-            raise ImportError("dotenv missing")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", _import)
-    importlib.reload(config_mod)
-
-    assert config_mod.load_dotenv is None
-
-    _restore_config_module(monkeypatch)
-
-
-def test_load_env_files_uses_env_file_when_provided(monkeypatch):
-    monkeypatch.setenv("JWT_SECRET", "test-secret")
-    monkeypatch.setenv("ENV_FILE", "/tmp/custom.env")
-
-    captured = {}
-
-    def _fake_load_dotenv(*, dotenv_path, override):
+    def _fake(*, dotenv_path, override):
         captured["dotenv_path"] = str(dotenv_path)
         captured["override"] = override
 
-    monkeypatch.setattr(config_mod, "load_dotenv", _fake_load_dotenv)
-    config_mod._load_env_files()
+    config_mod.load_dotenv = _fake
+    try:
+        config_mod._load_env_files()
+    finally:
+        config_mod.load_dotenv = original
 
-    assert captured["dotenv_path"] == "/tmp/custom.env"
-    assert captured["override"] is False
+    assert captured.get("dotenv_path") == str(env_file)
+    assert captured.get("override") is False
+
+
+# ── CORS_ALLOWED_ORIGINS parsing ──────────────────────────────────────────────
+
+
+def test_cors_origins_parsed_from_comma_string():
+    s = Settings(
+        APP_ENV="development",
+        JWT_SECRET="secret",
+        CORS_ALLOWED_ORIGINS="https://a.com, https://b.com , https://c.com",
+    )
+    assert s.CORS_ALLOWED_ORIGINS == ["https://a.com", "https://b.com", "https://c.com"]
+
+
+def test_cors_origins_empty_entries_stripped():
+    s = Settings(
+        APP_ENV="development",
+        JWT_SECRET="secret",
+        CORS_ALLOWED_ORIGINS="https://a.com,,  ,https://b.com",
+    )
+    assert s.CORS_ALLOWED_ORIGINS == ["https://a.com", "https://b.com"]
+
+
+# ── DATABASE_URL defaults ─────────────────────────────────────────────────────
+
+
+def test_test_env_defaults_to_sqlite(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    import app.config as config_mod
+
+    importlib.reload(config_mod)
+    s = config_mod.Settings(APP_ENV="test", JWT_SECRET="secret")
+    assert "sqlite" in s.DATABASE_URL
+
+
+def test_settings_singleton_exists():
+    import app.config as config_mod
+
+    assert isinstance(config_mod.settings, config_mod.Settings)

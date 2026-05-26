@@ -4,7 +4,7 @@ import bcrypt
 import jwt
 from sqlalchemy.orm import Session
 
-from app.config import config
+from app.config import settings
 from app.core.logging_config import get_logger
 from app.users.models.user import User
 from app.users.models.user_audit_log import AuditAction, AuditStatus
@@ -105,7 +105,7 @@ class AuthService:
         Embeds token_version so the server can invalidate tokens
         without a token blacklist.
         """
-        ttl = ttl_hours if ttl_hours is not None else config.JWT_TTL_HOURS
+        ttl = ttl_hours if ttl_hours is not None else settings.JWT_TTL_HOURS
         now = datetime.now(UTC)
         payload = {
             "sub": str(user.id),
@@ -115,13 +115,13 @@ class AuthService:
             "iat": now,
             "exp": now + timedelta(hours=ttl),
         }
-        return jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
+        return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
 
     @staticmethod
     def decode_token(token: str) -> dict | None:
         """Decode and validate JWT token. Returns payload or None."""
         try:
-            payload = jwt.decode(token, config.JWT_SECRET, algorithms=["HS256"])
+            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
             required_fields = {"sub", "email", "role", "exp", "iat"}
             if not required_fields.issubset(payload):
                 logger.debug("Token missing required fields")

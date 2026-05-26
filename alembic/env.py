@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool, text
 from alembic import context
 
 # Load app config for DATABASE_URL
-from app.config import config as app_config
+from app.config import settings as app_settings
 
 from app.database import Base
 
@@ -19,7 +19,7 @@ alembic_config = context.config
 if alembic_config.config_file_name is not None:
     fileConfig(alembic_config.config_file_name)
 
-alembic_config.set_main_option("sqlalchemy.url", app_config.DATABASE_URL)
+alembic_config.set_main_option("sqlalchemy.url", app_settings.DATABASE_URL)
 
 target_metadata = Base.metadata
 

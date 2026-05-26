@@ -1,11 +1,13 @@
 import io
 
+import httpx
 import pytest
 
 from app.infrastructure import storage as storage_mod
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel, _to_html
 
 SENDGRID_API_URL = "https://sendgrid.test/mail/send"
+MAX_EXPECTED_PROVIDER_ERROR_BODY_LENGTH = 1000
 
 
 class _Resp:
@@ -48,10 +50,14 @@ def test_email_channel_disabled_missing_config_and_success(monkeypatch):
     assert ok is False
     assert "EMAIL_FROM_ADDRESS" in msg
 
-    def _urlopen_ok(_req, **_kwargs):
-        return _Resp(202)
+    captured = {}
 
-    monkeypatch.setattr("urllib.request.urlopen", _urlopen_ok)
+    def _post_ok(url, **kwargs):
+        captured["url"] = url
+        captured["kwargs"] = kwargs
+        return httpx.Response(202)
+
+    monkeypatch.setattr("httpx.post", _post_ok)
     enabled = EmailChannel(
         enabled=True,
         api_key="k",
@@ -60,6 +66,14 @@ def test_email_channel_disabled_missing_config_and_success(monkeypatch):
         from_name="CRM",
     )
     assert enabled.send("a@b.com", "hello")[0] is True
+    assert captured["url"] == SENDGRID_API_URL
+    assert captured["kwargs"]["json"]["content"][0]["value"] == "hello"
+
+    ok, msg = enabled.send_template("a@b.com", "template-1", {"first_name": "A"})
+    assert ok is True
+    payload = captured["kwargs"]["json"]
+    assert payload["template_id"] == "template-1"
+    assert payload["personalizations"][0]["dynamic_template_data"] == {"first_name": "A"}
 
 
 def test_whatsapp_channel_paths(monkeypatch):
@@ -97,7 +111,7 @@ def test_local_storage_and_provider_factory(monkeypatch, tmp_path):
 
     import app.config as config_mod
 
-    monkeypatch.setattr(config_mod, "config", _Config)
+    monkeypatch.setattr(config_mod, "settings", _Config)
     built = storage_mod.get_storage_provider()
     assert isinstance(built, storage_mod.LocalStorageProvider)
 
@@ -130,7 +144,7 @@ def test_get_storage_provider_requires_r2_fields_in_production(monkeypatch):
 
     import app.config as config_mod
 
-    monkeypatch.setattr(config_mod, "config", _Config)
+    monkeypatch.setattr(config_mod, "settings", _Config)
     with pytest.raises(RuntimeError):
         storage_mod.get_storage_provider()
 
@@ -172,10 +186,10 @@ def test_notification_helpers_html_and_channel_exceptions(monkeypatch):
     assert "<p>line1</p>" in html
     assert "<br>" in html
 
-    def _raise_urlopen(_req, **_kwargs):
-        raise RuntimeError("net-down")
+    def _raise_post(_url, **_kwargs):
+        raise httpx.ConnectError("net-down")
 
-    monkeypatch.setattr("urllib.request.urlopen", _raise_urlopen)
+    monkeypatch.setattr("httpx.post", _raise_post)
 
     email = EmailChannel(
         enabled=True,
@@ -185,7 +199,17 @@ def test_notification_helpers_html_and_channel_exceptions(monkeypatch):
     )
     ok, msg = email.send("to@x.com", "hello")
     assert ok is False
-    assert "SendGrid error" in msg
+    assert "SendGrid email request failed" in msg
+
+    def _post_rejected(_url, **_kwargs):
+        return httpx.Response(400, text="x" * 1200)
+
+    monkeypatch.setattr("httpx.post", _post_rejected)
+
+    ok, msg = email.send("to@x.com", "hello")
+    assert ok is False
+    assert "SendGrid rejected email: status=400" in msg
+    assert len(msg.rsplit("body=", 1)[1]) == MAX_EXPECTED_PROVIDER_ERROR_BODY_LENGTH
 
     wa = WhatsAppChannel(api_key="k", api_url="https://wa", from_number="123")
     ok, msg = wa.send("050", "hello")

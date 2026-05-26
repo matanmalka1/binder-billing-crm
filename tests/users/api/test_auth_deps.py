@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 
-from app.config import config
+from app.config import settings
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
 
@@ -31,7 +31,7 @@ def test_users_endpoint_rejects_invalid_and_malformed_tokens(client):
             "exp": now + timedelta(hours=1),
             "tv": "x",
         },
-        config.JWT_SECRET,
+        settings.JWT_SECRET,
         algorithm="HS256",
     )
     malformed_response = client.get(

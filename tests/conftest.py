@@ -7,11 +7,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-import app.core.background_jobs as background_jobs_module
-import app.main as main_module
-
 os.environ.setdefault("APP_ENV", "test")
 os.environ.setdefault("JWT_SECRET", "test-secret")
+
+import app.core.background_jobs as background_jobs_module
+import app.main as main_module
 
 import app.notes.models.entity_note  # noqa: F401
 import app.tasks.models.task  # noqa: F401

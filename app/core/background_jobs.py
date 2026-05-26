@@ -2,7 +2,7 @@ import asyncio
 import os
 from collections.abc import Callable
 
-from app.config import config
+from app.config import settings
 from app.core.logging_config import get_logger
 from app.database import SessionLocal
 from app.signature_requests.repositories.signature_request_repository import (
@@ -13,12 +13,7 @@ from app.tax_calendar.services.bootstrap import bootstrap_tax_calendar
 
 logger = get_logger(__name__)
 
-try:
-    from app.config import config as _cfg
-
-    _INTERVAL: int = getattr(_cfg, "BACKGROUND_JOB_INTERVAL_SECONDS", 86_400)
-except Exception:
-    _INTERVAL = 86_400
+_INTERVAL: int = getattr(settings, "BACKGROUND_JOB_INTERVAL_SECONDS", 86_400)
 
 
 def run_startup_expiry() -> None:
@@ -32,7 +27,7 @@ def run_startup_expiry() -> None:
 
 
 def run_development_tax_calendar_bootstrap() -> None:
-    if config.APP_ENV != "development":
+    if settings.APP_ENV != "development":
         return
     if "PYTEST_CURRENT_TEST" in os.environ:
         return

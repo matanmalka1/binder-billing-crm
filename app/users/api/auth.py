@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from fastapi import APIRouter, HTTPException, Response, status
 
-from app.config import config
+from app.config import settings
 from app.users.api.constants import (
     COOKIE_NAME,
     COOKIE_SAMESITE,
@@ -28,9 +28,9 @@ def login(request: LoginRequest, db: DBSession, response: Response):
             detail="אימייל או סיסמה שגויים",
         )
 
-    ttl_hours = config.JWT_TTL_HOURS
+    ttl_hours = settings.JWT_TTL_HOURS
     if request.rememberMe:
-        ttl_hours = config.JWT_TTL_HOURS * REMEMBER_ME_TTL_MULTIPLIER
+        ttl_hours = settings.JWT_TTL_HOURS * REMEMBER_ME_TTL_MULTIPLIER
 
     token = auth_service.generate_token(user, ttl_hours=ttl_hours)
 
@@ -38,7 +38,7 @@ def login(request: LoginRequest, db: DBSession, response: Response):
         key=COOKIE_NAME,
         value=token,
         httponly=True,
-        secure=config.APP_ENV == "production",
+        secure=settings.APP_ENV == "production",
         samesite=COOKIE_SAMESITE,
         path="/",
         max_age=int(timedelta(hours=ttl_hours).total_seconds()),
@@ -70,6 +70,6 @@ def logout(db: DBSession, current_user: CurrentUser, response: Response):
         key=COOKIE_NAME,
         path="/",
         httponly=True,
-        secure=config.APP_ENV == "production",
+        secure=settings.APP_ENV == "production",
         samesite=COOKIE_SAMESITE,
     )

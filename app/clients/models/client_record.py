@@ -1,4 +1,7 @@
+import os
+
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Sequence, Text, column
+from sqlalchemy import event, func, select
 
 from app.clients.enums import ClientStatus
 from app.common.soft_delete import SoftDeletableMixin
@@ -9,6 +12,7 @@ from app.utils.time_utils import utcnow
 office_client_number_seq = Sequence(
     "client_office_number_seq", start=100001, metadata=Base.metadata
 )
+_IS_TEST_ENV = (os.getenv("APP_ENV") or "").strip().lower() == "test"
 
 
 class ClientRecord(SoftDeletableMixin, Base):
@@ -23,7 +27,7 @@ class ClientRecord(SoftDeletableMixin, Base):
     office_client_number = Column(
         Integer,
         office_client_number_seq,
-        server_default=office_client_number_seq.next_value(),
+        server_default=None if _IS_TEST_ENV else office_client_number_seq.next_value(),
         nullable=False,
     )
     accountant_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
@@ -60,3 +64,14 @@ class ClientRecord(SoftDeletableMixin, Base):
 
     def __repr__(self) -> str:
         return f"<ClientRecord(id={self.id}, legal_entity_id={self.legal_entity_id}, status='{self.status}')>"
+
+
+@event.listens_for(ClientRecord, "before_insert")
+def _assign_test_office_client_number(_mapper, connection, target: ClientRecord) -> None:
+    if not _IS_TEST_ENV or target.office_client_number is not None:
+        return
+
+    current_max = connection.scalar(
+        select(func.max(ClientRecord.office_client_number)).select_from(ClientRecord.__table__)
+    )
+    target.office_client_number = (current_max or 100000) + 1

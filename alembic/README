@@ -25,9 +25,9 @@ docker compose up -d postgres
 ```bash
 APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 - <<'PY'
 from sqlalchemy import create_engine, text
-from app.config import config
+from app.config import settings
 
-engine = create_engine(config.DATABASE_URL, isolation_level="AUTOCOMMIT")
+engine = create_engine(settings.DATABASE_URL, isolation_level="AUTOCOMMIT")
 with engine.connect() as conn:
     conn.execute(text("DROP SCHEMA public CASCADE"))
     conn.execute(text("CREATE SCHEMA public"))

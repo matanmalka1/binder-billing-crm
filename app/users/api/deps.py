@@ -5,6 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.core.logging_config import set_actor_context
 from app.users.models.user import UserRole
 from app.users.repositories.user_repository import AuthSubject, UserRepository
 from app.users.services.auth_service import AuthService
@@ -60,6 +61,7 @@ def get_current_user(
             detail="הטוקן אינו תקין או שפג תוקפו",
         )
 
+    set_actor_context(user_id=user.id, role=user.role.value)
     return user
 
 

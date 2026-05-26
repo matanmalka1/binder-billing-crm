@@ -187,25 +187,25 @@ class S3StorageProvider(StorageProvider):
 
 def get_storage_provider() -> StorageProvider:
     """
-    Factory — returns the correct StorageProvider based on config.
+    Factory — returns the correct StorageProvider based on settings.
 
     - development / test → LocalStorageProvider
     - staging / production → S3StorageProvider (Cloudflare R2 or AWS S3)
     """
-    from app.config import config
+    from app.config import settings
 
-    if config.APP_ENV in ("development", "test"):
-        logger.info("Storage: using LocalStorageProvider (env=%s)", config.APP_ENV)
-        return LocalStorageProvider(config.LOCAL_STORAGE_PATH)
+    if settings.APP_ENV in ("development", "test"):
+        logger.info("Storage: using LocalStorageProvider (env=%s)", settings.APP_ENV)
+        return LocalStorageProvider(settings.LOCAL_STORAGE_PATH)
 
     # Validate required config for cloud storage
     missing = [
         var
         for var, val in {
-            "R2_ACCESS_KEY_ID": config.R2_ACCESS_KEY_ID,
-            "R2_SECRET_ACCESS_KEY": config.R2_SECRET_ACCESS_KEY,
-            "R2_BUCKET_NAME": config.R2_BUCKET_NAME,
-            "R2_ENDPOINT_URL": config.R2_ENDPOINT_URL,
+            "R2_ACCESS_KEY_ID": settings.R2_ACCESS_KEY_ID,
+            "R2_SECRET_ACCESS_KEY": settings.R2_SECRET_ACCESS_KEY,
+            "R2_BUCKET_NAME": settings.R2_BUCKET_NAME,
+            "R2_ENDPOINT_URL": settings.R2_ENDPOINT_URL,
         }.items()
         if not val
     ]
@@ -214,11 +214,11 @@ def get_storage_provider() -> StorageProvider:
             f"S3StorageProvider דורש שמשתני הסביבה הבאים יהיו מוגדרים: {', '.join(missing)}"
         )
 
-    logger.info("Storage: using S3StorageProvider (env=%s)", config.APP_ENV)
+    logger.info("Storage: using S3StorageProvider (env=%s)", settings.APP_ENV)
     return S3StorageProvider(
-        access_key_id=config.R2_ACCESS_KEY_ID,
-        secret_access_key=config.R2_SECRET_ACCESS_KEY,
-        bucket_name=config.R2_BUCKET_NAME,
-        endpoint_url=config.R2_ENDPOINT_URL,
-        region=config.R2_REGION,
+        access_key_id=settings.R2_ACCESS_KEY_ID,
+        secret_access_key=settings.R2_SECRET_ACCESS_KEY,
+        bucket_name=settings.R2_BUCKET_NAME,
+        endpoint_url=settings.R2_ENDPOINT_URL,
+        region=settings.R2_REGION,
     )

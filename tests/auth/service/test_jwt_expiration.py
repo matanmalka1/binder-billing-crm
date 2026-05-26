@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 
-from app.config import config
+from app.config import settings
 from app.users.services.auth_service import AuthService
 
 
@@ -34,7 +34,7 @@ def test_jwt_expiration_is_enforced():
         "exp": past_time + timedelta(hours=1),  # Expired 9 hours ago
     }
 
-    expired_token = jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
+    expired_token = jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
 
     # Should reject expired token
     result = AuthService.decode_token(expired_token)
@@ -61,7 +61,7 @@ def test_token_without_required_fields_rejected():
         # Missing "sub" and "role"
     }
 
-    token = jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
+    token = jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
 
     result = AuthService.decode_token(token)
     assert result is None
@@ -80,7 +80,7 @@ def test_expired_token_rejected_in_api(client, test_user):
         "exp": past_time + timedelta(hours=1),
     }
 
-    expired_token = jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
+    expired_token = jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")
 
     # Try to use expired token
     response = client.get("/api/v1/clients", headers={"Authorization": f"Bearer {expired_token}"})

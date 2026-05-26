@@ -4,7 +4,7 @@ from time import perf_counter
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from app.config import config
+from app.config import settings
 from app.core.logging_config import (
     clear_request_id,
     clear_request_log_stats,
@@ -16,12 +16,12 @@ from app.core.logging_config import (
 
 logger = get_logger(__name__)
 
-if config.APP_ENV == "production" and config.DATABASE_URL.startswith("sqlite"):
+if settings.APP_ENV == "production" and settings.DATABASE_URL.startswith("sqlite"):
     raise RuntimeError("SQLite אינו מותר בסביבת ייצור")
 
 # Create engine
 engine = create_engine(
-    config.DATABASE_URL,
+    settings.DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
 )
@@ -42,7 +42,7 @@ def _record_query_end(conn, cursor, statement, parameters, context, executemany)
 
 
 logging.getLogger("sqlalchemy.engine").setLevel(
-    logging.INFO if config.APP_ENV == "development" else logging.WARNING
+    logging.INFO if settings.LOG_SQL else logging.WARNING
 )
 
 # Session factory
@@ -70,6 +70,13 @@ def get_db():
     finally:
         db.close()
         if get_request_log_stats() is not None:
-            log_request_summary(logger)
+            log_request_summary(
+                logger,
+                service="binder-billing-crm",
+                env=settings.APP_ENV,
+                slow_request_ms=settings.LOG_SLOW_REQUEST_MS,
+                slow_query_ms=settings.LOG_SLOW_QUERY_MS,
+                high_query_count=settings.LOG_HIGH_QUERY_COUNT,
+            )
             clear_request_log_stats()
             clear_request_id()

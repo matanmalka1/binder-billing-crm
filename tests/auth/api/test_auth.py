@@ -1,6 +1,6 @@
 import jwt
 
-from app.config import config
+from app.config import settings
 
 
 def test_login_returns_valid_jwt(client, test_user):
@@ -21,7 +21,7 @@ def test_login_returns_valid_jwt(client, test_user):
 
     # Validate JWT structure
     token = data["token"]
-    payload = jwt.decode(token, config.JWT_SECRET, algorithms=["HS256"])
+    payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
 
     assert "sub" in payload
     assert "email" in payload

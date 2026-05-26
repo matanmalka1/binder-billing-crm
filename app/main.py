@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from app.config import config
+from app.config import settings
 from app.core.env_validator import EnvValidator
 from app.core.exceptions import setup_exception_handlers
 from app.core.logging_config import get_logger, setup_logging
@@ -14,10 +14,10 @@ from app.router_registry import register_routers
 
 EnvValidator.validate()
 
-setup_logging(level=config.LOG_LEVEL)
+setup_logging(level=settings.LOG_LEVEL, log_format=settings.LOG_FORMAT)
 logger = get_logger(__name__)
-if config.APP_ENV == "development":
-    logger.info("CORS allowed origins: %s", config.CORS_ALLOWED_ORIGINS)
+if settings.APP_ENV == "development":
+    logger.info("CORS allowed origins: %s", settings.CORS_ALLOWED_ORIGINS)
 
 app = FastAPI(
     title="Binder & Billing CRM",
@@ -43,7 +43,7 @@ def root():
 
 @app.get("/info", response_model=AppInfoResponse)
 def info():
-    return {"app": "Binder Billing CRM", "env": config.APP_ENV}
+    return {"app": "Binder Billing CRM", "env": settings.APP_ENV}
 
 
 # All handlers (including AppError and ValueError) are registered inside
@@ -53,7 +53,7 @@ setup_exception_handlers(app)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=config.CORS_ALLOWED_ORIGINS,
+    allow_origins=settings.CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -61,7 +61,7 @@ app.add_middleware(
 
 register_routers(app)
 
-if config.APP_ENV in ("development", "test"):
+if settings.APP_ENV in ("development", "test"):
     import os
 
     from fastapi.staticfiles import StaticFiles
@@ -72,4 +72,4 @@ if config.APP_ENV in ("development", "test"):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app.main:app", host="0.0.0.0", port=config.PORT, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.PORT, reload=True)

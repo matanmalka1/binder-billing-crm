@@ -1,16 +1,21 @@
-import datetime as _dt
 import os
-from decimal import Decimal
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
-from app.common.integrations.tax_rules_financials import get_vat_rate_percent
-from app.core.exceptions import AppError
+from pydantic import AliasChoices, Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 try:
     from dotenv import load_dotenv
 except Exception:
     load_dotenv = None
+
+_DEFAULT_CORS = (
+    "http://localhost:3000,"
+    "http://localhost:5173,"
+    "http://127.0.0.1:3000,"
+    "http://127.0.0.1:5173"
+)
 
 
 def _load_env_files() -> None:
@@ -34,91 +39,107 @@ def _load_env_files() -> None:
 
 _load_env_files()
 
+_APP_ENV = (os.getenv("APP_ENV") or "development").strip().lower()
+_DEFAULT_DATABASE_URL = (
+    "sqlite:///./binder_crm_test.db"
+    if _APP_ENV == "test"
+    else "postgresql+psycopg2://postgres:postgres@localhost:5432/binder_crm"
+)
 
-class Config:
-    """Application configuration from environment variables."""
 
-    APP_ENV: Literal["development", "test", "staging", "production"] = (
-        os.getenv("APP_ENV") or "development"
-    )  # type: ignore[assignment]
-    PORT: int = int(os.getenv("PORT", "8000"))
+def _split_origins(raw: str) -> list[str]:
+    return [o.strip() for o in raw.split(",") if o.strip()]
 
-    DATABASE_URL: str = os.getenv(
-        "DATABASE_URL",
-        (
-            "sqlite:///./binder_crm_test.db"
-            if APP_ENV == "test"
-            else "postgresql+psycopg2://postgres:postgres@localhost:5432/binder_crm"
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_ignore_empty=False,
+        extra="ignore",
+        populate_by_name=True,
+    )
+
+    APP_ENV: Literal["development", "test", "staging", "production"] = "development"
+    PORT: int = 8000
+
+    DATABASE_URL: str = _DEFAULT_DATABASE_URL
+
+    JWT_SECRET: str = ""
+    JWT_TTL_HOURS: int = 8
+
+    # Raw comma-separated string; read list via .CORS_ALLOWED_ORIGINS property.
+    # Accepts env var CORS_ALLOWED_ORIGINS or constructor kwarg CORS_ALLOWED_ORIGINS.
+    CORS_ALLOWED_ORIGINS_RAW: Annotated[
+        str,
+        Field(
+            default=_DEFAULT_CORS,
+            validation_alias=AliasChoices("CORS_ALLOWED_ORIGINS_RAW", "CORS_ALLOWED_ORIGINS"),
         ),
-    )
+    ] = _DEFAULT_CORS
 
-    JWT_SECRET: str = os.getenv("JWT_SECRET") or ""
-    if not JWT_SECRET:
-        raise AppError("JWT_SECRET חייב להיות מוגדר", "CONFIG.JWT_SECRET_MISSING", status_code=500)
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: Literal["text", "json"] = "text"
+    LOG_SQL: bool = False
+    LOG_SLOW_REQUEST_MS: int = 500
+    LOG_SLOW_QUERY_MS: int = 250
+    LOG_HIGH_QUERY_COUNT: int = 20
 
-    JWT_TTL_HOURS: int = int(os.getenv("JWT_TTL_HOURS", "8"))
-    _vat_pct = get_vat_rate_percent(_dt.date.today().year)
-    if _vat_pct is not None:
-        ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(str(_vat_pct)) / Decimal("100")
-    else:
-        ADVANCE_PAYMENT_VAT_RATE: Decimal = Decimal(os.getenv("ADVANCE_PAYMENT_VAT_RATE", "0.18"))
+    NOTIFICATIONS_ENABLED: bool = False
 
-    _CORS_ALLOWED_ORIGINS_ENV = os.getenv("CORS_ALLOWED_ORIGINS", "")
-    if APP_ENV in ("staging", "production") and not _CORS_ALLOWED_ORIGINS_ENV:
-        raise AppError(
-            "CORS_ALLOWED_ORIGINS חייב להיות מוגדר",
-            "CONFIG.CORS_ALLOWED_ORIGINS_MISSING",
-            status_code=500,
-        )
+    SENDGRID_API_KEY: str = ""
+    SENDGRID_API_URL: str = "https://api.sendgrid.com/v3/mail/send"
+    EMAIL_FROM_ADDRESS: str = ""
+    EMAIL_FROM_NAME: str = ""
 
-    CORS_ALLOWED_ORIGINS: list[str] = [
-        origin.strip()
-        for origin in (
-            _CORS_ALLOWED_ORIGINS_ENV
-            or "http://localhost:3000,"
-            "http://localhost:5173,"
-            "http://127.0.0.1:3000,"
-            "http://127.0.0.1:5173"
-        ).split(",")
-        if origin.strip()
-    ]
+    WHATSAPP_API_KEY: str = ""
+    WHATSAPP_API_URL: str = "https://waba.360dialog.io/v1/messages"
+    WHATSAPP_FROM_NUMBER: str = ""
 
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    INVOICE_PROVIDER_BASE_URL: str = ""
+    INVOICE_PROVIDER_API_KEY: str = ""
 
-    # ── Notifications ──────────────────────────────────────────────────
-    # Set NOTIFICATIONS_ENABLED=true in production to actually send emails.
-    # In development/test the EmailChannel logs instead of sending.
-    NOTIFICATIONS_ENABLED: bool = os.getenv("NOTIFICATIONS_ENABLED", "false").lower() == "true"
+    R2_ACCESS_KEY_ID: str = ""
+    R2_SECRET_ACCESS_KEY: str = ""
+    R2_BUCKET_NAME: str = ""
+    R2_ENDPOINT_URL: str = ""
+    R2_REGION: str = "auto"
+    LOCAL_STORAGE_PATH: str = "./storage"
 
-    # SendGrid
-    SENDGRID_API_KEY: str = os.getenv("SENDGRID_API_KEY", "")
-    SENDGRID_API_URL: str = os.getenv(
-        "SENDGRID_API_URL",
-        "https://api.sendgrid.com/v3/mail/send",
-    )
-    EMAIL_FROM_ADDRESS: str = os.getenv("EMAIL_FROM_ADDRESS", "")  # must be verified in SendGrid
-    EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", "")
+    @property
+    def CORS_ALLOWED_ORIGINS(self) -> list[str]:
+        return _split_origins(self.CORS_ALLOWED_ORIGINS_RAW)
 
-    # WhatsApp (360dialog or Twilio — set key to enable)
-    WHATSAPP_API_KEY: str = os.getenv("WHATSAPP_API_KEY", "")
-    WHATSAPP_API_URL: str = os.getenv("WHATSAPP_API_URL", "https://waba.360dialog.io/v1/messages")
-    WHATSAPP_FROM_NUMBER: str = os.getenv("WHATSAPP_FROM_NUMBER", "")
+    @model_validator(mode="before")
+    @classmethod
+    def apply_env_defaults(cls, values: dict) -> dict:
+        app_env = str(values.get("APP_ENV") or os.getenv("APP_ENV") or "development").lower()
 
-    # ── Invoice provider (future) ──────────────────────────────────────
-    INVOICE_PROVIDER_BASE_URL: str = os.getenv("INVOICE_PROVIDER_BASE_URL", "")
-    INVOICE_PROVIDER_API_KEY: str = os.getenv("INVOICE_PROVIDER_API_KEY", "")
+        if "LOG_FORMAT" not in values and os.getenv("LOG_FORMAT") is None:
+            values["LOG_FORMAT"] = "json" if app_env in ("staging", "production") else "text"
 
-    # ── Storage (Cloudflare R2 / AWS S3) ──────────────────────────────
-    # In development/test, LocalStorageProvider is used automatically.
-    # In staging/production, set these vars to enable cloud storage.
-    R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID", "")
-    R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY", "")
-    R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME", "")
-    R2_ENDPOINT_URL: str = os.getenv(
-        "R2_ENDPOINT_URL", ""
-    )  # e.g. https://<id>.r2.cloudflarestorage.com
-    R2_REGION: str = os.getenv("R2_REGION", "auto")
-    LOCAL_STORAGE_PATH: str = os.getenv("LOCAL_STORAGE_PATH", "./storage")
+        if "LOG_SQL" not in values and os.getenv("LOG_SQL") is None:
+            values["LOG_SQL"] = app_env == "development"
+
+        return values
+
+    @model_validator(mode="after")
+    def validate_config(self) -> "Settings":
+        if not self.JWT_SECRET:
+            raise ValueError("JWT_SECRET חייב להיות מוגדר")
+
+        if self.APP_ENV in ("staging", "production"):
+            if not self.CORS_ALLOWED_ORIGINS:
+                raise ValueError("CORS_ALLOWED_ORIGINS חייב להיות מוגדר")
+
+            db = self.DATABASE_URL.lower()
+            if "localhost" in db or "127.0.0.1" in db:
+                raise ValueError(
+                    f"DATABASE_URL מצביע על localhost ב-{self.APP_ENV} — חובה להגדיר DB מרוחק"
+                )
+
+            if self.LOG_FORMAT != "json":
+                raise ValueError(f"LOG_FORMAT חייב להיות json ב-{self.APP_ENV}")
+
+        return self
 
 
-config = Config()
+settings = Settings()

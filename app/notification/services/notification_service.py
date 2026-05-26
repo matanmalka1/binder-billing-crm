@@ -13,7 +13,7 @@ from app.clients.models.person_legal_entity_link import (
     PersonLegalEntityLink,
     PersonLegalEntityRole,
 )
-from app.config import config
+from app.config import settings
 from app.core.exceptions import AppError, NotFoundError
 from app.core.logging_config import get_logger
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
@@ -57,18 +57,18 @@ class NotificationService:
         self.db = db
         self.notification_repo = NotificationRepository(db)
         self.business_repo = BusinessRepository(db)
-        live_delivery = config.APP_ENV in ("staging", "production")
+        live_delivery = settings.APP_ENV in ("staging", "production")
         self.email = EmailChannel(
-            enabled=config.NOTIFICATIONS_ENABLED and live_delivery,
-            api_key=config.SENDGRID_API_KEY,
-            api_url=config.SENDGRID_API_URL,
-            from_address=config.EMAIL_FROM_ADDRESS,
-            from_name=config.EMAIL_FROM_NAME,
+            enabled=settings.NOTIFICATIONS_ENABLED and live_delivery,
+            api_key=settings.SENDGRID_API_KEY,
+            api_url=settings.SENDGRID_API_URL,
+            from_address=settings.EMAIL_FROM_ADDRESS,
+            from_name=settings.EMAIL_FROM_NAME,
         )
         self.whatsapp = WhatsAppChannel(
-            api_key=config.WHATSAPP_API_KEY,
-            api_url=config.WHATSAPP_API_URL,
-            from_number=config.WHATSAPP_FROM_NUMBER,
+            api_key=settings.WHATSAPP_API_KEY,
+            api_url=settings.WHATSAPP_API_URL,
+            from_number=settings.WHATSAPP_FROM_NUMBER,
         )
         self._renderer = NotificationTemplateRenderer()
         self._delivery = NotificationDeliveryService(

@@ -1,10 +1,20 @@
 """Advance payment domain constants."""
 
+import datetime as _dt
+import os
 from decimal import Decimal
 
-from app.config import config
+from app.common.integrations.tax_rules_financials import get_vat_rate_percent
 
-ADVANCE_PAYMENT_VAT_RATE: Decimal = config.ADVANCE_PAYMENT_VAT_RATE
+
+def _resolve_vat_rate() -> Decimal:
+    pct = get_vat_rate_percent(_dt.date.today().year)
+    if pct is not None:
+        return Decimal(str(pct)) / Decimal("100")
+    return Decimal(os.getenv("ADVANCE_PAYMENT_VAT_RATE", "0.18"))
+
+
+ADVANCE_PAYMENT_VAT_RATE: Decimal = _resolve_vat_rate()
 MONTHLY_PERIOD_MONTHS_COUNT = 1
 BIMONTHLY_PERIOD_MONTHS_COUNT = 2
 SUPPORTED_PERIOD_MONTH_COUNTS = frozenset(

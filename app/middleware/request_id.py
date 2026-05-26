@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.config import settings
 from app.core.logging_config import (
     begin_request_log_stats,
     clear_request_id,
@@ -24,6 +25,32 @@ from app.core.logging_config import (
 )
 
 logger = get_logger(__name__)
+
+
+def _route_name(request: Request) -> str | None:
+    endpoint = request.scope.get("endpoint")
+    if endpoint is None:
+        return None
+    module = getattr(endpoint, "__module__", "")
+    name = getattr(endpoint, "__name__", None)
+    if not name:
+        return None
+    parts = module.split(".")
+    if len(parts) >= 2 and parts[0] == "app":
+        return f"{parts[1]}.{name}"
+    return name
+
+
+def _content_length(response: Response | None) -> int | None:
+    if response is None:
+        return None
+    value = response.headers.get("content-length")
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -40,6 +67,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 
         started_at = perf_counter()
         status_code = 500
+        response: Response | None = None
         try:
             # Process request
             response = await call_next(request)
@@ -56,9 +84,21 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
                 path=request.url.path,
                 status_code=status_code,
                 duration_ms=duration_ms,
+                route=_route_name(request),
+                response_content_length=_content_length(response),
+                client_ip=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                referer=request.headers.get("referer"),
             )
 
             if not has_request_db_activity():
-                log_request_summary(logger)
+                log_request_summary(
+                    logger,
+                    service="binder-billing-crm",
+                    env=settings.APP_ENV,
+                    slow_request_ms=settings.LOG_SLOW_REQUEST_MS,
+                    slow_query_ms=settings.LOG_SLOW_QUERY_MS,
+                    high_query_count=settings.LOG_HIGH_QUERY_COUNT,
+                )
                 clear_request_log_stats()
                 clear_request_id()

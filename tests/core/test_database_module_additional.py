@@ -31,11 +31,11 @@ def test_database_module_rejects_sqlite_in_production(monkeypatch):
         APP_ENV = "production"
         DATABASE_URL = "sqlite:///should_fail.db"
 
-    original = config_mod.config
-    monkeypatch.setattr(config_mod, "config", _Cfg)
+    original = config_mod.settings
+    monkeypatch.setattr(config_mod, "settings", _Cfg)
     try:
         with pytest.raises(RuntimeError):
             importlib.reload(database_mod)
     finally:
-        config_mod.config = original
+        config_mod.settings = original
         importlib.reload(database_mod)

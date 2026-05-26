@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.core.logging_config import set_idempotency_context
 from app.infrastructure.idempotency.model import IdempotencyStatus
 from app.infrastructure.idempotency.repository import IdempotencyKeyRepository
 from app.users.api.deps import get_current_user
@@ -60,6 +61,7 @@ class IdempotencyGuard:
                     status_code=status.HTTP_409_CONFLICT,
                     detail="בקשה זהה כבר בעיבוד",
                 )
+            set_idempotency_context(self.key, replayed=True)
             return JSONResponse(
                 content=existing.response_body,
                 status_code=existing.response_status,
@@ -96,6 +98,7 @@ def require_idempotency_key(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="מפתח אידמפוטנטיות חובה",
         )
+    set_idempotency_context(x_idempotency_key)
     return IdempotencyGuard(
         key=x_idempotency_key,
         route=request.url.path,

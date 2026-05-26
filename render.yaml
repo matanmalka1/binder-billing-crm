@@ -12,7 +12,22 @@ services:
         value: production
 
       - key: LOG_LEVEL
-        value: WARNING
+        value: INFO
+
+      - key: LOG_FORMAT
+        value: json
+
+      - key: LOG_SQL
+        value: "false"
+
+      - key: LOG_SLOW_REQUEST_MS
+        value: "500"
+
+      - key: LOG_SLOW_QUERY_MS
+        value: "250"
+
+      - key: LOG_HIGH_QUERY_COUNT
+        value: "20"
 
       - key: JWT_TTL_HOURS
         value: "8"

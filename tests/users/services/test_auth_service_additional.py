@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 
-from app.config import config
+from app.config import settings
 from app.users.models.user import User, UserRole
 from app.users.models.user_audit_log import AuditAction, AuditStatus
 from app.users.repositories.user_audit_log_repository import UserAuditLogRepository
@@ -76,7 +76,7 @@ def test_decode_token_rejects_missing_fields_expired_and_invalid_tokens(test_use
             "iat": now,
             "exp": now + timedelta(hours=1),
         },
-        config.JWT_SECRET,
+        settings.JWT_SECRET,
         algorithm="HS256",
     )
     assert AuthService.decode_token(missing_required_token) is None
@@ -90,7 +90,7 @@ def test_decode_token_rejects_missing_fields_expired_and_invalid_tokens(test_use
             "iat": now - timedelta(hours=2),
             "exp": now - timedelta(hours=1),
         },
-        config.JWT_SECRET,
+        settings.JWT_SECRET,
         algorithm="HS256",
     )
     assert AuthService.decode_token(expired_token) is None

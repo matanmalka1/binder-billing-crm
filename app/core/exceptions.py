@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.core.logging_config import get_logger
+from app.core.logging_config import get_logger, set_request_error
 
 logger = get_logger(__name__)
 
@@ -113,6 +113,7 @@ async def _validation_exception_handler(
 
 
 async def _database_exception_handler(request: Request, exc: SQLAlchemyError) -> JSONResponse:
+    set_request_error(exc, error_type="database_error")
     logger.error(
         "Database error occurred",
         exc_info=exc,
@@ -122,6 +123,7 @@ async def _database_exception_handler(request: Request, exc: SQLAlchemyError) ->
 
 
 async def _general_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    set_request_error(exc, error_type="server_error")
     logger.error(
         "Unhandled exception",
         exc_info=exc,
@@ -131,6 +133,8 @@ async def _general_exception_handler(request: Request, exc: Exception) -> JSONRe
 
 
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    if exc.status_code >= 500:
+        set_request_error(exc, error_type=exc.code)
     return _error_json(exc.status_code, exc.message, exc.code)
 
 
