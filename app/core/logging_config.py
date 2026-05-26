@@ -12,7 +12,7 @@ Provides consistent log format with:
 import json
 import logging
 import sys
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -493,9 +493,14 @@ def setup_logging(level: str = "INFO", *, log_format: str = "text") -> None:
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 
-def set_request_id(request_id: str) -> None:
+def set_request_id(request_id: str) -> Token[str | None]:
     """Set request ID for current context."""
-    request_id_ctx.set(request_id)
+    return request_id_ctx.set(request_id)
+
+
+def reset_request_id(token: Token[str | None]) -> None:
+    """Restore the previous request ID context."""
+    request_id_ctx.reset(token)
 
 
 def clear_request_id() -> None:

@@ -11,6 +11,7 @@ This module provides:
 - Request ID generation/extraction middleware
 - Request ID propagation into logging context
 - Response header propagation (`X-Request-ID`)
+- Request summary logging for application routes
 - Per-request context cleanup after response
 
 ## Domain Model
@@ -38,12 +39,15 @@ For every HTTP request:
 - Otherwise a UUID is generated.
 - The request id is added to logging context.
 - Response includes `X-Request-ID` with the same value.
-- Logging context is cleared at request end.
+- Logging context is restored at request end.
 
 ## Behavior Notes
 
 - Middleware is implemented with `BaseHTTPMiddleware`.
-- Request ID context operations use `set_request_id` / `clear_request_id` from `app.core.logging_config`.
+- Request ID context operations use `set_request_id` / `reset_request_id` from `app.core.logging_config`.
+- Request summary logging is skipped for noisy platform/browser paths:
+  `/`, `/health`, `/ready`, `/docs`, `/openapi.json`, `/favicon.ico`.
+- Skipped paths still receive request ID propagation and the `X-Request-ID` response header.
 - The middleware is non-domain-specific and applies across all routes.
 - `RequestIDMiddleware` is registered before CORS middleware in `app/main.py`.
 

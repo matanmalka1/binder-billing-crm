@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.core.env_validator import EnvValidator
-from app.core.exceptions import setup_exception_handlers
+from app.core.exception_handlers import setup_exception_handlers
 from app.core.logging_config import get_logger, setup_logging
 from app.lifespan import lifespan
 from app.middleware.request_id import RequestIDMiddleware
@@ -46,8 +46,6 @@ def info():
     return {"app": "Binder Billing CRM", "env": settings.APP_ENV}
 
 
-# All handlers (including AppError and ValueError) are registered inside
-# setup_exception_handlers — no need to add them separately here.
 setup_exception_handlers(app)
 
 app.add_middleware(RequestIDMiddleware)
