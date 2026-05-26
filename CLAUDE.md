@@ -54,11 +54,15 @@ JWT_SECRET=test-secret pytest -q tests/<domain_or_path>/...
 
 ## Stack
 
-- FastAPI, SQLAlchemy ORM (no raw SQL), Pydantic v2
+- Python 3.12+
+- FastAPI
+- SQLAlchemy 2.0 (ORM)
+- Alembic
+- Pydantic v2
 - Dev: PostgreSQL; Prod: PostgreSQL
-- Migrations: Alembic (`alembic/`) — `Base.metadata.create_all()` is **never** used
+- Migrations: Alembic (`alembic/`) 
 - Auth: JWT HS256, `token_version` invalidation on User model
-
+- ruff, pylint, pyright, vulture , pytest
 ---
 
 ## Domain Structure (21 domains + 5 infra)
