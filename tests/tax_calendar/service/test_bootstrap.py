@@ -1,5 +1,7 @@
 from datetime import date
 
+from sqlalchemy import delete, func, select
+
 from app.tax_calendar.integrations.tax_rules_registry import (
     registry_periodic_calendar_available,
 )
@@ -17,17 +19,17 @@ _EXPECTED_RULE_KEYS = {d.rule_type.value for d in DEFAULT_DEADLINE_RULES}
 
 
 def _clear_tax_calendar(db) -> None:
-    db.query(TaxCalendarEntry).delete()
-    db.query(DeadlineRule).delete()
+    db.execute(delete(TaxCalendarEntry))
+    db.execute(delete(DeadlineRule))
     db.commit()
 
 
 def _rule_count(db) -> int:
-    return db.query(DeadlineRule).count()
+    return db.scalar(select(func.count()).select_from(DeadlineRule))
 
 
 def _entry_count(db) -> int:
-    return db.query(TaxCalendarEntry).count()
+    return db.scalar(select(func.count()).select_from(TaxCalendarEntry))
 
 
 def test_default_rules_are_created_when_missing(test_db):
@@ -40,7 +42,7 @@ def test_default_rules_are_created_when_missing(test_db):
     assert set(result.by_rule_type.values()) == {"created"}
     assert set(result.by_rule_type.keys()) == _EXPECTED_RULE_KEYS
     assert _rule_count(test_db) == 5
-    rules = test_db.query(DeadlineRule).all()
+    rules = test_db.scalars(select(DeadlineRule)).all()
     assert {r.rule_type for r in rules} == _EXPECTED_RULE_KEYS
     assert {r.effective_from for r in rules} == {DEFAULT_EFFECTIVE_FROM}
     assert {r.effective_to for r in rules} == {None}
@@ -115,9 +117,9 @@ def test_bootstrap_recreates_missing_entries_without_warning(test_db):
     bootstrap_tax_calendar(test_db, start_year=2026, end_year=2026)
     test_db.commit()
 
-    to_delete = (
-        test_db.query(TaxCalendarEntry).filter(TaxCalendarEntry.tax_year == 2026).limit(5).all()
-    )
+    to_delete = test_db.scalars(
+        select(TaxCalendarEntry).where(TaxCalendarEntry.tax_year == 2026).limit(5)
+    ).all()
     for e in to_delete:
         test_db.delete(e)
     test_db.commit()

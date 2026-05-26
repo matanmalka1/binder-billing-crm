@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+from sqlalchemy import delete
 from sqlalchemy.exc import IntegrityError
 
 from app.common.enums import DeadlineRuleType
@@ -10,7 +11,7 @@ from app.tax_calendar.services.deadline_rule_service import has_overlapping_rule
 
 @pytest.fixture(autouse=True)
 def empty_default_rules(test_db):
-    test_db.query(DeadlineRule).delete()
+    test_db.execute(delete(DeadlineRule))
     test_db.commit()
 
 

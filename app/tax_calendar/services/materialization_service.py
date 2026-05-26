@@ -11,6 +11,7 @@ from app.common.enums import DeadlineRuleType as DRT
 from app.common.enums import ObligationType
 from app.core.exceptions import AppError, ConflictError
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
+from app.tax_calendar.repositories.deadline_rule_repository import DeadlineRuleRepository
 from app.tax_calendar.services.tax_calendar_entry_service import (
     _resolve_rule,
     annual_due_date,
@@ -133,7 +134,7 @@ class TaxCalendarMaterializationService:
 
     def _resolve_required_rule(self, rule_type, on_date: date):
         try:
-            return _resolve_rule(self.db, rule_type=rule_type, on_date=on_date)
+            return _resolve_rule(DeadlineRuleRepository(self.db), rule_type=rule_type, on_date=on_date)
         except LookupError as exc:
             raise AppError(
                 "לא מוגדר כלל מועד מתאים ליומן המס",

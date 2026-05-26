@@ -12,7 +12,7 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from app.common.enums import DeadlineRuleType
-from app.tax_calendar.models.deadline_rule import DeadlineRule
+from app.tax_calendar.repositories.deadline_rule_repository import DeadlineRuleRepository
 
 
 def has_overlapping_rule(
@@ -23,18 +23,8 @@ def has_overlapping_rule(
     effective_to: date | None,
     exclude_id: int | None = None,
 ) -> bool:
-    """Return True if any existing DeadlineRule of the same rule_type
-    has an effective range that intersects [effective_from, effective_to].
-
-    Treats null effective_to as +infinity. Pure read; never raises on
-    mere overlap. Caller decides how to react.
-    """
-    candidate_value = rule_type.value if isinstance(rule_type, DeadlineRuleType) else rule_type
-    query = db.query(DeadlineRule).filter(DeadlineRule.rule_type == candidate_value)
-    if exclude_id is not None:
-        query = query.filter(DeadlineRule.id != exclude_id)
-
-    for existing in query.all():
+    repo = DeadlineRuleRepository(db)
+    for existing in repo.list_by_type(rule_type, exclude_id=exclude_id):
         existing_to = existing.effective_to
         # Two ranges [a1, a2] and [b1, b2] overlap iff a1 <= b2 and b1 <= a2,
         # treating null upper bound as +infinity.

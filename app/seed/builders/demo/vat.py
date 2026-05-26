@@ -5,6 +5,8 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from random import Random
 
+from sqlalchemy import select
+
 from app.annual_reports.models.annual_report_enums import SubmissionMethod
 from app.businesses.models.business import BusinessStatus
 from app.common.enums import ObligationType, VatType
@@ -182,15 +184,13 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
         periods = _choose_periods(db, rng, num_items, cfg.reference_date, period_type)
 
         for period in periods:
-            existing_item = (
-                db.query(VatWorkItem)
-                .filter(
+            existing_item = db.scalars(
+                select(VatWorkItem).where(
                     VatWorkItem.client_record_id == business_client_record_id,
                     VatWorkItem.period == period,
                     VatWorkItem.deleted_at.is_(None),
                 )
-                .first()
-            )
+            ).first()
             if existing_item is not None:
                 # If onboarding created this with a non-final status for a pre-current-year
                 # period, upgrade it now.
@@ -300,15 +300,13 @@ def create_vat_work_items(db, rng: Random, cfg, businesses, users) -> list[VatWo
 
     # Sweep: fix any onboarding-created items not reached above.
     db.expire_all()
-    stragglers = (
-        db.query(VatWorkItem)
-        .filter(
+    stragglers = db.scalars(
+        select(VatWorkItem).where(
             VatWorkItem.period < f"{cfg.reference_date.year}-01",
             VatWorkItem.status != VatWorkItemStatus.FILED,
             VatWorkItem.deleted_at.is_(None),
         )
-        .all()
-    )
+    ).all()
     for item in stragglers:
         _promote_to_filed(rng, item, cfg)
     db.flush()

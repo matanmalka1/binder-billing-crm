@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+from sqlalchemy import func, select
 
 from app.advance_payments.services.advance_payment_generator import (
     generate_annual_schedule,
@@ -245,7 +246,7 @@ def test_vat_exempt_keeps_existing_rejection_before_calendar_linking(test_db):
         )
 
     assert exc.value.code == "VAT.CLIENT_EXEMPT"
-    assert test_db.query(VatWorkItem).count() == 0
+    assert test_db.scalar(select(func.count()).select_from(VatWorkItem)) == 0
 
 
 def test_annual_report_creation_links_matching_tax_calendar_entry(test_db):

@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from random import Random
 
+from sqlalchemy import func, select
+
 from app.binders.models.binder import Binder, BinderStatus
 from app.binders.models.binder_handover import BinderHandover, BinderHandoverBinder
 from app.binders.models.binder_intake import BinderIntake
@@ -44,10 +46,11 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
 
     for client_id, client_businesses in businesses_by_client.items():
         office_num = client_office_number.get(client_id, client_id)
-        existing_count = (
-            db.query(Binder)
-            .filter(Binder.client_record_id == client_id, Binder.deleted_at.is_(None))
-            .count()
+        existing_count = db.scalar(
+            select(func.count()).select_from(Binder).where(
+                Binder.client_record_id == client_id,
+                Binder.deleted_at.is_(None),
+            )
         )
         num = rng.randint(cfg.min_binders_per_client, cfg.max_binders_per_client)
         cursor = cfg.reference_date - timedelta(days=rng.randint(240, 700))

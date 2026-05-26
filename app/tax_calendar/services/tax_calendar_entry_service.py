@@ -23,13 +23,14 @@ import calendar
 from dataclasses import dataclass
 from datetime import date
 
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.common.enums import DeadlineRuleType, ObligationType
 from app.tax_calendar.integrations.tax_rules_registry import get_registry_due_date
 from app.tax_calendar.models.deadline_rule import DeadlineRule
 from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
+from app.tax_calendar.repositories.deadline_rule_repository import DeadlineRuleRepository
+from app.tax_calendar.repositories.entry_repository import EntryKey, TaxCalendarEntryRepository
 
 
 class MissingDeadlineRuleError(LookupError):
@@ -65,8 +66,6 @@ _PERIODIC_PLAN: list[tuple[ObligationType, DeadlineRuleType, list[int], int]] = 
     ),
 ]
 
-# (obligation_type, tax_year, period, period_months_count)
-EntryKey = tuple[str, int, str | None, int | None]
 _GENERATED_OBLIGATION_VALUES = {
     ObligationType.VAT.value,
     ObligationType.ADVANCE_PAYMENT.value,
@@ -96,20 +95,12 @@ def annual_due_date(rule: DeadlineRule, tax_year: int) -> date:
 
 
 def _resolve_rule(
-    db: Session,
+    rule_repo: DeadlineRuleRepository,
     *,
     rule_type: DeadlineRuleType,
     on_date: date,
 ) -> DeadlineRule:
-    stmt = (
-        select(DeadlineRule)
-        .where(DeadlineRule.rule_type == rule_type.value)
-        .where(DeadlineRule.effective_from <= on_date)
-        .where((DeadlineRule.effective_to.is_(None)) | (DeadlineRule.effective_to >= on_date))
-        .order_by(DeadlineRule.effective_from.desc())
-        .limit(1)
-    )
-    rule = db.scalars(stmt).first()
+    rule = rule_repo.resolve_active_rule(rule_type, on_date)
     if rule is None:
         raise MissingDeadlineRuleError(
             f"No active DeadlineRule of type '{rule_type.value}' covering "
@@ -131,34 +122,8 @@ def _entry_key(
     return (obligation_value, tax_year, period, period_months_count)
 
 
-def _load_existing_entry_keys(
-    db: Session,
-    *,
-    start_year: int,
-    end_year: int,
-) -> set[EntryKey]:
-    stmt = select(
-        TaxCalendarEntry.obligation_type,
-        TaxCalendarEntry.tax_year,
-        TaxCalendarEntry.period,
-        TaxCalendarEntry.period_months_count,
-    ).where(
-        TaxCalendarEntry.tax_year.between(start_year, end_year),
-        TaxCalendarEntry.obligation_type.in_(_GENERATED_OBLIGATION_VALUES),
-    )
-    return {
-        _entry_key(
-            obligation_type=obligation_type,
-            tax_year=tax_year,
-            period=period,
-            period_months_count=period_months_count,
-        )
-        for obligation_type, tax_year, period, period_months_count in db.execute(stmt)
-    }
-
-
 def _create_entry_if_missing(
-    db: Session,
+    entry_repo: TaxCalendarEntryRepository,
     *,
     existing_keys: set[EntryKey],
     obligation_type: ObligationType,
@@ -177,7 +142,7 @@ def _create_entry_if_missing(
     if key in existing_keys:
         return False
 
-    db.add(
+    entry_repo.add(
         TaxCalendarEntry(
             obligation_type=obligation_type,
             period=period,
@@ -192,7 +157,8 @@ def _create_entry_if_missing(
 
 
 def _generate_periodic(
-    db: Session,
+    rule_repo: DeadlineRuleRepository,
+    entry_repo: TaxCalendarEntryRepository,
     *,
     obligation_type: ObligationType,
     rule_type: DeadlineRuleType,
@@ -206,14 +172,14 @@ def _generate_periodic(
             raise ValueError(
                 f"period start month {m} is not aligned to period_months_count={period_months_count}"
             )
-    rule = _resolve_rule(db, rule_type=rule_type, on_date=date(tax_year, 1, 1))
+    rule = _resolve_rule(rule_repo, rule_type=rule_type, on_date=date(tax_year, 1, 1))
     created = 0
     skipped = 0
     for start_month in period_starts:
         period = f"{tax_year}-{start_month:02d}"
         due = periodic_due_date(rule, tax_year, start_month)
         was_created = _create_entry_if_missing(
-            db,
+            entry_repo,
             existing_keys=existing_keys,
             obligation_type=obligation_type,
             period=period,
@@ -230,7 +196,8 @@ def _generate_periodic(
 
 
 def _generate_for_year(
-    db: Session,
+    rule_repo: DeadlineRuleRepository,
+    entry_repo: TaxCalendarEntryRepository,
     *,
     tax_year: int,
     existing_keys: set[EntryKey],
@@ -239,7 +206,8 @@ def _generate_for_year(
     total_skipped = 0
     for obligation, rule_type, period_starts, months_count in _PERIODIC_PLAN:
         c, s = _generate_periodic(
-            db,
+            rule_repo,
+            entry_repo,
             obligation_type=obligation,
             rule_type=rule_type,
             tax_year=tax_year,
@@ -251,12 +219,12 @@ def _generate_for_year(
         total_skipped += s
 
     annual_rule = _resolve_rule(
-        db,
+        rule_repo,
         rule_type=DeadlineRuleType.ANNUAL_REPORT,
         on_date=date(tax_year + 1, 1, 1),
     )
     annual_created = _create_entry_if_missing(
-        db,
+        entry_repo,
         existing_keys=existing_keys,
         obligation_type=ObligationType.ANNUAL_REPORT,
         period=None,
@@ -274,9 +242,15 @@ def _generate_for_year(
 
 def generate_for_year(db: Session, tax_year: int) -> YearGenerationResult:
     """Generate every regulatory calendar entry for a tax year. Idempotent."""
-    existing_keys = _load_existing_entry_keys(db, start_year=tax_year, end_year=tax_year)
-    result = _generate_for_year(db, tax_year=tax_year, existing_keys=existing_keys)
-    db.flush()
+    rule_repo = DeadlineRuleRepository(db)
+    entry_repo = TaxCalendarEntryRepository(db)
+    existing_keys = entry_repo.load_existing_keys(
+        start_year=tax_year,
+        end_year=tax_year,
+        generated_obligation_values=_GENERATED_OBLIGATION_VALUES,
+    )
+    result = _generate_for_year(rule_repo, entry_repo, tax_year=tax_year, existing_keys=existing_keys)
+    entry_repo.flush()
     return result
 
 
@@ -289,12 +263,18 @@ def generate_for_year_range(
     """Generate for [start_year, end_year] inclusive. Idempotent."""
     if end_year < start_year:
         raise ValueError(f"end_year ({end_year}) must be >= start_year ({start_year}).")
+    rule_repo = DeadlineRuleRepository(db)
+    entry_repo = TaxCalendarEntryRepository(db)
     total_created = 0
     total_skipped = 0
-    existing_keys = _load_existing_entry_keys(db, start_year=start_year, end_year=end_year)
+    existing_keys = entry_repo.load_existing_keys(
+        start_year=start_year,
+        end_year=end_year,
+        generated_obligation_values=_GENERATED_OBLIGATION_VALUES,
+    )
     for y in range(start_year, end_year + 1):
-        yr = _generate_for_year(db, tax_year=y, existing_keys=existing_keys)
+        yr = _generate_for_year(rule_repo, entry_repo, tax_year=y, existing_keys=existing_keys)
         total_created += yr.created
         total_skipped += yr.skipped
-    db.flush()
+    entry_repo.flush()
     return YearRangeResult(entries_created=total_created, entries_skipped=total_skipped)

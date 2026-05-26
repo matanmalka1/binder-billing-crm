@@ -156,15 +156,13 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
                 if year == current_year and entry.due_date >= cfg.reference_date:
                     continue
 
-                existing = (
-                    db.query(AdvancePayment)
-                    .filter(
+                existing = db.scalars(
+                    select(AdvancePayment).where(
                         AdvancePayment.client_record_id == client_record_id,
                         AdvancePayment.period == plan.period,
                         AdvancePayment.deleted_at.is_(None),
                     )
-                    .first()
-                )
+                ).first()
                 status = _resolve_status(plan.period, current_year)
 
                 if existing:
@@ -196,15 +194,13 @@ def create_advance_payments(db, rng: Random, cfg, businesses) -> list[AdvancePay
 
     # Sweep: fix any remaining PENDING payments from onboarding not reached above.
     db.expire_all()
-    stragglers = (
-        db.query(AdvancePayment)
-        .filter(
+    stragglers = db.scalars(
+        select(AdvancePayment).where(
             AdvancePayment.period < f"{current_year}-01",
             AdvancePayment.status == AdvancePaymentStatus.PENDING,
             AdvancePayment.deleted_at.is_(None),
         )
-        .all()
-    )
+    ).all()
     straggler_client_ids = {p.client_record_id for p in stragglers}
     straggler_cr_map: dict[int, ClientRecord] = {
         cr.id: cr

@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy import select
 
 from app.tax_calendar.integrations.tax_rules_registry import (
     registry_periodic_calendar_available,
@@ -97,7 +98,9 @@ def test_get_summary_detects_missing_entry(test_db):
     bootstrap_tax_calendar(test_db, start_year=2026, end_year=2026)
     test_db.commit()
 
-    entry = test_db.query(TaxCalendarEntry).filter(TaxCalendarEntry.tax_year == 2026).first()
+    entry = test_db.scalars(
+        select(TaxCalendarEntry).where(TaxCalendarEntry.tax_year == 2026)
+    ).first()
     test_db.delete(entry)
     test_db.commit()
 

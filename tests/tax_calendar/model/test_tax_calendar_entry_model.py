@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.common.enums import DeadlineRuleType, ObligationType
@@ -9,14 +10,12 @@ from app.tax_calendar.models.tax_calendar_entry import TaxCalendarEntry
 
 
 def _make_rule(test_db, rule_type: DeadlineRuleType, *, due_day_of_month: int = 15) -> DeadlineRule:
-    existing = (
-        test_db.query(DeadlineRule)
-        .filter(
+    existing = test_db.scalars(
+        select(DeadlineRule).where(
             DeadlineRule.rule_type == rule_type.value,
             DeadlineRule.effective_to.is_(None),
         )
-        .first()
-    )
+    ).first()
     if existing is not None:
         return existing
     rule = DeadlineRule(

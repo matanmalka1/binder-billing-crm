@@ -2,6 +2,7 @@ from datetime import date
 from unittest.mock import patch
 
 import pytest
+from sqlalchemy import delete, func, select
 
 from app.common.enums import DeadlineRuleType, ObligationType
 from app.tax_calendar.models.deadline_rule import DeadlineRule
@@ -17,8 +18,8 @@ from app.tax_calendar.services.tax_calendar_entry_service import (
 
 @pytest.fixture(autouse=True)
 def empty_default_tax_calendar(test_db):
-    test_db.query(TaxCalendarEntry).delete()
-    test_db.query(DeadlineRule).delete()
+    test_db.execute(delete(TaxCalendarEntry))
+    test_db.execute(delete(DeadlineRule))
     test_db.commit()
 
 
@@ -86,14 +87,14 @@ def _count_entries(
     period_months_count: int | None = None,
     tax_year: int | None = None,
 ) -> int:
-    query = db.query(TaxCalendarEntry).filter(
+    stmt = select(func.count()).select_from(TaxCalendarEntry).where(
         TaxCalendarEntry.obligation_type == obligation_type.value,
     )
     if period_months_count is not None:
-        query = query.filter(TaxCalendarEntry.period_months_count == period_months_count)
+        stmt = stmt.where(TaxCalendarEntry.period_months_count == period_months_count)
     if tax_year is not None:
-        query = query.filter(TaxCalendarEntry.tax_year == tax_year)
-    return query.count()
+        stmt = stmt.where(TaxCalendarEntry.tax_year == tax_year)
+    return db.scalar(stmt)
 
 
 # ── pure due-date computation ────────────────────────────────────────────────
@@ -208,14 +209,12 @@ def test_annual_creates_one_entry_per_tax_year(test_db):
     _seed_all_rules(test_db)
     generate_for_year(test_db, 2026)
     test_db.commit()
-    annual = (
-        test_db.query(TaxCalendarEntry)
-        .filter(
+    annual = test_db.scalars(
+        select(TaxCalendarEntry).where(
             TaxCalendarEntry.obligation_type == ObligationType.ANNUAL_REPORT.value,
             TaxCalendarEntry.tax_year == 2026,
         )
-        .all()
-    )
+    ).all()
     assert len(annual) == 1
     assert annual[0].period is None
     assert annual[0].period_months_count is None
@@ -239,14 +238,12 @@ def test_monthly_and_bimonthly_share_due_date_remain_separate(test_db):
     generate_for_year(test_db, 2026)
     test_db.commit()
 
-    same_due = (
-        test_db.query(TaxCalendarEntry)
-        .filter(
+    same_due = test_db.scalars(
+        select(TaxCalendarEntry).where(
             TaxCalendarEntry.obligation_type == ObligationType.VAT.value,
             TaxCalendarEntry.due_date == date(2026, 5, 18),
         )
-        .all()
-    )
+    ).all()
     months_counts = sorted(e.period_months_count for e in same_due)
     assert months_counts == [1, 2]
     periods = {e.period for e in same_due}
@@ -267,7 +264,7 @@ def test_rerunning_generation_does_not_duplicate_rows(test_db):
     assert counts_first.skipped == 0
     assert counts_second.created == 0
     assert counts_second.skipped == 37
-    total = test_db.query(TaxCalendarEntry).count()
+    total = test_db.scalar(select(func.count()).select_from(TaxCalendarEntry))
     assert total == 12 + 6 + 12 + 6 + 1
 
 
@@ -277,7 +274,7 @@ def test_year_range_generates_each_year_once(test_db):
     test_db.commit()
     assert result.entries_created == 74
     assert result.entries_skipped == 0
-    total = test_db.query(TaxCalendarEntry).count()
+    total = test_db.scalar(select(func.count()).select_from(TaxCalendarEntry))
     assert total == (12 + 6 + 12 + 6 + 1) * 2
 
 

@@ -5,6 +5,8 @@ from decimal import Decimal
 from random import Random
 from typing import Any, Iterable
 
+from sqlalchemy import select
+
 
 from app.annual_reports.models.annual_report_annex_data import AnnualReportAnnexData
 from app.annual_reports.models.annual_report_credit_point_reason import (
@@ -271,15 +273,13 @@ def create_annual_reports(
                 form_type = PrimaryAnnualReportForm.FORM_1301
 
             # Skip if report already exists for this client/year
-            existing = (
-                db.query(AnnualReport)
-                .filter(
+            existing = db.scalars(
+                select(AnnualReport).where(
                     AnnualReport.client_record_id == business_client_record_id,
                     AnnualReport.tax_year == year,
                     AnnualReport.deleted_at.is_(None),
                 )
-                .first()
-            )
+            ).first()
             if existing:
                 if (
                     existing.tax_year < current_year
@@ -383,7 +383,7 @@ def create_annual_report_details(db, rng: Random, reports) -> None:
             AnnualReportDetail as ARD,
         )
 
-        if db.query(ARD).filter(ARD.report_id == report.id).first():
+        if db.scalars(select(ARD).where(ARD.report_id == report.id)).first():
             continue
         client_approved_at = None
         if report.status in (
@@ -419,14 +419,12 @@ def create_annual_report_schedule_entries(db, rng: Random, reports, users=None) 
     fallback_user_id = users[0].id if users else None
     for report in reports:
         for schedule in list(AnnualReportSchedule):
-            if (
-                db.query(AnnualReportScheduleEntry)
-                .filter(
+            if db.scalars(
+                select(AnnualReportScheduleEntry).where(
                     AnnualReportScheduleEntry.annual_report_id == report.id,
                     AnnualReportScheduleEntry.schedule == schedule,
                 )
-                .first()
-            ):
+            ).first():
                 continue
             is_required = rng.random() < 0.4
             is_complete = is_required and rng.random() < 0.5
@@ -563,9 +561,11 @@ def create_annual_report_annex_data(db, rng: Random, reports) -> None:
     for report in reports:
         schedule_entries = {
             entry.schedule: entry
-            for entry in db.query(AnnualReportScheduleEntry)
-            .filter(AnnualReportScheduleEntry.annual_report_id == report.id)
-            .all()
+            for entry in db.scalars(
+                select(AnnualReportScheduleEntry).where(
+                    AnnualReportScheduleEntry.annual_report_id == report.id
+                )
+            ).all()
         }
         for line_number, schedule in enumerate(
             _annex_schedules_for_report(report, rng), start=1
