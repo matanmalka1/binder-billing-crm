@@ -178,4 +178,4 @@ def test_removed_create_and_send_endpoint_is_not_available(client, test_db, advi
 def test_invalid_token_returns_error_on_sign(client):
     resp = client.post("/sign/does-not-exist/approve")
     assert resp.status_code == 400
-    assert resp.json()["error"] == "SIGNATURE_REQUEST.TOKEN_INVALID"
+    assert resp.json()["error"]["code"] == "SIGNATURE_REQUEST.TOKEN_INVALID"

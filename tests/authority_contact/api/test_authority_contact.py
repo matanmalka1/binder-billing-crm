@@ -64,7 +64,7 @@ def test_create_authority_contact_unknown_business_returns_404(client, advisor_h
     )
 
     assert response.status_code == 404
-    assert response.json()["error"] == "CLIENT.NOT_FOUND"
+    assert response.json()["error"]["code"] == "CLIENT.NOT_FOUND"
 
 
 def test_create_authority_contact_invalid_contact_type_returns_422(

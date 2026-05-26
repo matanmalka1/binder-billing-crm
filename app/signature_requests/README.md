@@ -147,9 +147,10 @@ Auth: no JWT (token-based)
 ## Error Envelope
 
 Errors follow global app error format (`app/core/exceptions.py`) with fields like:
-- `detail`
-- `error`
-- `error_meta`
+- `error.code`
+- `error.message`
+- `error.details` (null or domain-specific object)
+- `error.request_id` (when available)
 
 Common domain error codes:
 - `SIGNATURE_REQUEST.NOT_FOUND`

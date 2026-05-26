@@ -12,12 +12,11 @@ from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.client_service import get_client_or_raise
 from app.clients.services.client_update_service import ClientUpdateService
 from app.clients.services.create_client_service import (
-    ClientCreationConflictError,
     CreateClientService,
     create_client_identity_only,
 )
 from app.common.enums import EntityType, IdNumberType
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import AppError, ConflictError, NotFoundError
 from app.utils.time_utils import utcnow
 from app.vat_reports.repositories.vat_client_summary_repository import VatClientSummaryRepository
 from tests.helpers.identity import seed_client_identity
@@ -78,7 +77,7 @@ def test_create_client_conflict_when_active_exists(test_db):
     _create_client(test_db, full_name="Existing", id_number="620000000")
     service = CreateClientService(test_db)
 
-    with pytest.raises(ClientCreationConflictError) as exc:
+    with pytest.raises(AppError) as exc:
         service.create_client(
             full_name="Duplicate",
             id_number="620000000",
@@ -86,14 +85,16 @@ def test_create_client_conflict_when_active_exists(test_db):
             actor_id=1,
         )
 
-    assert exc.value.detail["error"] == "CLIENT.CONFLICT"
+    assert exc.value.code == "CLIENT.CONFLICT"
+    assert exc.value.details is not None
+    assert "conflict" in exc.value.details
 
 
 def test_create_client_deleted_exists_conflict(test_db):
     _create_client(test_db, full_name="Deleted", id_number="630000008", deleted=True)
 
     service = CreateClientService(test_db)
-    with pytest.raises(ClientCreationConflictError) as exc:
+    with pytest.raises(AppError) as exc:
         service.create_client(
             full_name="New",
             id_number="630000008",
@@ -101,7 +102,9 @@ def test_create_client_deleted_exists_conflict(test_db):
             actor_id=1,
         )
 
-    assert exc.value.detail["error"] == "CLIENT.DELETED_EXISTS"
+    assert exc.value.code == "CLIENT.DELETED_EXISTS"
+    assert exc.value.details is not None
+    assert "conflict" in exc.value.details
 
 
 def test_create_client_rejects_employee_entity_type(test_db):
@@ -298,7 +301,7 @@ def test_create_client_converts_integrity_error_to_conflict(test_db, monkeypatch
 
     monkeypatch.setattr(service.record_repo, "create", _raise_integrity)
 
-    with pytest.raises(ClientCreationConflictError) as exc:
+    with pytest.raises(AppError) as exc:
         service.create_client(
             full_name="Integrity",
             id_number="690000005",
@@ -306,7 +309,9 @@ def test_create_client_converts_integrity_error_to_conflict(test_db, monkeypatch
             actor_id=1,
         )
 
-    assert exc.value.detail["error"] == "CLIENT.CONFLICT"
+    assert exc.value.code == "CLIENT.CONFLICT"
+    assert exc.value.details is not None
+    assert "conflict" in exc.value.details
 
 
 def test_restore_raises_not_found_when_client_missing(test_db):

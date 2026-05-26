@@ -35,4 +35,4 @@ def test_materials_complete_rejects_invalid_status(client, advisor_headers, vat_
     )
 
     assert resp.status_code == 400
-    assert resp.json()["error"] == "VAT.INVALID_TRANSITION"
+    assert resp.json()["error"]["code"] == "VAT.INVALID_TRANSITION"

@@ -62,9 +62,10 @@ This module is consumed internally by service layers:
 ## Error Envelope
 
 Errors raised by callers still flow through the global app format in `app/core/exceptions.py`, including:
-- `detail`
-- `error`
-- `error_meta`
+- `error.code`
+- `error.message`
+- `error.details` (null or domain-specific object)
+- `error.request_id` (when available)
 
 Infrastructure-specific runtime failures may include:
 - Missing storage configuration (runtime error from `get_storage_provider`)

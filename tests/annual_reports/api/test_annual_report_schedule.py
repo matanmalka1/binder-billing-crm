@@ -46,7 +46,7 @@ def test_get_schedules_returns_404_for_missing_report(client, advisor_headers):
         headers=advisor_headers,
     )
     assert resp.status_code == 404
-    assert resp.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"
+    assert resp.json()["error"]["code"] == "ANNUAL_REPORT.NOT_FOUND"
 
 
 def test_schedule_invalid_type_and_complete_missing_schedule(client, test_db, advisor_headers):

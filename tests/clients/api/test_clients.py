@@ -186,5 +186,5 @@ def test_create_client_missing_required_field_returns_friendly_hebrew_message(
     )
 
     assert response.status_code == 422
-    errors = response.json()["detail"]
-    assert any(error["msg"] == "Value error, יש להזין רחוב" for error in errors)
+    errors = response.json()["error"]["details"]
+    assert any("יש להזין רחוב" in error["message"] for error in errors)

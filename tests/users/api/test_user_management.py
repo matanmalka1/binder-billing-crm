@@ -134,4 +134,4 @@ def test_can_update_email_field(client, advisor_headers, test_db):
 def test_cannot_deactivate_self(client, advisor_headers, test_user):
     response = client.post(f"/api/v1/users/{test_user.id}/deactivate", headers=advisor_headers)
     assert response.status_code == 403
-    assert response.json()["error"] == "USER.FORBIDDEN"
+    assert response.json()["error"]["code"] == "USER.FORBIDDEN"

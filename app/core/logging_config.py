@@ -503,6 +503,11 @@ def clear_request_id() -> None:
     request_id_ctx.set(None)
 
 
+def get_request_id() -> str | None:
+    """Return current request ID, or None if not set."""
+    return request_id_ctx.get()
+
+
 def get_logger(name: str) -> logging.Logger:
     """Get logger instance."""
     return logging.getLogger(name)

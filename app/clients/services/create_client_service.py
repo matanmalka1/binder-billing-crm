@@ -36,14 +36,8 @@ from app.clients.services.messages import (
     CLIENT_ID_NUMBER_EXISTS,
 )
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
-from app.core.exceptions import ConflictError
+from app.core.exceptions import AppError, ConflictError
 from app.users.models.user import UserRole
-
-
-class ClientCreationConflictError(Exception):
-    def __init__(self, detail: dict):
-        super().__init__(detail.get("detail"))
-        self.detail = detail
 
 
 class CreateClientService:
@@ -117,7 +111,13 @@ class CreateClientService:
         except ConflictError as exc:
             if exc.code not in {"CLIENT.CONFLICT", "CLIENT.DELETED_EXISTS"}:
                 raise
-            raise ClientCreationConflictError(self._client_conflict_detail(id_number, exc)) from exc
+            conflict = self.client_query_service.get_conflict_info(id_number)
+            raise AppError(
+                exc.message,
+                exc.code,
+                status_code=409,
+                details={"conflict": conflict.model_dump(mode="json")},
+            ) from exc
         business = self.business_service.create_business_for_client_record(
             client_record_id=client_record.id,
             opened_at=business_opened_at,
@@ -273,15 +273,6 @@ class CreateClientService:
             ),
             impact=impact,
         )
-
-    def _client_conflict_detail(self, id_number: str, error: ConflictError) -> dict:
-        conflict = self.client_query_service.get_conflict_info(id_number)
-        return {
-            "error": error.code,
-            "detail": str(error),
-            "conflict": conflict.model_dump(mode="json"),
-        }
-
 
 def create_client_identity_only(db, **kwargs) -> ClientRecord:
     client_record, _ = CreateClientService(db).create_client(**kwargs)

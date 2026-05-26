@@ -71,7 +71,7 @@ def test_duplicate_id_number_raises_conflict(client, test_db, advisor_headers):
 
     resp2 = _post_create(client, advisor_headers, payload2)
     assert resp2.status_code == 409
-    assert resp2.json()["detail"]["error"] in {
+    assert resp2.json()["error"]["code"] in {
         "CLIENT.CONFLICT",
         "CLIENT.DELETED_EXISTS",
     }

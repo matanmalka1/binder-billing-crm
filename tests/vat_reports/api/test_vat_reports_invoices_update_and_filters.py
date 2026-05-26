@@ -117,7 +117,7 @@ def test_expense_tax_invoice_requires_counterparty_id(client, advisor_headers, v
     )
 
     assert resp.status_code == 400
-    assert resp.json()["error"] == "VAT.COUNTERPARTY_ID_REQUIRED"
+    assert resp.json()["error"]["code"] == "VAT.COUNTERPARTY_ID_REQUIRED"
 
 
 def test_create_invoice_persists_counterparty_identity_fields(client, advisor_headers, vat_client):

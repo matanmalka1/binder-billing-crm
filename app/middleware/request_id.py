@@ -61,8 +61,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         # Generate or extract request ID
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
 
-        # Set in logging context
+        # Set in logging context and request state
         set_request_id(request_id)
+        request.state.request_id = request_id
         begin_request_log_stats()
 
         started_at = perf_counter()

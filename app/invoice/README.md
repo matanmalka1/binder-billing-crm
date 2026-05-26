@@ -54,9 +54,10 @@ Invoice operations are currently exposed as internal service/repository logic an
 ## Error Envelope
 
 Errors follow the global app format from `app/core/exceptions.py`, including:
-- `detail`
-- `error`
-- `error_meta`
+- `error.code`
+- `error.message`
+- `error.details` (null or domain-specific object)
+- `error.request_id` (when available)
 
 Domain errors use stable codes such as:
 - `INVOICE.NOT_FOUND`

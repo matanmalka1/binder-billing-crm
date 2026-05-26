@@ -99,9 +99,10 @@ Returns downloadable file (`FileResponse`):
 ## Error Envelope
 
 Errors follow the global app format from `app/core/exceptions.py`, including:
-- `detail`
-- `error`
-- `error_meta`
+- `error.code`
+- `error.message`
+- `error.details` (null or domain-specific object)
+- `error.request_id` (when available)
 
 Reports export endpoint may return route-level HTTP errors for:
 - Invalid format values

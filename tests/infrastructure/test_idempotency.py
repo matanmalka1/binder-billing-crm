@@ -53,7 +53,7 @@ def test_idempotency_missing_header_returns_400(client, advisor_headers, test_db
         files=_upload_file(_import_payload()),
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "מפתח אידמפוטנטיות חובה"
+    assert response.json()["error"]["message"] == "מפתח אידמפוטנטיות חובה"
 
 
 def test_idempotency_duplicate_request_returns_cached_response(client, advisor_headers, test_db):
@@ -90,7 +90,7 @@ def test_idempotency_different_body_same_key_returns_409(client, advisor_headers
 
     second = client.post(IMPORT_PATH, headers=headers, files=_upload_file(second_payload))
     assert second.status_code == 409
-    assert second.json()["detail"] == "מפתח אידמפוטנטיות כבר נוצל עם בקשה אחרת"
+    assert second.json()["error"]["message"] == "מפתח אידמפוטנטיות כבר נוצל עם בקשה אחרת"
 
 
 # ── Unit-level guard tests (reservation + concurrency) ──────────────────────

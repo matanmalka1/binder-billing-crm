@@ -73,4 +73,4 @@ def test_add_annex_requires_report_exists(client, advisor_headers):
         json={"data": {"rental_income": 1000}},
     )
     assert resp.status_code == 404
-    assert resp.json()["error"] == "ANNUAL_REPORT.NOT_FOUND"
+    assert resp.json()["error"]["code"] == "ANNUAL_REPORT.NOT_FOUND"

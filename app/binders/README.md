@@ -314,9 +314,10 @@ Notes:
 - intake-history uses `BINDER.NOT_FOUND` via the service layer
 
 Errors otherwise follow the global envelope from `app/core/exceptions.py` with:
-- `detail`
-- `error`
-- `error_meta`
+- `error.code`
+- `error.message`
+- `error.details` (null or domain-specific object)
+- `error.request_id` (when available)
 
 ## Tests
 

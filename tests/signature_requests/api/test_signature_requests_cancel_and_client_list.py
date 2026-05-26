@@ -100,4 +100,4 @@ def test_get_signature_request_not_found_returns_404(client, advisor_headers):
     resp = client.get("/api/v1/signature-requests/999999", headers=advisor_headers)
 
     assert resp.status_code == 404
-    assert resp.json()["detail"] == "בקשת החתימה לא נמצאה"
+    assert resp.json()["error"]["message"] == "בקשת החתימה לא נמצאה"

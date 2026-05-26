@@ -71,4 +71,4 @@ def test_list_business_binders_business_not_found(client, advisor_headers):
     )
 
     assert response.status_code == 404
-    assert response.json()["error"] == "CLIENT.NOT_FOUND"
+    assert response.json()["error"]["code"] == "CLIENT.NOT_FOUND"

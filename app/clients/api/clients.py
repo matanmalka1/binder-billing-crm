@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.clients.create_policy import preview_vat_reporting_frequency
 from app.clients.enums import ClientStatus
@@ -18,10 +18,7 @@ from app.clients.schemas.impact import ClientCreationImpactResponse
 from app.clients.services.client_lifecycle_service import ClientLifecycleService
 from app.clients.services.client_query_service import ClientQueryService
 from app.clients.services.client_update_service import ClientUpdateService
-from app.clients.services.create_client_service import (
-    ClientCreationConflictError,
-    CreateClientService,
-)
+from app.clients.services.create_client_service import CreateClientService
 from app.clients.services.impact_preview_service import compute_creation_impact
 from app.common.enums import EntityType
 from app.users.api.deps import CurrentUser, DBSession, require_role
@@ -64,8 +61,6 @@ def preview_creation_impact(
     "",
     response_model=CreateClientRecordResponse,
     status_code=status.HTTP_201_CREATED,
-    # תיעוד שגיאת Conflict ב-Swagger
-    responses={status.HTTP_409_CONFLICT: {"model": ClientConflictInfo}},
     dependencies=[Depends(require_role(UserRole.ADVISOR))],
 )
 def create_client(
@@ -75,17 +70,11 @@ def create_client(
 ):
     """Create a reporting entity and its first business in one request."""
     service = CreateClientService(db)
-    try:
-        return service.create_from_request(
-            request,
-            actor_id=user.id,
-            actor_role=user.role,
-        )
-    except ClientCreationConflictError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=exc.detail,
-        ) from exc
+    return service.create_from_request(
+        request,
+        actor_id=user.id,
+        actor_role=user.role,
+    )
 
 
 # ─── Read ─────────────────────────────────────────────────────────────────────

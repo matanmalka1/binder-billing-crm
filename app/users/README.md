@@ -134,9 +134,10 @@ Base prefix: `/api/v1/users`
 ## Error Envelope
 
 Errors follow the global app format from `app/core/exceptions.py`:
-- `detail`
-- `error`
-- `error_meta`
+- `error.code`
+- `error.message`
+- `error.details` (null or domain-specific object)
+- `error.request_id` (when available)
 
 Users domain service errors include:
 - `USER.CONFLICT`

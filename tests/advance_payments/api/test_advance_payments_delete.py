@@ -55,4 +55,4 @@ def test_delete_advance_payment_not_found(client, test_db, advisor_headers):
     )
 
     assert resp.status_code == 404
-    assert resp.json()["error"] == "ADVANCE_PAYMENT.NOT_FOUND"
+    assert resp.json()["error"]["code"] == "ADVANCE_PAYMENT.NOT_FOUND"

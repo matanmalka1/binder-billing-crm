@@ -75,7 +75,7 @@ def test_create_correspondence_invalid_type_returns_422(client, test_db, advisor
     )
 
     assert response.status_code == 422
-    assert response.json()["error"] == "validation_error"
+    assert response.json()["error"]["code"] == "validation_error"
 
 
 def test_create_correspondence_contact_mismatch_returns_403(client, test_db, advisor_headers):
@@ -96,7 +96,7 @@ def test_create_correspondence_contact_mismatch_returns_403(client, test_db, adv
     )
 
     assert response.status_code == 403
-    assert response.json()["error"] == "CORRESPONDENCE.FORBIDDEN_CONTACT"
+    assert response.json()["error"]["code"] == "CORRESPONDENCE.FORBIDDEN_CONTACT"
 
 
 def test_list_correspondence_ordered_desc_and_get_by_id(

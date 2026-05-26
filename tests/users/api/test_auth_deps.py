@@ -10,7 +10,7 @@ from app.users.services.auth_service import AuthService
 def test_users_endpoint_requires_token(client):
     response = client.get("/api/v1/users")
     assert response.status_code == 401
-    assert response.json()["detail"] == "חסר טוקן אימות"
+    assert response.json()["error"]["message"] == "חסר טוקן אימות"
 
 
 def test_users_endpoint_rejects_invalid_and_malformed_tokens(client):
@@ -19,7 +19,7 @@ def test_users_endpoint_rejects_invalid_and_malformed_tokens(client):
         headers={"Authorization": "Bearer not-a-jwt"},
     )
     assert invalid_response.status_code == 401
-    assert invalid_response.json()["detail"] == "הטוקן אינו תקין או שפג תוקפו"
+    assert invalid_response.json()["error"]["message"] == "הטוקן אינו תקין או שפג תוקפו"
 
     now = datetime.now(UTC)
     malformed_token = jwt.encode(
@@ -39,7 +39,7 @@ def test_users_endpoint_rejects_invalid_and_malformed_tokens(client):
         headers={"Authorization": f"Bearer {malformed_token}"},
     )
     assert malformed_response.status_code == 401
-    assert malformed_response.json()["detail"] == "פורמט הטוקן אינו תקין"
+    assert malformed_response.json()["error"]["message"] == "פורמט הטוקן אינו תקין"
 
 
 def test_inactive_user_token_is_rejected(client, test_db):
@@ -60,7 +60,7 @@ def test_inactive_user_token_is_rejected(client, test_db):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 401
-    assert response.json()["detail"] == "המשתמש לא נמצא או שאינו פעיל"
+    assert response.json()["error"]["message"] == "המשתמש לא נמצא או שאינו פעיל"
 
 
 def test_cookie_fallback_authenticates_without_authorization_header(client, auth_token):

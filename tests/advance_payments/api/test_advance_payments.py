@@ -138,9 +138,8 @@ def test_update_advance_payment_not_found_returns_404(client, test_db, advisor_h
 
     data = response.json()
     assert response.status_code == 404
-    assert data["error"] == "ADVANCE_PAYMENT.NOT_FOUND"
-    assert data["error_meta"]["status_code"] == 404
-    assert isinstance(data["error_meta"]["detail"], str)
+    assert data["error"]["code"] == "ADVANCE_PAYMENT.NOT_FOUND"
+    assert isinstance(data["error"]["message"], str)
 
 
 def test_list_advance_payments_missing_client_returns_404(client, advisor_headers):
@@ -151,5 +150,5 @@ def test_list_advance_payments_missing_client_returns_404(client, advisor_header
 
     assert response.status_code == 404
     data = response.json()
-    assert data["error"] == "ADVANCE_PAYMENT.CLIENT_RECORD_NOT_FOUND"
-    assert data["error_meta"]["detail"] == "רשומת לקוח 999 לא נמצאה"
+    assert data["error"]["code"] == "ADVANCE_PAYMENT.CLIENT_RECORD_NOT_FOUND"
+    assert data["error"]["message"] == "רשומת לקוח 999 לא נמצאה"

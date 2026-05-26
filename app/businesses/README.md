@@ -169,9 +169,10 @@ The endpoint is client-scoped. `status_card_service.py` aggregates:
 ## Error Envelope
 
 Errors follow the global app format from `app/core/exceptions.py`, including:
-- `detail`
-- `error`
-- `error_meta`
+- `error.code`
+- `error.message`
+- `error.details` (null or domain-specific object)
+- `error.request_id` (when available)
 
 Common domain error codes here include:
 - `CLIENT.NOT_FOUND`

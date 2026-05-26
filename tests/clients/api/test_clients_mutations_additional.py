@@ -27,7 +27,7 @@ def test_get_client_not_found_returns_domain_error(client, advisor_headers):
 
     assert response.status_code == 404
     data = response.json()
-    assert data["error"] == "CLIENT.NOT_FOUND"
+    assert data["error"]["code"] == "CLIENT.NOT_FOUND"
 
 
 def test_delete_and_restore_client_role_rules(client, advisor_headers, secretary_headers):
@@ -68,7 +68,7 @@ def test_restore_conflict_when_active_duplicate_exists(client, advisor_headers, 
     restored = client.post(f"/api/v1/clients/{first_id}/restore", headers=advisor_headers)
 
     assert restored.status_code == 409
-    assert restored.json()["error"] == "CLIENT.CONFLICT"
+    assert restored.json()["error"]["code"] == "CLIENT.CONFLICT"
 
 
 def test_create_returns_deleted_exists_conflict_payload(client, advisor_headers):
@@ -83,10 +83,10 @@ def test_create_returns_deleted_exists_conflict_payload(client, advisor_headers)
     )
 
     assert duplicate.status_code == 409
-    payload = duplicate.json()["detail"]
-    assert payload["error"] == "CLIENT.DELETED_EXISTS"
-    assert payload["conflict"]["id_number"] == "700000045"
-    assert len(payload["conflict"]["deleted_clients"]) == 1
+    payload = duplicate.json()["error"]
+    assert payload["code"] == "CLIENT.DELETED_EXISTS"
+    assert payload["details"]["conflict"]["id_number"] == "700000045"
+    assert len(payload["details"]["conflict"]["deleted_clients"]) == 1
 
 
 def test_conflict_endpoint_includes_active_and_deleted(client, advisor_headers):
@@ -120,10 +120,10 @@ def test_create_conflict_payload_contains_conflict_lists(client, advisor_headers
     )
 
     assert duplicate.status_code == 409
-    payload = duplicate.json()["detail"]
-    assert payload["error"] == "CLIENT.CONFLICT"
-    assert payload["conflict"]["id_number"] == "700000078"
-    assert len(payload["conflict"]["active_clients"]) == 1
+    payload = duplicate.json()["error"]
+    assert payload["code"] == "CLIENT.CONFLICT"
+    assert payload["details"]["conflict"]["id_number"] == "700000078"
+    assert len(payload["details"]["conflict"]["active_clients"]) == 1
 
 
 def test_create_validates_israeli_checksum_for_individual(client, advisor_headers):
@@ -287,8 +287,8 @@ def test_create_rejects_missing_company_business_name(client, advisor_headers):
     )
 
     assert response.status_code == 422
-    errors = response.json()["detail"]
-    assert any(error["msg"] == "Value error, יש להזין שם עסק" for error in errors)
+    errors = response.json()["error"]["details"]
+    assert any("יש להזין שם עסק" in error["message"] for error in errors)
 
 
 def test_update_rejects_manual_vat_exempt_ceiling_payload(client, advisor_headers):
@@ -323,9 +323,9 @@ def test_update_rejects_manual_vat_exempt_ceiling_payload(client, advisor_header
     )
 
     assert response.status_code == 422
-    errors = response.json()["detail"]
+    errors = response.json()["error"]["details"]
     assert any(
-        error["msg"] == 'Value error, תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת לעריכה ידנית'
+        'תקרת פטור מע"מ נקבעת על ידי המערכת ואינה ניתנת לעריכה ידנית' in error["message"]
         for error in errors
     )
 

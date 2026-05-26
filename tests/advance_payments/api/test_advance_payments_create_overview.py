@@ -63,9 +63,8 @@ def test_create_advance_payment_and_conflict(client, test_db, advisor_headers):
     )
     data = conflict.json()
     assert conflict.status_code == 409
-    assert data["error"] == "ADVANCE_PAYMENT.CONFLICT"
-    assert data["error_meta"]["status_code"] == 409
-    assert isinstance(data["error_meta"]["detail"], str)
+    assert data["error"]["code"] == "ADVANCE_PAYMENT.CONFLICT"
+    assert isinstance(data["error"]["message"], str)
 
 
 def test_create_advance_payment_uses_advance_payment_frequency(client, test_db, advisor_headers):

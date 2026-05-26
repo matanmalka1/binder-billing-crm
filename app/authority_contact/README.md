@@ -107,9 +107,10 @@ Response shape:
 ## Error Envelope
 
 Errors follow the global app format from `app/core/exceptions.py`, including:
-- `detail`
-- `error`
-- `error_meta`
+- `error.code`
+- `error.message`
+- `error.details` (null or domain-specific object)
+- `error.request_id` (when available)
 
 Domain errors used here include:
 - `CLIENT.NOT_FOUND`
