@@ -152,3 +152,61 @@ class NotificationRepository(BaseRepository[Notification]):
             )
             .order_by(Notification.created_at.desc())
         ).first()
+
+    def latest_by_binder_ids(
+        self, binder_ids: list[int], trigger: NotificationTrigger
+    ) -> dict[int, Notification]:
+        if not binder_ids:
+            return {}
+        ranked = (
+            select(
+                Notification.id.label("id"),
+                Notification.binder_id.label("binder_id"),
+                func.row_number()
+                .over(
+                    partition_by=Notification.binder_id,
+                    order_by=(Notification.created_at.desc(), Notification.id.desc()),
+                )
+                .label("rn"),
+            )
+            .where(
+                Notification.binder_id.in_(binder_ids),
+                Notification.trigger == trigger,
+            )
+            .subquery()
+        )
+        rows = self.db.scalars(
+            select(Notification)
+            .join(ranked, ranked.c.id == Notification.id)
+            .where(ranked.c.rn == 1)
+        ).all()
+        return {row.binder_id: row for row in rows if row.binder_id is not None}
+
+    def latest_by_annual_report_ids(
+        self, annual_report_ids: list[int], trigger: NotificationTrigger
+    ) -> dict[int, Notification]:
+        if not annual_report_ids:
+            return {}
+        ranked = (
+            select(
+                Notification.id.label("id"),
+                Notification.annual_report_id.label("annual_report_id"),
+                func.row_number()
+                .over(
+                    partition_by=Notification.annual_report_id,
+                    order_by=(Notification.created_at.desc(), Notification.id.desc()),
+                )
+                .label("rn"),
+            )
+            .where(
+                Notification.annual_report_id.in_(annual_report_ids),
+                Notification.trigger == trigger,
+            )
+            .subquery()
+        )
+        rows = self.db.scalars(
+            select(Notification)
+            .join(ranked, ranked.c.id == Notification.id)
+            .where(ranked.c.rn == 1)
+        ).all()
+        return {row.annual_report_id: row for row in rows if row.annual_report_id is not None}

@@ -8,7 +8,6 @@ from app.annual_reports.repositories.annual_report_repository import (
 )
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
-from app.charge.models.charge import ChargeStatus
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.dashboard.services.advisor_today_service import AdvisorTodayService
@@ -91,10 +90,9 @@ class DashboardOverviewService:
     def _open_charges_stats(self, is_advisor: bool) -> tuple[int, str | None]:
         if not is_advisor:
             return 0, None
-        count = self.charge_repo.count_charges(status=ChargeStatus.ISSUED.value)
+        count, total = self.charge_repo.open_charges_stats()
         if count == 0:
             return 0, None
-        total = self.charge_repo.sum_open_charges_amount()
         amount_ils = _format_ils(total) if total is not None else None
         return count, amount_ils
 

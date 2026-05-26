@@ -27,6 +27,21 @@ class ClientVatStatsRepository(BaseRepository[ClientRecord]):
             self._active_base_stmt().where(LegalEntity.vat_reporting_frequency == vat_type)
         )
 
+    def count_active_by_vat_types(self, vat_types: list[VatType]) -> dict[VatType, int]:
+        if not vat_types:
+            return {}
+        stmt = self._active_base_stmt().with_only_columns(
+            LegalEntity.vat_reporting_frequency,
+            func.count(ClientRecord.id),
+        )
+        stmt = stmt.where(LegalEntity.vat_reporting_frequency.in_(vat_types)).group_by(
+            LegalEntity.vat_reporting_frequency
+        )
+        counts = {vat_type: 0 for vat_type in vat_types}
+        for vat_type, count in self.db.execute(stmt).all():
+            counts[vat_type] = int(count)
+        return counts
+
     def count_active_by_entity_and_vat_type(
         self, entity_type: EntityType, vat_type: VatType
     ) -> int:

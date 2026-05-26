@@ -63,6 +63,9 @@ def build_annual_report_actions(
     now_utc = _dt.datetime.now(_dt.UTC)
     client_record_ids = [r.client_record_id for r in reports if r.client_record_id]
     client_name_map = _batch_client_names(business_repo.db, client_record_ids)
+    last_reminders = notification_repo.latest_by_annual_report_ids(
+        [r.id for r in reports], NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER
+    )
 
     result: list[dict] = []
     for report in reports:
@@ -90,9 +93,7 @@ def build_annual_report_actions(
             pending_days = (now_utc - report.updated_at.replace(tzinfo=_dt.UTC)).days
 
         if is_pending_client and pending_days >= _ANNUAL_PENDING_CLIENT_DAYS:
-            last_reminder = notification_repo.get_last_for_annual_report_trigger(
-                report.id, NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER
-            )
+            last_reminder = last_reminders.get(report.id)
             cooldown_ok = (
                 not last_reminder
                 or (now_utc - last_reminder.created_at.replace(tzinfo=_dt.UTC)).days
@@ -131,12 +132,13 @@ def build_binder_actions(
     now_utc = _dt.datetime.now(_dt.UTC)
     client_record_ids = [b.client_record_id for b in binders if b.client_record_id]
     client_name_map = _batch_client_names(business_repo.db, client_record_ids)
+    last_reminders = notification_repo.latest_by_binder_ids(
+        [b.id for b in binders], NotificationTrigger.PICKUP_REMINDER
+    )
 
     result: list[dict] = []
     for binder in binders:
-        last_reminder = notification_repo.get_last_for_binder_trigger(
-            binder.id, NotificationTrigger.PICKUP_REMINDER
-        )
+        last_reminder = last_reminders.get(binder.id)
         if last_reminder:
             days_since = (now_utc - last_reminder.created_at.replace(tzinfo=_dt.UTC)).days
             if days_since < PICKUP_REMINDER_COOLDOWN_DAYS:

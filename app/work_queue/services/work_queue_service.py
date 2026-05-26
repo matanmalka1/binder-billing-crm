@@ -170,11 +170,11 @@ class WorkQueueService:
         self.today = israel_today()
         self.task_repo = TaskRepository(self.db)
 
-    def _context(self, *, resolve_client_identity: bool = True) -> WorkQueueContext:
+    def _context(self, *, include_client_identity: bool = True) -> WorkQueueContext:
         return WorkQueueContext(
             self.db,
             self.today,
-            resolve_client_identity=resolve_client_identity,
+            resolve_client_identity=include_client_identity,
         )
 
     def list_items(
@@ -191,8 +191,9 @@ class WorkQueueService:
         scope: WorkQueueScope | None = None,
         limit: int = 50,
         offset: int = 0,
+        include_client_identity: bool = True,
     ) -> list[WorkQueueItem]:
-        ctx = self._context()
+        ctx = self._context(include_client_identity=include_client_identity)
         items = self._filtered_items(
             ctx,
             client_record_id=client_record_id,

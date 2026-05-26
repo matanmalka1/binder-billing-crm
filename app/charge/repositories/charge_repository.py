@@ -174,6 +174,20 @@ class ChargeRepository(BaseRepository[Charge]):
         result = self.db.scalar(stmt)
         return Decimal(str(result)) if result is not None else None
 
+    def open_charges_stats(self) -> tuple[int, Decimal | None]:
+        stmt = scope_to_active_clients_stmt(
+            select(
+                func.count(Charge.id),
+                func.sum(Charge.amount),
+            ),
+            Charge,
+        ).where(
+            Charge.deleted_at.is_(None),
+            Charge.status == ChargeStatus.ISSUED.value,
+        )
+        count, total = self.db.execute(stmt).one()
+        return int(count or 0), Decimal(str(total)) if total is not None else None
+
     def update_status(
         self,
         charge_id: int,

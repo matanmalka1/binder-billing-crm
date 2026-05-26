@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import select, tuple_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -62,6 +62,26 @@ class TaxCalendarMaterializationService:
         self._periodic_rule_type(obligation_type, period_months_count)
         self._validate_period_alignment(month, period_months_count)
         return self._find_periodic(obligation_type, period, period_months_count)
+
+    def get_periodic_entries(
+        self, obligation_type, periods: list[tuple[str, int]]
+    ) -> dict[tuple[str, int], TaxCalendarEntry]:
+        obligation_type = self._obligation(obligation_type)
+        if not periods:
+            return {}
+        for period, months in periods:
+            _year, month = self._parse_period(period)
+            self._periodic_rule_type(obligation_type, months)
+            self._validate_period_alignment(month, months)
+        rows = self.db.scalars(
+            select(TaxCalendarEntry).where(
+                TaxCalendarEntry.obligation_type == obligation_type.value,
+                tuple_(TaxCalendarEntry.period, TaxCalendarEntry.period_months_count).in_(
+                    periods
+                ),
+            )
+        ).all()
+        return {(row.period, row.period_months_count): row for row in rows}
 
     def ensure_annual_entry(self, tax_year: int) -> TaxCalendarEntry:
         tax_year = self._parse_tax_year(tax_year)

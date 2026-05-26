@@ -12,6 +12,7 @@ from app.work_queue.schemas.work_queue import (
     WorkQueueSourceType,
     WorkQueueUrgency,
 )
+from app.work_queue.services.common import load_client_profiles
 from app.work_queue.services.work_queue_service import WorkQueueService
 
 _ATTENTION_URGENCIES = frozenset(
@@ -128,7 +129,10 @@ class DashboardAttentionService:
         if user_role != UserRole.ADVISOR:
             return []
         today = reference_date or israel_today()
-        all_items = WorkQueueService(self.db).list_items(limit=200)
+        all_items = WorkQueueService(self.db).list_items(
+            limit=200,
+            include_client_identity=False,
+        )
         all_items = [i for i in all_items if _is_attention_eligible(i)]
 
         attention = [i for i in all_items if i.urgency in _ATTENTION_URGENCIES]
@@ -138,4 +142,18 @@ class DashboardAttentionService:
             attention += upcoming[: _FALLBACK_MIN - len(attention)]
 
         attention.sort(key=_sort_key)
-        return [_to_attention_item(i, today) for i in attention[:_MAX_ITEMS]]
+        selected = attention[:_MAX_ITEMS]
+        self._attach_client_names(selected)
+        return [_to_attention_item(i, today) for i in selected]
+
+    def _attach_client_names(self, items: list[WorkQueueItem]) -> None:
+        profiles = load_client_profiles(
+            self.db,
+            [item.client_record_id for item in items if item.client_record_id is not None],
+        )
+        for item in items:
+            if item.client_record_id is None:
+                continue
+            profile = profiles.get(item.client_record_id)
+            if profile is not None:
+                item.client_name = profile.name

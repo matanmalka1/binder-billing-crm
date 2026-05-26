@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, select, tuple_
 from sqlalchemy.orm import Session
 
 from app.common.enums import VatType
@@ -20,3 +20,22 @@ class VatWorkItemStatsRepository(BaseRepository[VatWorkItem]):
                 VatWorkItem.deleted_at.is_(None),
             )
         )
+
+    def count_filed_by_period_types(
+        self, period_types: list[tuple[str, VatType]]
+    ) -> dict[tuple[str, VatType], int]:
+        if not period_types:
+            return {}
+        stmt = (
+            select(VatWorkItem.period, VatWorkItem.period_type, func.count(VatWorkItem.id))
+            .where(
+                VatWorkItem.status == VatWorkItemStatus.FILED,
+                VatWorkItem.deleted_at.is_(None),
+                tuple_(VatWorkItem.period, VatWorkItem.period_type).in_(period_types),
+            )
+            .group_by(VatWorkItem.period, VatWorkItem.period_type)
+        )
+        counts = {period_type: 0 for period_type in period_types}
+        for period, vat_type, count in self.db.execute(stmt).all():
+            counts[(period, vat_type)] = int(count)
+        return counts

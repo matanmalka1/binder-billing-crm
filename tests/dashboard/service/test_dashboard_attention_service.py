@@ -75,6 +75,7 @@ def test_item_shape(test_db):
         "href",
     }
     assert required_keys.issubset(item.keys())
+    assert item["client_name"]
     assert item["days_delta"] < 0  # overdue
 
 

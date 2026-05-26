@@ -62,6 +62,39 @@ def test_get_last_for_binder_trigger_returns_newest_matching_notification(test_d
     )
 
 
+def test_latest_by_binder_ids_returns_newest_per_binder(test_db):
+    user = _user(test_db)
+    client = seed_client_identity(test_db, full_name="Trigger Binder Batch", id_number="NTB002")
+    repo = NotificationRepository(test_db)
+    binder_a = BinderRepository(test_db).create(client.id, "NTB-2", date(2026, 1, 1), user.id)
+    binder_b = BinderRepository(test_db).create(client.id, "NTB-3", date(2026, 1, 1), user.id)
+
+    older_a = _create_notification(
+        repo, client.id, NotificationTrigger.PICKUP_REMINDER, binder_id=binder_a.id
+    )
+    newer_a = _create_notification(
+        repo, client.id, NotificationTrigger.PICKUP_REMINDER, binder_id=binder_a.id
+    )
+    newer_b = _create_notification(
+        repo, client.id, NotificationTrigger.PICKUP_REMINDER, binder_id=binder_b.id
+    )
+    ignored = _create_notification(
+        repo, client.id, NotificationTrigger.BINDER_RECEIVED, binder_id=binder_b.id
+    )
+    older_a.created_at = utcnow() - timedelta(days=3)
+    newer_a.created_at = utcnow() - timedelta(days=1)
+    newer_b.created_at = utcnow() - timedelta(days=2)
+    ignored.created_at = utcnow()
+    test_db.commit()
+
+    result = repo.latest_by_binder_ids(
+        [binder_a.id, binder_b.id],
+        NotificationTrigger.PICKUP_REMINDER,
+    )
+
+    assert result == {binder_a.id: newer_a, binder_b.id: newer_b}
+
+
 def test_get_last_for_annual_report_trigger_returns_newest_matching_notification(
     test_db,
 ):
@@ -95,3 +128,51 @@ def test_get_last_for_annual_report_trigger_returns_newest_matching_notification
         NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
     )
     assert result.id == newer.id
+
+
+def test_latest_by_annual_report_ids_returns_newest_per_report(test_db):
+    client = seed_client_identity(test_db, full_name="Trigger Annual Batch", id_number="NTA002")
+    report_a = AnnualReportService(test_db).create_report(
+        client_record_id=client.id,
+        tax_year=2026,
+        client_type="individual",
+        created_by=1,
+        created_by_name="Tester",
+    )
+    report_b = AnnualReportService(test_db).create_report(
+        client_record_id=client.id,
+        tax_year=2027,
+        client_type="individual",
+        created_by=1,
+        created_by_name="Tester",
+    )
+    repo = NotificationRepository(test_db)
+    older_a = _create_notification(
+        repo,
+        client.id,
+        NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
+        annual_report_id=report_a.id,
+    )
+    newer_a = _create_notification(
+        repo,
+        client.id,
+        NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
+        annual_report_id=report_a.id,
+    )
+    newer_b = _create_notification(
+        repo,
+        client.id,
+        NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
+        annual_report_id=report_b.id,
+    )
+    older_a.created_at = utcnow() - timedelta(days=3)
+    newer_a.created_at = utcnow() - timedelta(days=1)
+    newer_b.created_at = utcnow() - timedelta(days=2)
+    test_db.commit()
+
+    result = repo.latest_by_annual_report_ids(
+        [report_a.id, report_b.id],
+        NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
+    )
+
+    assert result == {report_a.id: newer_a, report_b.id: newer_b}
