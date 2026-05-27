@@ -1,0 +1,125 @@
+"""
+Resolves template context variables from DB entities given a trigger + entity_id.
+
+Phase 1: handles binder manual triggers (binder_number) and client-level triggers (message).
+Phase 2+: will add annual_report, charge, vat_work_item, signature_request resolvers.
+"""
+
+from __future__ import annotations
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.clients.models.client_record import ClientRecord
+from app.clients.models.legal_entity import LegalEntity
+from app.clients.models.person import Person
+from app.clients.models.person_legal_entity_link import (
+    PersonLegalEntityLink,
+    PersonLegalEntityRole,
+)
+from app.config import settings
+from app.core.exceptions import NotFoundError
+from app.core.logging_config import get_logger
+from app.notification.models.notification import NotificationTrigger
+from app.users.models.user import User
+
+logger = get_logger(__name__)
+
+_BINDER_TRIGGERS = {
+    NotificationTrigger.BINDER_READY_FOR_HANDOVER,
+    NotificationTrigger.BINDER_MISSING_DOCUMENTS,
+    NotificationTrigger.BINDER_GENERAL_REMINDER,
+}
+
+
+class NotificationContextResolver:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def resolve(
+        self,
+        trigger: NotificationTrigger,
+        client_record_id: int,
+        entity_id: int | None,
+        business_id: int | None,  # noqa: ARG002 — reserved for Phase 2+ domain resolvers
+        triggered_by_user_id: int | None,
+        extra: dict | None = None,
+    ) -> dict:
+        """
+        Build template context dict for the given trigger.
+        Raises NotFoundError if a required entity is not found.
+        extra: caller-supplied values (e.g. message for client_general_message).
+        """
+        ctx: dict = {}
+
+        # Base: office_name, sender_name
+        ctx["office_name"] = settings.EMAIL_FROM_NAME or "המשרד"
+        ctx["sender_name"] = self._resolve_sender_name(triggered_by_user_id)
+
+        # Binder triggers require binder_number
+        if trigger in _BINDER_TRIGGERS:
+            if entity_id is not None:
+                binder_number = self._resolve_binder_number(entity_id, client_record_id)
+                ctx["binder_number"] = binder_number
+
+        # Client-level triggers that take a free-text message.
+        # Default empty string so preview renders without blocking on missing var.
+        # The actual message is provided by the user after editing subject/body.
+        if trigger in (
+            NotificationTrigger.BINDER_GENERAL_REMINDER,
+            NotificationTrigger.BINDER_MISSING_DOCUMENTS,
+            NotificationTrigger.CLIENT_MISSING_INFORMATION,
+            NotificationTrigger.CLIENT_DOCUMENTS_REQUEST,
+            NotificationTrigger.CLIENT_GENERAL_MESSAGE,
+        ):
+            ctx["message"] = extra.get("message", "") if extra else ""
+
+        return ctx
+
+    def resolve_person(self, client_record_id: int) -> Person | None:
+        """Return the OWNER Person for the client record, or None."""
+        return self.db.execute(
+            select(Person)
+            .select_from(ClientRecord)
+            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
+            .outerjoin(
+                PersonLegalEntityLink,
+                (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
+                & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
+            )
+            .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
+            .where(ClientRecord.id == client_record_id)
+        ).scalar()
+
+    def resolve_client_name(self, client_record_id: int) -> str:
+        """Return display name: Person.full_name → LegalEntity.official_name → fallback."""
+        from app.notification.services.messages import FALLBACK_CLIENT_NAME
+
+        person = self.resolve_person(client_record_id)
+        if person and person.full_name:
+            return person.full_name
+
+        row = self.db.execute(
+            select(LegalEntity.official_name)
+            .join(ClientRecord, ClientRecord.legal_entity_id == LegalEntity.id)
+            .where(ClientRecord.id == client_record_id)
+        ).scalar()
+        return row or FALLBACK_CLIENT_NAME
+
+    # ── Private helpers ───────────────────────────────────────────────────────
+
+    def _resolve_sender_name(self, user_id: int | None) -> str:
+        if user_id is None:
+            return "צוות המשרד"
+        user = self.db.get(User, user_id)
+        if user and user.full_name:
+            return user.full_name
+        return "צוות המשרד"
+
+    def _resolve_binder_number(self, binder_id: int, client_record_id: int) -> str:
+        from app.binders.models.binder import Binder
+
+        binder = self.db.get(Binder, binder_id)
+        if binder is None or binder.client_record_id != client_record_id:
+            raise NotFoundError("הקלסר לא נמצא", "BINDER.NOT_FOUND")
+        return binder.binder_number

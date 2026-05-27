@@ -7,7 +7,6 @@ from app.binders.models.binder import BinderLocationStatus
 from app.notification.models.notification import (
     Notification,
     NotificationChannel,
-    NotificationSeverity,
     NotificationStatus,
     NotificationTrigger,
 )
@@ -57,8 +56,8 @@ def create_notifications(
         else:
             trigger = rng.choice(
                 [
-                    NotificationTrigger.BINDER_RECEIVED,
-                    NotificationTrigger.MANUAL_PAYMENT_REMINDER,
+                    NotificationTrigger.BINDER_MISSING_DOCUMENTS,
+                    NotificationTrigger.CLIENT_GENERAL_MESSAGE,
                 ]
             )
 
@@ -72,8 +71,9 @@ def create_notifications(
                     NotificationStatus.SENT,
                     NotificationStatus.PENDING,
                     NotificationStatus.FAILED,
+                    NotificationStatus.SKIPPED,
                 ],
-                weights=[75, 18, 7],
+                weights=[70, 15, 10, 5],
                 k=1,
             )[0]
         sent_at = None
@@ -92,7 +92,7 @@ def create_notifications(
             )
 
         triggered_by = None
-        if trigger == NotificationTrigger.MANUAL_PAYMENT_REMINDER and users:
+        if trigger == NotificationTrigger.CLIENT_GENERAL_MESSAGE and users:
             triggered_by = rng.choice(users).id
 
         notification = Notification(
@@ -101,9 +101,8 @@ def create_notifications(
             binder_id=binder.id,
             trigger=trigger,
             channel=channel,
-            severity=rng.choice(list(NotificationSeverity)),
             status=status,
-            recipient=recipient,
+            recipient=recipient if status != NotificationStatus.SKIPPED else None,
             content_snapshot=f"הודעה אוטומטית עבור קלסר {binder.binder_number}",
             sent_at=sent_at,
             failed_at=failed_at,

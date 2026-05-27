@@ -8,34 +8,22 @@ from sqlalchemy.orm import Session
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
-from app.clients.models.person import Person
-from app.clients.models.person_legal_entity_link import (
-    PersonLegalEntityLink,
-    PersonLegalEntityRole,
-)
-from app.config import settings
-from app.core.exceptions import AppError, NotFoundError
 from app.core.logging_config import get_logger
-from app.infrastructure.notifications import EmailChannel, WhatsAppChannel
 from app.notification.models.notification import (
     NotificationChannel,
-    NotificationSeverity,
     NotificationStatus,
     NotificationTrigger,
 )
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.schemas.notification_schemas import (
-    ManualSendRequest,
+    NotificationPreviewRequest,
+    NotificationPreviewResponse,
     NotificationResponse,
+    NotificationResult,
+    NotificationSendRequest,
     NotificationSummaryResponse,
 )
-from app.notification.services.messages import FALLBACK_CLIENT_NAME
-from app.notification.services.notification_delivery_service import (
-    NotificationDeliveryService,
-)
-from app.notification.services.notification_template_renderer import (
-    NotificationTemplateRenderer,
-)
+from app.notification.services.notification_send_service import NotificationSendService
 
 logger = get_logger(__name__)
 
@@ -45,117 +33,67 @@ def _enrich(
     business_name_map: dict[int, str],
     client_name_map: dict[int, str],
 ) -> NotificationResponse:
+    from app.notification.models.notification import TRIGGER_DOMAIN, TRIGGER_LABELS
+
     resp = NotificationResponse.model_validate(notification)
-    resp.client_name = client_name_map.get(notification.client_record_id)
-    if notification.business_id is not None:
-        resp.business_name = business_name_map.get(notification.business_id)
+    resp.client_name = client_name_map.get(notification.client_record_id)  # type: ignore[attr-defined]
+    if notification.business_id is not None:  # type: ignore[attr-defined]
+        resp.business_name = business_name_map.get(notification.business_id)  # type: ignore[attr-defined]
+    trigger = notification.trigger  # type: ignore[attr-defined]
+    resp.trigger_label = TRIGGER_LABELS.get(trigger, trigger.value)
+    resp.domain_label = TRIGGER_DOMAIN.get(trigger, "")
     return resp
 
 
 class NotificationService:
     def __init__(self, db: Session):
         self.db = db
-        self.notification_repo = NotificationRepository(db)
+        self.repo = NotificationRepository(db)
         self.business_repo = BusinessRepository(db)
-        live_delivery = settings.APP_ENV in ("staging", "production")
-        self.email = EmailChannel(
-            enabled=settings.NOTIFICATIONS_ENABLED and live_delivery,
-            api_key=settings.BREVO_API_KEY,
-            api_url=settings.BREVO_API_URL,
-            from_address=settings.EMAIL_FROM_ADDRESS,
-            from_name=settings.EMAIL_FROM_NAME,
-        )
-        self.whatsapp = WhatsAppChannel(
-            api_key=settings.WHATSAPP_API_KEY,
-            api_url=settings.WHATSAPP_API_URL,
-            from_number=settings.WHATSAPP_FROM_NUMBER,
-        )
-        self._renderer = NotificationTemplateRenderer()
-        self._delivery = NotificationDeliveryService(
-            repo=self.notification_repo,
-            email=self.email,
-            whatsapp=self.whatsapp,
+        self._send_svc = NotificationSendService(db)
+
+    # ── Deprecated Phase 1 stub — replaced in Phase 2 by auto_send_service ──────
+
+    def notify_client(self, client_record_id: int, trigger: NotificationTrigger, **_: Any) -> None:
+        logger.warning(
+            "notify_client() is deprecated and will be removed in Phase 2 | "
+            "client=%s trigger=%s",
+            client_record_id,
+            trigger.value,
         )
 
-    # ── Canonical entry point ─────────────────────────────────────────────────
+    # ── Preview / Send (delegates to NotificationSendService) ─────────────────
 
-    def notify_client(
+    def preview(
         self,
-        client_record_id: int,
-        trigger: NotificationTrigger,
-        template_data: dict[str, Any] | None = None,
-        business_id: int | None = None,
-        binder_id: int | None = None,
-        annual_report_id: int | None = None,
-        triggered_by: int | None = None,
-        preferred_channel: NotificationChannel = NotificationChannel.EMAIL,
-        severity: NotificationSeverity = NotificationSeverity.INFO,
-    ) -> bool:
-        client_record = self.db.get(ClientRecord, client_record_id)
-        if client_record is None:
-            raise NotFoundError("הלקוח לא נמצא", "CLIENT.NOT_FOUND")
+        request: NotificationPreviewRequest,
+        triggered_by: int,
+    ) -> NotificationPreviewResponse:
+        return self._send_svc.preview(request, triggered_by=triggered_by)
 
-        if business_id is not None:
-            business = self.business_repo.get_by_id(business_id)
-            if business is None:
-                raise AppError("העסק לא נמצא", "NOTIFICATION.BUSINESS_NOT_FOUND")
-            if business.legal_entity_id != client_record.legal_entity_id:
-                raise AppError("העסק אינו שייך ללקוח שצוין", "NOTIFICATION.BUSINESS_MISMATCH")
-
-        person = self._resolve_client_contact(client_record_id)
-        person_name = person.full_name if person else FALLBACK_CLIENT_NAME
-
-        content, subject = self._renderer.render(
-            trigger=trigger,
-            template_data=template_data or {},
-            person_name=person_name,
-        )
-
-        if not person:
-            logger.warning("notify_client: client %s has no linked person", client_record_id)
-            return False
-
-        log_ctx = f"client={client_record_id} trigger={trigger.value}"
-        return self._delivery.deliver(
-            person=person,
-            client_record_id=client_record_id,
-            trigger=trigger,
-            content=content,
-            subject=subject,
-            preferred_channel=preferred_channel,
-            severity=severity,
-            business_id=business_id,
-            binder_id=binder_id,
-            annual_report_id=annual_report_id,
-            triggered_by=triggered_by,
-            log_ctx=log_ctx,
-        )
-
-    # ── Manual send ───────────────────────────────────────────────────────────
-
-    def send_manual(self, request: ManualSendRequest, triggered_by: int) -> bool:
-        return self.notify_client(
-            client_record_id=request.client_record_id,
-            trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER,
-            template_data={"message": request.message},
-            business_id=request.business_id,
-            triggered_by=triggered_by,
-            preferred_channel=request.preferred_channel,
-        )
+    def send(
+        self,
+        request: NotificationSendRequest,
+        triggered_by: int,
+    ) -> NotificationResult:
+        return self._send_svc.send(request, triggered_by=triggered_by)
 
     # ── Read / list ───────────────────────────────────────────────────────────
 
     def list_paginated(
         self,
         page: int = 1,
-        page_size: int = 20,
+        page_size: int = 25,
         client_record_id: int | None = None,
         business_id: int | None = None,
         status: NotificationStatus | None = None,
         trigger: NotificationTrigger | None = None,
         channel: NotificationChannel | None = None,
-    ) -> tuple:
-        items, total = self.notification_repo.list_paginated(
+        triggered_by: int | None = None,
+        date_from: Any | None = None,
+        date_to: Any | None = None,
+    ) -> tuple[list[NotificationResponse], int]:
+        items, total = self.repo.list_paginated(
             page=page,
             page_size=page_size,
             client_record_id=client_record_id,
@@ -163,8 +101,11 @@ class NotificationService:
             status=status,
             trigger=trigger,
             channel=channel,
+            triggered_by=triggered_by,
+            date_from=date_from,
+            date_to=date_to,
         )
-        business_name_map = self._build_name_map(items)
+        business_name_map = self._build_business_name_map(items)
         client_name_map = self._build_client_name_map(items)
         return [_enrich(n, business_name_map, client_name_map) for n in items], total
 
@@ -173,33 +114,16 @@ class NotificationService:
         client_record_id: int | None = None,
         business_id: int | None = None,
     ) -> NotificationSummaryResponse:
-        counts = self.notification_repo.count_by_status(
+        counts = self.repo.count_by_status(
             client_record_id=client_record_id,
             business_id=business_id,
         )
         return NotificationSummaryResponse(**counts)
 
-    # ── Internal helpers ──────────────────────────────────────────────────────
-
-    def _resolve_client_contact(self, client_record_id: int) -> Person | None:
-        person = self.db.execute(
-            select(Person)
-            .select_from(ClientRecord)
-            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-            .outerjoin(
-                PersonLegalEntityLink,
-                (PersonLegalEntityLink.legal_entity_id == LegalEntity.id)
-                & (PersonLegalEntityLink.role == PersonLegalEntityRole.OWNER),
-            )
-            .outerjoin(Person, Person.id == PersonLegalEntityLink.person_id)
-            .where(ClientRecord.id == client_record_id)
-        ).scalar()
-        if person is None:
-            logger.warning("ClientRecord id=%s has no linked Person", client_record_id)
-        return person
+    # ── Private helpers ───────────────────────────────────────────────────────
 
     def _build_client_name_map(self, notifications: list) -> dict[int, str]:
-        ids = list({n.client_record_id for n in notifications})
+        ids = list({n.client_record_id for n in notifications})  # type: ignore[attr-defined]
         if not ids:
             return {}
         rows = self.db.execute(
@@ -209,8 +133,8 @@ class NotificationService:
         ).all()
         return {row[0]: row[1] for row in rows}
 
-    def _build_name_map(self, notifications: list) -> dict[int, str]:
-        ids = [n.business_id for n in notifications if n.business_id is not None]
+    def _build_business_name_map(self, notifications: list) -> dict[int, str]:
+        ids = [n.business_id for n in notifications if n.business_id is not None]  # type: ignore[attr-defined]
         if not ids:
             return {}
         businesses = self.business_repo.list_by_ids(list(set(ids)))

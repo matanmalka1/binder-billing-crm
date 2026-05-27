@@ -1,5 +1,8 @@
 """Notification center HTTP endpoints."""
 
+import datetime
+from typing import Literal
+
 from fastapi import APIRouter, Depends, Query
 
 from app.notification.models.notification import (
@@ -8,9 +11,11 @@ from app.notification.models.notification import (
     NotificationTrigger,
 )
 from app.notification.schemas.notification_schemas import (
-    ManualSendRequest,
-    ManualSendResponse,
     NotificationListResponse,
+    NotificationPreviewRequest,
+    NotificationPreviewResponse,
+    NotificationResult,
+    NotificationSendRequest,
     NotificationSummaryResponse,
 )
 from app.notification.services.notification_service import NotificationService
@@ -23,24 +28,20 @@ router = APIRouter(
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 
-advisor_router = APIRouter(
-    prefix="/notifications",
-    tags=["notifications"],
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
-)
-
 
 @router.get("", response_model=NotificationListResponse)
 def list_notifications(
     db: DBSession,
-    user: CurrentUser,
     client_record_id: int | None = None,
     business_id: int | None = None,
     status: NotificationStatus | None = None,
     trigger: NotificationTrigger | None = None,
     channel: NotificationChannel | None = None,
+    triggered_by: int | None = None,
+    date_from: datetime.datetime | None = None,
+    date_to: datetime.datetime | None = None,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: Literal[25, 50] = Query(25),
 ):
     svc = NotificationService(db)
     items, total = svc.list_paginated(
@@ -51,6 +52,9 @@ def list_notifications(
         status=status,
         trigger=trigger,
         channel=channel,
+        triggered_by=triggered_by,
+        date_from=date_from,
+        date_to=date_to,
     )
     return NotificationListResponse(
         items=items,
@@ -63,7 +67,6 @@ def list_notifications(
 @router.get("/summary", response_model=NotificationSummaryResponse)
 def get_notification_summary(
     db: DBSession,
-    user: CurrentUser,
     client_record_id: int | None = None,
     business_id: int | None = None,
 ):
@@ -71,8 +74,21 @@ def get_notification_summary(
     return svc.get_summary(client_record_id=client_record_id, business_id=business_id)
 
 
-@advisor_router.post("/send", response_model=ManualSendResponse)
-def send_manual_notification(body: ManualSendRequest, db: DBSession, user: CurrentUser):
+@router.post("/preview", response_model=NotificationPreviewResponse)
+def preview_notification(
+    body: NotificationPreviewRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
     svc = NotificationService(db)
-    ok = svc.send_manual(body, triggered_by=user.id)
-    return ManualSendResponse(ok=ok)
+    return svc.preview(body, triggered_by=user.id)
+
+
+@router.post("/send", response_model=NotificationResult)
+def send_notification(
+    body: NotificationSendRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    svc = NotificationService(db)
+    return svc.send(body, triggered_by=user.id)

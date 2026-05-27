@@ -34,7 +34,7 @@ class BinderHandoverReminderService:
             raise AppError("הקלסר אינו מוכן למסירה", "BINDER.NOT_READY_FOR_HANDOVER")
 
         last = self.notification_repo.get_last_for_binder_trigger(
-            binder_id, NotificationTrigger.HANDOVER_REMINDER
+            binder_id, NotificationTrigger.BINDER_GENERAL_REMINDER
         )
         if last:
             days_since = (_dt.datetime.now(_dt.UTC) - last.created_at.replace(tzinfo=_dt.UTC)).days
@@ -46,7 +46,7 @@ class BinderHandoverReminderService:
 
         self.notification_service.notify_client(
             client_record_id=binder.client_record_id,
-            trigger=NotificationTrigger.HANDOVER_REMINDER,
+            trigger=NotificationTrigger.BINDER_GENERAL_REMINDER,
             template_data={"binder_number": binder.binder_number},
             binder_id=binder.id,
             triggered_by=triggered_by,

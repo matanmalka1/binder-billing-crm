@@ -133,7 +133,7 @@ def build_binder_actions(
     client_record_ids = [b.client_record_id for b in binders if b.client_record_id]
     client_name_map = _batch_client_names(business_repo.db, client_record_ids)
     last_reminders = notification_repo.latest_by_binder_ids(
-        [b.id for b in binders], NotificationTrigger.HANDOVER_REMINDER
+        [b.id for b in binders], NotificationTrigger.BINDER_GENERAL_REMINDER
     )
 
     result: list[dict] = []

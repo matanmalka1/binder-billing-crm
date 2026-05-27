@@ -69,7 +69,7 @@ def _seed_notification(test_db, business_id: int, content: str, **kwargs):
     return repo.create(
         client_record_id=cr.id,
         business_id=business_id,
-        trigger=kwargs.get("trigger", NotificationTrigger.MANUAL_PAYMENT_REMINDER),
+        trigger=kwargs.get("trigger", NotificationTrigger.CLIENT_GENERAL_MESSAGE),
         channel=kwargs.get("channel", NotificationChannel.EMAIL),
         recipient="x@example.com",
         content_snapshot=content,
@@ -114,19 +114,21 @@ def test_notifications_list_by_status(client, test_db, advisor_headers):
 
 def test_notifications_list_by_trigger(client, test_db, advisor_headers):
     b1 = _business(test_db, "t1")
-    n_manual = _seed_notification(
-        test_db, b1.id, "manual", trigger=NotificationTrigger.MANUAL_PAYMENT_REMINDER
+    n_msg = _seed_notification(
+        test_db, b1.id, "msg", trigger=NotificationTrigger.CLIENT_GENERAL_MESSAGE
     )
-    _seed_notification(test_db, b1.id, "binder", trigger=NotificationTrigger.BINDER_RECEIVED)
+    _seed_notification(
+        test_db, b1.id, "binder", trigger=NotificationTrigger.BINDER_MISSING_DOCUMENTS
+    )
 
     resp = client.get(
-        f"/api/v1/notifications?business_id={b1.id}&trigger=manual_payment_reminder",
+        f"/api/v1/notifications?business_id={b1.id}&trigger=client_general_message",
         headers=advisor_headers,
     )
     assert resp.status_code == 200
     data = resp.json()
     assert data["total"] == 1
-    assert data["items"][0]["id"] == n_manual.id
+    assert data["items"][0]["id"] == n_msg.id
 
 
 def test_notifications_list_by_channel(client, test_db, advisor_headers):
@@ -202,7 +204,8 @@ def test_secretary_can_list(client, test_db, secretary_headers):
     assert resp.status_code == 200
 
 
-def test_secretary_cannot_send(client, test_db, secretary_headers):
+def test_secretary_can_send(client, test_db, secretary_headers):
+    """Secretary is allowed to use POST /send (both roles have access)."""
     b1 = _business(test_db, "sec2")
     cr = test_db.scalars(
         select(ClientRecord).filter(ClientRecord.legal_entity_id == b1.legal_entity_id)
@@ -211,8 +214,34 @@ def test_secretary_cannot_send(client, test_db, secretary_headers):
         "/api/v1/notifications/send",
         json={
             "client_record_id": cr.id,
-            "message": "test",
+            "trigger": "client_general_message",
+            "subject": "נושא",
+            "body": "גוף ההודעה",
         },
         headers=secretary_headers,
     )
-    assert resp.status_code == 403
+    # 200 or skipped/sent — just not 403/422
+    assert resp.status_code in (200, 201)
+    assert resp.json()["status"] in ("sent", "skipped", "failed")
+
+
+def test_preview_returns_ready_for_active_client(client, test_db, advisor_headers):
+    b1 = _business(test_db, "prev1")
+    cr = test_db.scalars(
+        select(ClientRecord).filter(ClientRecord.legal_entity_id == b1.legal_entity_id)
+    ).first()
+
+    resp = client.post(
+        "/api/v1/notifications/preview",
+        json={
+            "client_record_id": cr.id,
+            "trigger": "client_general_message",
+        },
+        headers=advisor_headers,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["can_send"] is True
+    assert data["status"] == "ready"
+    assert data["subject"] is not None
+    assert data["body"] is not None

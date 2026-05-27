@@ -1,0 +1,267 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+
+from sqlalchemy.orm import Session
+
+from app.clients.models.client_record import ClientRecord
+from app.config import settings
+from app.core.exceptions import AppError, NotFoundError
+from app.core.logging_config import get_logger
+from app.infrastructure.notifications import EmailChannel
+from app.notification.models.notification import (
+    NotificationChannel,
+    NotificationStatus,
+)
+from app.notification.repositories.notification_repository import NotificationRepository
+from app.notification.schemas.notification_schemas import (
+    NotificationPreviewRequest,
+    NotificationPreviewResponse,
+    NotificationResult,
+    NotificationSendRequest,
+)
+from app.notification.services.constants import (
+    BODY_MAX_LENGTH,
+    NOTIFICATION_IDEMPOTENCY_TTL_HOURS,
+    SUBJECT_MAX_LENGTH,
+)
+from app.notification.services.notification_context_resolver import (
+    NotificationContextResolver,
+)
+from app.notification.services.notification_delivery_service import (
+    NotificationDeliveryService,
+)
+from app.notification.services.notification_policy_service import (
+    NotificationPolicyService,
+)
+from app.notification.services.notification_template_renderer import (
+    NotificationTemplateRenderer,
+)
+
+logger = get_logger(__name__)
+
+def _hash_request(trigger: str, subject: str, body: str, client_record_id: int) -> str:
+    payload = json.dumps(
+        {"trigger": trigger, "subject": subject, "body": body, "cr": client_record_id},
+        sort_keys=True,
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+class NotificationSendService:
+    def __init__(self, db: Session):
+        self.db = db
+        self.repo = NotificationRepository(db)
+        self.policy = NotificationPolicyService()
+        self.renderer = NotificationTemplateRenderer()
+        self.resolver = NotificationContextResolver(db)
+        live = settings.APP_ENV in ("staging", "production")
+        self._email = EmailChannel(
+            enabled=settings.NOTIFICATIONS_ENABLED and live,
+            api_key=settings.BREVO_API_KEY,
+            api_url=settings.BREVO_API_URL,
+            from_address=settings.EMAIL_FROM_ADDRESS,
+            from_name=settings.EMAIL_FROM_NAME,
+        )
+        self._delivery = NotificationDeliveryService()
+
+    # ── Preview ───────────────────────────────────────────────────────────────
+
+    def preview(
+        self,
+        request: NotificationPreviewRequest,
+        triggered_by: int,
+    ) -> NotificationPreviewResponse:
+        client_record = self.db.get(ClientRecord, request.client_record_id)
+        if client_record is None:
+            raise NotFoundError("הלקוח לא נמצא", "CLIENT.NOT_FOUND")
+
+        policy = self.policy.can_send(client_record, request.trigger)
+        if policy.blocked:
+            return NotificationPreviewResponse(
+                can_send=False,
+                status="blocked",
+                reason=policy.reason,
+                warnings=policy.warnings,
+            )
+
+        person = self.resolver.resolve_person(request.client_record_id)
+        person_name = self.resolver.resolve_client_name(request.client_record_id)
+        recipient = person.email if person else None
+
+        ctx = self.resolver.resolve(
+            trigger=request.trigger,
+            client_record_id=request.client_record_id,
+            entity_id=request.entity_id,
+            business_id=request.business_id,
+            triggered_by_user_id=triggered_by,
+        )
+
+        body, subject, error_reason = self.renderer.build_preview(
+            request.trigger, ctx, person_name
+        )
+        if error_reason:
+            return NotificationPreviewResponse(
+                can_send=False,
+                status="blocked",
+                reason=error_reason,
+                warnings=policy.warnings,
+            )
+
+        return NotificationPreviewResponse(
+            can_send=True,
+            status="ready",
+            warnings=policy.warnings,
+            recipient=recipient,
+            subject=subject,
+            body=body,
+        )
+
+    # ── Send ──────────────────────────────────────────────────────────────────
+
+    def send(
+        self,
+        request: NotificationSendRequest,
+        triggered_by: int,
+    ) -> NotificationResult:
+        # Idempotency check
+        if request.idempotency_key:
+            existing = self.repo.find_by_idempotency_key(
+                request.idempotency_key,
+                ttl_hours=NOTIFICATION_IDEMPOTENCY_TTL_HOURS,
+            )
+            if existing is not None:
+                req_hash = _hash_request(
+                    request.trigger.value,
+                    request.subject.strip(),
+                    request.body.strip(),
+                    request.client_record_id,
+                )
+                if existing.request_hash != req_hash:
+                    logger.warning(
+                        "idempotency key reused with different payload key=%s",
+                        request.idempotency_key,
+                    )
+                # A PENDING row means a prior attempt crashed mid-flight.
+                # Fall through and let this request proceed normally.
+                if existing.status is not NotificationStatus.PENDING:
+                    return NotificationResult(
+                        status=existing.status.value,  # type: ignore[arg-type]
+                        notification_id=existing.id,
+                        reason="כבר נשלח (idempotency)",
+                    )
+
+        # Validate subject/body (trim and check before any DB writes or policy checks)
+        subject = request.subject.strip()
+        body = request.body.strip()
+        if not subject:
+            raise AppError("נושא ההודעה לא יכול להיות ריק", "NOTIFICATION.EMPTY_SUBJECT")
+        if not body:
+            raise AppError("גוף ההודעה לא יכול להיות ריק", "NOTIFICATION.EMPTY_BODY")
+        if len(subject) > SUBJECT_MAX_LENGTH:
+            raise AppError(
+                f"הנושא ארוך מדי (מקסימום {SUBJECT_MAX_LENGTH} תווים)",
+                "NOTIFICATION.SUBJECT_TOO_LONG",
+            )
+        if len(body) > BODY_MAX_LENGTH:
+            raise AppError(
+                f"גוף ההודעה ארוך מדי (מקסימום {BODY_MAX_LENGTH} תווים)",
+                "NOTIFICATION.BODY_TOO_LONG",
+            )
+        _placeholder_re = re.compile(r"\{[a-z_]+\}")
+        if _placeholder_re.search(subject) or _placeholder_re.search(body):
+            raise AppError("ההודעה מכילה שדות שלא מולאו", "NOTIFICATION.VISIBLE_PLACEHOLDER")
+
+        client_record = self.db.get(ClientRecord, request.client_record_id)
+        if client_record is None:
+            raise NotFoundError("הלקוח לא נמצא", "CLIENT.NOT_FOUND")
+
+        # Policy check — blocked = no record created
+        policy = self.policy.can_send(client_record, request.trigger)
+        if policy.blocked:
+            return NotificationResult(
+                status="blocked",
+                reason=policy.reason,
+                warnings=policy.warnings,
+            )
+
+        # Contact resolution — skipped = record saved with recipient=null
+        person = self.resolver.resolve_person(request.client_record_id)
+        recipient = person.email if person else None
+
+        req_hash = _hash_request(
+            request.trigger.value, subject, body, request.client_record_id
+        )
+
+        if not recipient:
+            n = self.repo.create(
+                client_record_id=request.client_record_id,
+                trigger=request.trigger,
+                channel=NotificationChannel.EMAIL,
+                recipient=None,
+                content_snapshot=body,
+                subject_snapshot=subject,
+                business_id=request.business_id,
+                entity_id=request.entity_id,
+                triggered_by=triggered_by,
+                idempotency_key=request.idempotency_key,
+                request_hash=req_hash,
+                status=NotificationStatus.SKIPPED,
+            )
+            logger.info(
+                "notification skipped: no email | client=%s trigger=%s id=%s",
+                request.client_record_id,
+                request.trigger.value,
+                n.id,
+            )
+            return NotificationResult(
+                status="skipped",
+                notification_id=n.id,
+                reason="לא נמצאה כתובת אימייל עבור הלקוח",
+                warnings=policy.warnings,
+            )
+
+        # Phase 1: email only. WhatsApp channel selection added in Phase 2.
+        channel = NotificationChannel.EMAIL
+        delivery_recipient = recipient
+
+        n = self.repo.create(
+            client_record_id=request.client_record_id,
+            trigger=request.trigger,
+            channel=channel,
+            recipient=delivery_recipient,
+            content_snapshot=body,
+            subject_snapshot=subject,
+            business_id=request.business_id,
+            entity_id=request.entity_id,
+            triggered_by=triggered_by,
+            idempotency_key=request.idempotency_key,
+            request_hash=req_hash,
+            status=NotificationStatus.PENDING,
+        )
+
+        ok, err = self._delivery.send(
+            channel=channel,
+            recipient=delivery_recipient,
+            subject=subject,
+            body=body,
+            email_channel=self._email,
+        )
+
+        if ok:
+            self.repo.mark_sent(n.id)
+            return NotificationResult(
+                status="sent",
+                notification_id=n.id,
+                warnings=policy.warnings,
+            )
+
+        self.repo.mark_failed(n.id, err or "delivery failed")
+        return NotificationResult(
+            status="failed",
+            notification_id=n.id,
+            reason=err,
+            warnings=policy.warnings,
+        )

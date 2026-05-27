@@ -43,13 +43,13 @@ def test_get_last_for_binder_trigger_returns_newest_matching_notification(test_d
     binder = BinderRepository(test_db).create(client.id, "NTB-1", date(2026, 1, 1), user.id)
     repo = NotificationRepository(test_db)
     older = _create_notification(
-        repo, client.id, NotificationTrigger.PICKUP_REMINDER, binder_id=binder.id
+        repo, client.id, NotificationTrigger.BINDER_READY_FOR_HANDOVER, binder_id=binder.id
     )
     newer = _create_notification(
-        repo, client.id, NotificationTrigger.PICKUP_REMINDER, binder_id=binder.id
+        repo, client.id, NotificationTrigger.BINDER_READY_FOR_HANDOVER, binder_id=binder.id
     )
     other = _create_notification(
-        repo, client.id, NotificationTrigger.BINDER_RECEIVED, binder_id=binder.id
+        repo, client.id, NotificationTrigger.BINDER_MISSING_DOCUMENTS, binder_id=binder.id
     )
     older.created_at = utcnow() - timedelta(days=2)
     newer.created_at = utcnow() - timedelta(days=1)
@@ -57,7 +57,7 @@ def test_get_last_for_binder_trigger_returns_newest_matching_notification(test_d
     test_db.commit()
 
     assert (
-        repo.get_last_for_binder_trigger(binder.id, NotificationTrigger.PICKUP_REMINDER).id
+        repo.get_last_for_binder_trigger(binder.id, NotificationTrigger.BINDER_READY_FOR_HANDOVER).id
         == newer.id
     )
 
@@ -70,16 +70,16 @@ def test_latest_by_binder_ids_returns_newest_per_binder(test_db):
     binder_b = BinderRepository(test_db).create(client.id, "NTB-3", date(2026, 1, 1), user.id)
 
     older_a = _create_notification(
-        repo, client.id, NotificationTrigger.PICKUP_REMINDER, binder_id=binder_a.id
+        repo, client.id, NotificationTrigger.BINDER_READY_FOR_HANDOVER, binder_id=binder_a.id
     )
     newer_a = _create_notification(
-        repo, client.id, NotificationTrigger.PICKUP_REMINDER, binder_id=binder_a.id
+        repo, client.id, NotificationTrigger.BINDER_READY_FOR_HANDOVER, binder_id=binder_a.id
     )
     newer_b = _create_notification(
-        repo, client.id, NotificationTrigger.PICKUP_REMINDER, binder_id=binder_b.id
+        repo, client.id, NotificationTrigger.BINDER_READY_FOR_HANDOVER, binder_id=binder_b.id
     )
     ignored = _create_notification(
-        repo, client.id, NotificationTrigger.BINDER_RECEIVED, binder_id=binder_b.id
+        repo, client.id, NotificationTrigger.BINDER_MISSING_DOCUMENTS, binder_id=binder_b.id
     )
     older_a.created_at = utcnow() - timedelta(days=3)
     newer_a.created_at = utcnow() - timedelta(days=1)
@@ -89,7 +89,7 @@ def test_latest_by_binder_ids_returns_newest_per_binder(test_db):
 
     result = repo.latest_by_binder_ids(
         [binder_a.id, binder_b.id],
-        NotificationTrigger.PICKUP_REMINDER,
+        NotificationTrigger.BINDER_READY_FOR_HANDOVER,
     )
 
     assert result == {binder_a.id: newer_a, binder_b.id: newer_b}

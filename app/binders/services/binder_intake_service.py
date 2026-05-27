@@ -20,8 +20,6 @@ from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.guards.client_record_guards import assert_client_record_is_active
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import AppError
-from app.notification.models.notification import NotificationTrigger
-from app.notification.services.notification_service import NotificationService
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 from app.vat_reports.repositories.vat_work_item_write_repository import (
     VatWorkItemWriteRepository as VatWorkItemRepository,
@@ -41,7 +39,6 @@ class BinderIntakeService:
         self.material_repo = BinderIntakeMaterialRepository(db)
         # Used for the "all businesses locked" guard before intake is accepted.
         self.business_repo = BusinessRepository(db)
-        self.notification_service = NotificationService(db)
 
     def receive(
         self,
@@ -157,17 +154,6 @@ class BinderIntakeService:
                 self.db.flush()
 
         self._auto_advance_vat_work_items(materials, performed_by=received_by)
-
-        if is_new_binder:
-            self.notification_service.notify_client(
-                client_record_id=client_record_id,
-                trigger=NotificationTrigger.BINDER_RECEIVED,
-                template_data={
-                    "binder_number": binder.binder_number,
-                    "period_start": binder.period_start,
-                },
-                binder_id=binder.id,
-            )
 
         return binder, intake, is_new_binder
 
