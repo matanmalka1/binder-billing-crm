@@ -22,7 +22,8 @@ from app.binders.services.messages import (
 )
 from app.core.exceptions import AppError, NotFoundError
 from app.notification.models.notification import NotificationTrigger
-from app.notification.services.notification_service import NotificationService
+from app.notification.schemas.notification_schemas import NotificationResult
+from app.notification.services.notification_auto_send_service import NotificationAutoSendService
 from app.utils.time_utils import utcnow
 
 
@@ -42,7 +43,7 @@ class BinderLifecycleService:
         self.binder_repo = BinderRepository(db)
         self.material_repo = BinderIntakeMaterialRepository(db)
         self.lifecycle_log_repo = BinderLifecycleLogRepository(db)
-        self.notification_service = NotificationService(db)
+        self.auto_send_service = NotificationAutoSendService(db)
 
     @staticmethod
     def get_available_action_keys(binder: Binder) -> list[str]:
@@ -144,7 +145,7 @@ class BinderLifecycleService:
         binder_id: int,
         changed_by_user_id: int,
         notes: str | None = None,
-    ) -> Binder:
+    ) -> tuple[Binder, NotificationResult]:
         binder = self._get_for_update(binder_id)
         if binder.location_status != BinderLocationStatus.IN_OFFICE:
             raise AppError(
@@ -164,13 +165,24 @@ class BinderLifecycleService:
             notes or BINDER_MARKED_READY_FOR_HANDOVER,
         )
         if binder.client_record_id:
-            self.notification_service.notify_client(
-                client_record_id=binder.client_record_id,
-                trigger=NotificationTrigger.BINDER_READY_FOR_HANDOVER,
-                template_data={"binder_number": binder.binder_number},
-                binder_id=binder.id,
+            idempotency_key = (
+                f"binder_ready_{binder.id}_{binder.ready_for_handover_at.isoformat()}"
             )
-        return binder
+            notification_result = self.auto_send_service.auto_send(
+                trigger=NotificationTrigger.BINDER_READY_FOR_HANDOVER,
+                client_record_id=binder.client_record_id,
+                entity_id=binder.id,
+                binder_id=binder.id,
+                entity_type="binder",
+                triggered_by=changed_by_user_id,
+                idempotency_key=idempotency_key,
+            )
+        else:
+            notification_result = NotificationResult(
+                status="skipped",
+                reason="קלסר אינו משויך ללקוח",
+            )
+        return binder, notification_result
 
     def mark_ready_for_handover_bulk(
         self,
@@ -178,9 +190,9 @@ class BinderLifecycleService:
         until_period_year: int,
         until_period_month: int,
         changed_by_user_id: int,
-    ) -> list[Binder]:
+    ) -> list[tuple[Binder, NotificationResult]]:
         cutoff = (until_period_year, until_period_month)
-        updated: list[Binder] = []
+        updated: list[tuple[Binder, NotificationResult]] = []
         for binder in self.binder_repo.list_by_client_record(client_record_id):
             if binder.location_status != BinderLocationStatus.IN_OFFICE:
                 continue

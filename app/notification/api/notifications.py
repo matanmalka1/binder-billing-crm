@@ -1,7 +1,6 @@
 """Notification center HTTP endpoints."""
 
 import datetime
-from typing import Literal
 
 from fastapi import APIRouter, Depends, Query
 
@@ -18,9 +17,12 @@ from app.notification.schemas.notification_schemas import (
     NotificationSendRequest,
     NotificationSummaryResponse,
 )
+from app.core.exceptions import AppError
 from app.notification.services.notification_service import NotificationService
 from app.users.api.deps import CurrentUser, DBSession, require_role
 from app.users.models.user import UserRole
+
+_ALLOWED_PAGE_SIZES = {25, 50}
 
 router = APIRouter(
     prefix="/notifications",
@@ -41,8 +43,13 @@ def list_notifications(
     date_from: datetime.datetime | None = None,
     date_to: datetime.datetime | None = None,
     page: int = Query(1, ge=1),
-    page_size: Literal[25, 50] = Query(25),
+    page_size: int = Query(25, ge=1, le=50),
 ):
+    if page_size not in _ALLOWED_PAGE_SIZES:
+        raise AppError(
+            f"page_size חייב להיות אחד מהערכים: {sorted(_ALLOWED_PAGE_SIZES)}",
+            "NOTIFICATION.INVALID_PAGE_SIZE",
+        )
     svc = NotificationService(db)
     items, total = svc.list_paginated(
         page=page,

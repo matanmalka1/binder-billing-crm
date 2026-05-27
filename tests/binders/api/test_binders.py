@@ -92,11 +92,13 @@ def test_lifecycle_endpoints_return_final_contract(client, auth_token, test_db, 
         headers={"Authorization": f"Bearer {auth_token}"},
     )
     assert ready_response.status_code == 200
-    assert ready_response.json()["location_status"] == "ready_for_handover"
-    assert ready_response.json()["available_actions"] == [
+    ready_data = ready_response.json()
+    assert ready_data["binder"]["location_status"] == "ready_for_handover"
+    assert ready_data["binder"]["available_actions"] == [
         "revert_ready_for_handover",
         "handover_to_client",
     ]
+    assert ready_data["notification"]["status"] in ("sent", "skipped", "failed", "blocked")
 
     handover_response = client.post(
         f"/api/v1/binders/{binder_id}/handover-to-client",
@@ -207,8 +209,9 @@ def test_mark_ready_for_handover_bulk_marks_matching_client_binders(
 
     assert bulk_ready.status_code == 200
     data = bulk_ready.json()
-    assert [binder["id"] for binder in data] == [first_binder_id]
-    assert data[0]["location_status"] == "ready_for_handover"
+    assert [item["binder"]["id"] for item in data] == [first_binder_id]
+    assert data[0]["binder"]["location_status"] == "ready_for_handover"
+    assert data[0]["notification"]["status"] in ("sent", "skipped", "failed", "blocked")
 
     binders = client.get(
         f"/api/v1/binders?client_record_id={test_client.id}&location_status=ready_for_handover",

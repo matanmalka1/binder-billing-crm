@@ -6,6 +6,7 @@ from app.binders.schemas.binder import (
     BinderHandoverToClientRequest,
     BinderIntakeResponse,
     BinderMarkReadyForHandoverBulkRequest,
+    BinderReadyForHandoverResponse,
     BinderReceiveRequest,
     BinderReceiveResult,
     BinderResponse,
@@ -51,19 +52,28 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
     )
 
 
-@router.post("/mark-ready-for-handover-bulk", response_model=list[BinderResponse])
+@router.post(
+    "/mark-ready-for-handover-bulk",
+    response_model=list[BinderReadyForHandoverResponse],
+)
 def mark_ready_for_handover_bulk(
     request: BinderMarkReadyForHandoverBulkRequest,
     db: DBSession,
     user: CurrentUser,
 ):
-    binders = BinderLifecycleService(db).mark_ready_for_handover_bulk(
+    results = BinderLifecycleService(db).mark_ready_for_handover_bulk(
         client_record_id=request.client_record_id,
         until_period_year=request.until_period_year,
         until_period_month=request.until_period_month,
         changed_by_user_id=user.id,
     )
-    return [fetch_client_and_build_response(binder, db) for binder in binders]
+    return [
+        BinderReadyForHandoverResponse(
+            binder=fetch_client_and_build_response(binder, db),
+            notification=notification,
+        )
+        for binder, notification in results
+    ]
 
 
 @router.post(
@@ -123,13 +133,19 @@ def reopen_capacity(binder_id: int, db: DBSession, user: CurrentUser):
     return fetch_client_and_build_response(binder, db)
 
 
-@router.post("/{binder_id}/mark-ready-for-handover", response_model=BinderResponse)
+@router.post(
+    "/{binder_id}/mark-ready-for-handover",
+    response_model=BinderReadyForHandoverResponse,
+)
 def mark_ready_for_handover(binder_id: int, db: DBSession, user: CurrentUser):
-    binder = BinderLifecycleService(db).mark_ready_for_handover(
+    binder, notification = BinderLifecycleService(db).mark_ready_for_handover(
         binder_id=binder_id,
         changed_by_user_id=user.id,
     )
-    return fetch_client_and_build_response(binder, db)
+    return BinderReadyForHandoverResponse(
+        binder=fetch_client_and_build_response(binder, db),
+        notification=notification,
+    )
 
 
 @router.post("/{binder_id}/revert-ready-for-handover", response_model=BinderResponse)

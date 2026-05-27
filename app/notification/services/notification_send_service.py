@@ -14,7 +14,17 @@ from app.infrastructure.notifications import EmailChannel
 from app.notification.models.notification import (
     NotificationChannel,
     NotificationStatus,
+    NotificationTrigger,
 )
+
+# Triggers that are auto-only and must never reach the manual send path.
+_AUTO_ONLY_TRIGGERS = {NotificationTrigger.BINDER_READY_FOR_HANDOVER}
+
+# Manual triggers that require entity_id (annual_report.id).
+_ANNUAL_TRIGGERS = {
+    NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
+    NotificationTrigger.ANNUAL_REPORT_DOCUMENTS_REQUEST,
+}
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.schemas.notification_schemas import (
     NotificationPreviewRequest,
@@ -42,9 +52,23 @@ from app.notification.services.notification_template_renderer import (
 
 logger = get_logger(__name__)
 
-def _hash_request(trigger: str, subject: str, body: str, client_record_id: int) -> str:
+def _hash_request(
+    trigger: str,
+    subject: str,
+    body: str,
+    client_record_id: int,
+    entity_id: int | None,
+    business_id: int | None,
+) -> str:
     payload = json.dumps(
-        {"trigger": trigger, "subject": subject, "body": body, "cr": client_record_id},
+        {
+            "trigger": trigger,
+            "subject": subject,
+            "body": body,
+            "cr": client_record_id,
+            "entity_id": entity_id,
+            "business_id": business_id,
+        },
         sort_keys=True,
     )
     return hashlib.sha256(payload.encode()).hexdigest()
@@ -74,11 +98,31 @@ class NotificationSendService:
         request: NotificationPreviewRequest,
         triggered_by: int,
     ) -> NotificationPreviewResponse:
+        if request.trigger in _AUTO_ONLY_TRIGGERS:
+            raise AppError("הודעה זו נשלחת אוטומטית ואינה זמינה לשליחה ידנית", "NOTIFICATION.AUTO_ONLY_TRIGGER")
+        if request.trigger in _ANNUAL_TRIGGERS and not request.entity_id:
+            raise AppError("חובה לספק מזהה דוח שנתי לסוג הודעה זה", "NOTIFICATION.MISSING_ENTITY_ID")
+
         client_record = self.db.get(ClientRecord, request.client_record_id)
         if client_record is None:
             raise NotFoundError("הלקוח לא נמצא", "CLIENT.NOT_FOUND")
 
-        policy = self.policy.can_send(client_record, request.trigger)
+        annual_report_id = (
+            request.entity_id
+            if request.trigger
+            in (
+                NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
+                NotificationTrigger.ANNUAL_REPORT_DOCUMENTS_REQUEST,
+            )
+            else None
+        )
+        policy = self.policy.can_send(
+            client_record,
+            request.trigger,
+            db=self.db,
+            entity_id=request.entity_id,
+            annual_report_id=annual_report_id,
+        )
         if policy.blocked:
             return NotificationPreviewResponse(
                 can_send=False,
@@ -126,6 +170,11 @@ class NotificationSendService:
         request: NotificationSendRequest,
         triggered_by: int,
     ) -> NotificationResult:
+        if request.trigger in _AUTO_ONLY_TRIGGERS:
+            raise AppError("הודעה זו נשלחת אוטומטית ואינה זמינה לשליחה ידנית", "NOTIFICATION.AUTO_ONLY_TRIGGER")
+        if request.trigger in _ANNUAL_TRIGGERS and not request.entity_id:
+            raise AppError("חובה לספק מזהה דוח שנתי לסוג הודעה זה", "NOTIFICATION.MISSING_ENTITY_ID")
+
         # Idempotency check
         if request.idempotency_key:
             existing = self.repo.find_by_idempotency_key(
@@ -138,6 +187,8 @@ class NotificationSendService:
                     request.subject.strip(),
                     request.body.strip(),
                     request.client_record_id,
+                    request.entity_id,
+                    request.business_id,
                 )
                 if existing.request_hash != req_hash:
                     logger.warning(
@@ -146,7 +197,7 @@ class NotificationSendService:
                     )
                 # A PENDING row means a prior attempt crashed mid-flight.
                 # Fall through and let this request proceed normally.
-                if existing.status is not NotificationStatus.PENDING:
+                if existing.status != NotificationStatus.PENDING:
                     return NotificationResult(
                         status=existing.status.value,  # type: ignore[arg-type]
                         notification_id=existing.id,
@@ -179,7 +230,22 @@ class NotificationSendService:
             raise NotFoundError("הלקוח לא נמצא", "CLIENT.NOT_FOUND")
 
         # Policy check — blocked = no record created
-        policy = self.policy.can_send(client_record, request.trigger)
+        annual_report_id_for_policy = (
+            request.entity_id
+            if request.trigger
+            in (
+                NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
+                NotificationTrigger.ANNUAL_REPORT_DOCUMENTS_REQUEST,
+            )
+            else None
+        )
+        policy = self.policy.can_send(
+            client_record,
+            request.trigger,
+            db=self.db,
+            entity_id=request.entity_id,
+            annual_report_id=annual_report_id_for_policy,
+        )
         if policy.blocked:
             return NotificationResult(
                 status="blocked",
@@ -192,8 +258,16 @@ class NotificationSendService:
         recipient = person.email if person else None
 
         req_hash = _hash_request(
-            request.trigger.value, subject, body, request.client_record_id
+            request.trigger.value, subject, body, request.client_record_id,
+            request.entity_id, request.business_id,
         )
+
+        # Derive entity anchors from trigger so domain-level fields (e.g. annual_report_id)
+        # are populated and cooldown / history queries work correctly.
+        annual_report_id = (
+            request.entity_id if request.trigger in _ANNUAL_TRIGGERS else None
+        )
+        entity_type = "annual_report" if request.trigger in _ANNUAL_TRIGGERS else None
 
         if not recipient:
             n = self.repo.create(
@@ -204,6 +278,8 @@ class NotificationSendService:
                 content_snapshot=body,
                 subject_snapshot=subject,
                 business_id=request.business_id,
+                annual_report_id=annual_report_id,
+                entity_type=entity_type,
                 entity_id=request.entity_id,
                 triggered_by=triggered_by,
                 idempotency_key=request.idempotency_key,
@@ -223,7 +299,6 @@ class NotificationSendService:
                 warnings=policy.warnings,
             )
 
-        # Phase 1: email only. WhatsApp channel selection added in Phase 2.
         channel = NotificationChannel.EMAIL
         delivery_recipient = recipient
 
@@ -235,6 +310,8 @@ class NotificationSendService:
             content_snapshot=body,
             subject_snapshot=subject,
             business_id=request.business_id,
+            annual_report_id=annual_report_id,
+            entity_type=entity_type,
             entity_id=request.entity_id,
             triggered_by=triggered_by,
             idempotency_key=request.idempotency_key,

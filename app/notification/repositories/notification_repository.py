@@ -107,6 +107,7 @@ class NotificationRepository(BaseRepository[Notification]):
         client_record_id: int | None = None,
         business_id: int | None = None,
         status: NotificationStatus | None = None,
+        statuses: list[NotificationStatus] | None = None,
         trigger: NotificationTrigger | None = None,
         channel: NotificationChannel | None = None,
         triggered_by: int | None = None,
@@ -123,6 +124,8 @@ class NotificationRepository(BaseRepository[Notification]):
             filters.append(Notification.business_id == business_id)
         if status is not None:
             filters.append(Notification.status == status)
+        if statuses is not None:
+            filters.append(Notification.status.in_(statuses))
         if trigger is not None:
             filters.append(Notification.trigger == trigger)
         if channel is not None:

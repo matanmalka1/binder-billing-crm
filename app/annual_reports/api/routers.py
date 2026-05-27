@@ -10,7 +10,6 @@ from app.annual_reports.api.annual_report_create_read import (
 )
 from app.annual_reports.api.annual_report_detail import router as detail_router
 from app.annual_reports.api.annual_report_financials import router as financials_router
-from app.annual_reports.api.annual_report_reminders import router as reminders_router
 from app.annual_reports.api.annual_report_schedule import router as schedule_router
 from app.annual_reports.api.annual_report_season import season_router
 from app.annual_reports.api.annual_report_stage_transition import (
@@ -33,6 +32,5 @@ router.include_router(season_router)
 router.include_router(export_router)
 router.include_router(tax_router)
 router.include_router(charges_router)
-router.include_router(reminders_router)
 
 __all__ = ["router"]

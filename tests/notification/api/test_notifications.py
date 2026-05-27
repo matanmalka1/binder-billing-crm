@@ -85,7 +85,7 @@ def test_notifications_list(client, test_db, advisor_headers):
     _seed_notification(test_db, b2.id, "other")
 
     resp = client.get(
-        f"/api/v1/notifications?business_id={b1.id}&page=1&page_size=10",
+        f"/api/v1/notifications?business_id={b1.id}&page=1&page_size=25",
         headers=advisor_headers,
     )
     assert resp.status_code == 200

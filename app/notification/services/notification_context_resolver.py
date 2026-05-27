@@ -31,6 +31,11 @@ _BINDER_TRIGGERS = {
     NotificationTrigger.BINDER_GENERAL_REMINDER,
 }
 
+_ANNUAL_REPORT_TRIGGERS = {
+    NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
+    NotificationTrigger.ANNUAL_REPORT_DOCUMENTS_REQUEST,
+}
+
 
 class NotificationContextResolver:
     def __init__(self, db: Session):
@@ -61,6 +66,11 @@ class NotificationContextResolver:
             if entity_id is not None:
                 binder_number = self._resolve_binder_number(entity_id, client_record_id)
                 ctx["binder_number"] = binder_number
+
+        # Annual report triggers require tax_year; ownership validated against client_record_id
+        if trigger in _ANNUAL_REPORT_TRIGGERS:
+            if entity_id is not None:
+                ctx["tax_year"] = self._resolve_annual_report_tax_year(entity_id, client_record_id)
 
         # Client-level triggers that take a free-text message.
         # Default empty string so preview renders without blocking on missing var.
@@ -123,3 +133,13 @@ class NotificationContextResolver:
         if binder is None or binder.client_record_id != client_record_id:
             raise NotFoundError("הקלסר לא נמצא", "BINDER.NOT_FOUND")
         return binder.binder_number
+
+    def _resolve_annual_report_tax_year(
+        self, annual_report_id: int, client_record_id: int
+    ) -> int:
+        from app.annual_reports.models.annual_report_model import AnnualReport
+
+        report = self.db.get(AnnualReport, annual_report_id)
+        if report is None or report.client_record_id != client_record_id:
+            raise NotFoundError("הדוח השנתי לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
+        return report.tax_year

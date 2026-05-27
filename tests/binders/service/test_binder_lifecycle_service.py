@@ -30,7 +30,7 @@ def test_mark_full_reopen_and_handover_transitions_write_lifecycle_logs(test_db,
     reopened = service.reopen_capacity(binder.id, changed_by_user_id=test_user.id)
     assert reopened.capacity_status == BinderCapacityStatus.OPEN
 
-    ready = service.mark_ready_for_handover(binder.id, changed_by_user_id=test_user.id)
+    ready, _notif = service.mark_ready_for_handover(binder.id, changed_by_user_id=test_user.id)
     assert ready.location_status == BinderLocationStatus.READY_FOR_HANDOVER
     assert ready.capacity_status == BinderCapacityStatus.OPEN
 
@@ -62,7 +62,7 @@ def test_lifecycle_errors_use_fixed_domain_codes(test_db, test_user):
         service.reopen_capacity(binder.id, changed_by_user_id=test_user.id)
     assert already_open.value.code == "BINDER.NOT_FULL"
 
-    service.mark_ready_for_handover(binder.id, changed_by_user_id=test_user.id)
+    service.mark_ready_for_handover(binder.id, changed_by_user_id=test_user.id)  # noqa: RET504 — side effects only
 
     with pytest.raises(AppError) as capacity_blocked:
         service.mark_full(binder.id, changed_by_user_id=test_user.id)

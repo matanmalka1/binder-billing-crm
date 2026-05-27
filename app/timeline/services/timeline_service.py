@@ -13,6 +13,8 @@ from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.core.exceptions import NotFoundError
 from app.invoice.repositories.invoice_repository import InvoiceRepository
+from app.notification.models.notification import NotificationStatus
+from app.notification.repositories.notification_repository import NotificationRepository
 from app.timeline.services.timeline_binder_event_builders import (
     binder_received_event,
     binder_handed_over_event,
@@ -25,6 +27,10 @@ from app.timeline.services.timeline_charge_event_builders import (
     invoice_attached_event,
 )
 from app.timeline.services.timeline_client_aggregator import build_client_events
+from app.timeline.services.timeline_notification_event_builders import (
+    notification_failed_event,
+    notification_sent_event,
+)
 from app.timeline.services.timeline_tax_builders import (
     annual_report_status_changed_event,
 )
@@ -43,6 +49,7 @@ class TimelineService:
         self.charge_repo = ChargeRepository(db)
         self.invoice_repo = InvoiceRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
+        self.notification_repo = NotificationRepository(db)
 
     def get_client_timeline(
         self,
@@ -94,6 +101,7 @@ class TimelineService:
 
         events.extend(self._build_annual_report_events(client_record.id if client_record else None))
         events.extend(build_client_events(self.db, client_record_id, business_ids))
+        events.extend(self._build_notification_events(client_record_id))
 
         events.sort(key=lambda e: e["timestamp"], reverse=True)
         total = len(events)
@@ -117,6 +125,21 @@ class TimelineService:
             if old_value in (None, "null") and new_value == "in_office":
                 continue
             events.append(binder_lifecycle_change_event(binder, lifecycle_log))
+
+    def _build_notification_events(self, client_record_id: int) -> list[dict]:
+        notifications, _ = self.notification_repo.list_paginated(
+            client_record_id=client_record_id,
+            statuses=[NotificationStatus.SENT, NotificationStatus.FAILED],
+            page=1,
+            page_size=_TIMELINE_BULK_LIMIT,
+        )
+        events = []
+        for n in notifications:
+            if n.status == NotificationStatus.SENT:
+                events.append(notification_sent_event(n))
+            else:
+                events.append(notification_failed_event(n))
+        return events
 
     def _build_annual_report_events(self, client_record_id: int | None) -> list[dict]:
         stmt = (

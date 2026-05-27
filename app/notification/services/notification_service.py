@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -52,16 +50,6 @@ class NotificationService:
         self.business_repo = BusinessRepository(db)
         self._send_svc = NotificationSendService(db)
 
-    # ── Deprecated Phase 1 stub — replaced in Phase 2 by auto_send_service ──────
-
-    def notify_client(self, client_record_id: int, trigger: NotificationTrigger, **_: Any) -> None:
-        logger.warning(
-            "notify_client() is deprecated and will be removed in Phase 2 | "
-            "client=%s trigger=%s",
-            client_record_id,
-            trigger.value,
-        )
-
     # ── Preview / Send (delegates to NotificationSendService) ─────────────────
 
     def preview(
@@ -90,8 +78,8 @@ class NotificationService:
         trigger: NotificationTrigger | None = None,
         channel: NotificationChannel | None = None,
         triggered_by: int | None = None,
-        date_from: Any | None = None,
-        date_to: Any | None = None,
+        date_from: object | None = None,
+        date_to: object | None = None,
     ) -> tuple[list[NotificationResponse], int]:
         items, total = self.repo.list_paginated(
             page=page,

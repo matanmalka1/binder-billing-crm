@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from app.binders.models.binder import BinderCapacityStatus, BinderLocationStatus
 from app.binders.models.binder_intake_material import MaterialType
 from app.core.api_types import ApiDateTime
+from app.notification.schemas.notification_schemas import NotificationResult
 
 # ── Intake request ────────────────────────────────────────────────────────────
 
@@ -137,6 +138,11 @@ class BinderMarkReadyForHandoverBulkRequest(BaseModel):
 
 
 # ── Handover ─────────────────────────────────────────────────────────────────
+
+
+class BinderReadyForHandoverResponse(BaseModel):
+    binder: BinderResponse
+    notification: NotificationResult
 
 
 class BinderHandoverRequest(BaseModel):

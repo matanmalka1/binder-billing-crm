@@ -8,12 +8,10 @@ from app.binders.api.binders_operations import router as binders_operations_rout
 from app.binders.api.binders_receive_return import (
     router as binders_receive_return_router,
 )
-from app.binders.api.binders_reminders import router as binders_reminders_router
 from app.binders.api.client_binders_router import router as client_binders_router
 
 router = APIRouter()
 router.include_router(binders_operations_router)
-router.include_router(binders_reminders_router)
 router.include_router(binders_receive_return_router)
 router.include_router(binders_list_get_router)
 router.include_router(binders_history_router)
