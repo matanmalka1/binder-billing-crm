@@ -138,8 +138,8 @@ def test_correspondence_ownership_raises_not_found_error(test_db):
     )
     test_db.add_all([le_a, le_b])
     test_db.flush()
-    client_a = ClientRecord(legal_entity_id=le_a.id)
-    client_b = ClientRecord(legal_entity_id=le_b.id)
+    client_a = ClientRecord(legal_entity_id=le_a.id, office_client_number=100801)
+    client_b = ClientRecord(legal_entity_id=le_b.id, office_client_number=100802)
     test_db.add_all([client_a, client_b])
     test_db.flush()
     biz = Business(

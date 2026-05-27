@@ -47,8 +47,8 @@ def test_audit_endpoint_rejects_unknown_entity_type(client, advisor_headers):
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["detail"] == "סוג ישות לא נתמך להיסטוריית שינויים"
-    assert payload["error"] == "AUDIT.INVALID_ENTITY_TYPE"
+    assert payload["error"]["message"] == "סוג ישות לא נתמך להיסטוריית שינויים"
+    assert payload["error"]["code"] == "AUDIT.INVALID_ENTITY_TYPE"
 
 
 def test_audit_endpoint_returns_404_for_missing_entity(client, advisor_headers):
@@ -56,5 +56,5 @@ def test_audit_endpoint_returns_404_for_missing_entity(client, advisor_headers):
 
     assert response.status_code == 404
     payload = response.json()
-    assert payload["detail"] == "הישות המבוקשת לא נמצאה"
-    assert payload["error"] == "AUDIT.ENTITY_NOT_FOUND"
+    assert payload["error"]["message"] == "הישות המבוקשת לא נמצאה"
+    assert payload["error"]["code"] == "AUDIT.ENTITY_NOT_FOUND"

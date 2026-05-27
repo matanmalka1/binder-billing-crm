@@ -20,6 +20,9 @@ def test_vat_status_label_marks_overdue_period(test_db):
         "2026-03",
         "מרץ 2026",
         date(2026, 4, 30),
+        2,
+        1,
+        date(2026, 4, 15),
     )
 
     assert stat["status_label"] == "מועד הגשה עבר"
@@ -32,6 +35,9 @@ def test_vat_status_label_marks_completed_period(test_db):
         "2026-03",
         "מרץ 2026",
         date(2026, 4, 30),
+        2,
+        2,
+        date(2026, 4, 15),
     )
 
     assert stat["status_label"] == "הושלמה"
@@ -41,13 +47,14 @@ def test_advance_dashboard_stats_use_current_periods(test_db):
     service = _service(test_db, required=0, submitted=0)
     calls = []
 
-    def completion(period, months_count):
-        calls.append((period, months_count))
-        if months_count == 1:
-            return 3, 4
-        return 1, 2
+    def completion(periods):
+        calls.extend(periods)
+        return {
+            ("2026-04", 1): (3, 4),
+            ("2026-03", 2): (1, 2),
+        }
 
-    service.advance_repo = SimpleNamespace(completion_for_period=completion)
+    service.advance_repo = SimpleNamespace(completion_for_periods=completion)
 
     stats = service._build_advance_stats(date(2026, 5, 8))
 
@@ -61,10 +68,10 @@ def test_advance_dashboard_stats_use_current_periods(test_db):
 def test_advance_dashboard_stats_avoid_division_by_zero(test_db):
     service = _service(test_db, required=0, submitted=0)
     service.advance_repo = SimpleNamespace(
-        completion_for_period=lambda _period, _months_count: (0, 0)
+        completion_for_periods=lambda _periods: {("2026-04", 1): (0, 0)}
     )
 
-    stat = service._build_advance_stat("2026-04", "אפריל 2026", 1)
+    stat = service._build_advance_stat("2026-04", "אפריל 2026", 0, 0)
 
     assert stat["completion_percent"] == 0
     assert stat["pending"] == 0

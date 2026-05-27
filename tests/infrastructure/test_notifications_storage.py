@@ -6,7 +6,7 @@ import pytest
 from app.infrastructure import storage as storage_mod
 from app.infrastructure.notifications import EmailChannel, WhatsAppChannel, _to_html
 
-SENDGRID_API_URL = "https://sendgrid.test/mail/send"
+BREVO_API_URL = "https://brevo.test/v3/smtp/email"
 MAX_EXPECTED_PROVIDER_ERROR_BODY_LENGTH = 1000
 
 
@@ -23,29 +23,29 @@ class _Resp:
 
 def test_email_channel_disabled_missing_config_and_success(monkeypatch):
     disabled = EmailChannel(
-        enabled=False,
-        api_key="",
-        api_url=SENDGRID_API_URL,
-        from_address="",
-    )
+            enabled=False,
+            api_key="",
+            api_url=BREVO_API_URL,
+            from_address="",
+        )
     assert disabled.send("a@b.com", "hello") == (True, None)
 
     missing_key = EmailChannel(
-        enabled=True,
-        api_key="",
-        api_url=SENDGRID_API_URL,
-        from_address="from@x.com",
-    )
+            enabled=True,
+            api_key="",
+            api_url=BREVO_API_URL,
+            from_address="from@x.com",
+        )
     ok, msg = missing_key.send("a@b.com", "hello")
     assert ok is False
-    assert "SENDGRID_API_KEY" in msg
+    assert "BREVO_API_KEY" in msg
 
     missing_from = EmailChannel(
-        enabled=True,
-        api_key="k",
-        api_url=SENDGRID_API_URL,
-        from_address="",
-    )
+            enabled=True,
+            api_key="k",
+            api_url=BREVO_API_URL,
+            from_address="",
+        )
     ok, msg = missing_from.send("a@b.com", "hello")
     assert ok is False
     assert "EMAIL_FROM_ADDRESS" in msg
@@ -55,25 +55,27 @@ def test_email_channel_disabled_missing_config_and_success(monkeypatch):
     def _post_ok(url, **kwargs):
         captured["url"] = url
         captured["kwargs"] = kwargs
-        return httpx.Response(202)
+        return httpx.Response(201)
 
     monkeypatch.setattr("httpx.post", _post_ok)
     enabled = EmailChannel(
-        enabled=True,
-        api_key="k",
-        api_url=SENDGRID_API_URL,
-        from_address="from@x.com",
-        from_name="CRM",
-    )
+            enabled=True,
+            api_key="k",
+            api_url=BREVO_API_URL,
+            from_address="from@x.com",
+            from_name="CRM",
+        )
     assert enabled.send("a@b.com", "hello")[0] is True
-    assert captured["url"] == SENDGRID_API_URL
-    assert captured["kwargs"]["json"]["content"][0]["value"] == "hello"
+    assert captured["url"] == BREVO_API_URL
+    assert captured["kwargs"]["json"]["textContent"] == "hello"
+    assert captured["kwargs"]["json"]["htmlContent"] == _to_html("hello")
 
-    ok, msg = enabled.send_template("a@b.com", "template-1", {"first_name": "A"})
+    ok, msg = enabled.send_html("a@b.com", "<p>hello</p>", "hello", "Subject")
     assert ok is True
     payload = captured["kwargs"]["json"]
-    assert payload["template_id"] == "template-1"
-    assert payload["personalizations"][0]["dynamic_template_data"] == {"first_name": "A"}
+    assert payload["htmlContent"] == "<p>hello</p>"
+    assert payload["textContent"] == "hello"
+    assert payload["subject"] == "Subject"
 
 
 def test_whatsapp_channel_paths(monkeypatch):
@@ -192,14 +194,14 @@ def test_notification_helpers_html_and_channel_exceptions(monkeypatch):
     monkeypatch.setattr("httpx.post", _raise_post)
 
     email = EmailChannel(
-        enabled=True,
-        api_key="k",
-        api_url=SENDGRID_API_URL,
-        from_address="from@x.com",
-    )
+            enabled=True,
+            api_key="k",
+            api_url=BREVO_API_URL,
+            from_address="from@x.com",
+        )
     ok, msg = email.send("to@x.com", "hello")
     assert ok is False
-    assert "SendGrid email request failed" in msg
+    assert "Brevo email request failed" in msg
 
     def _post_rejected(_url, **_kwargs):
         return httpx.Response(400, text="x" * 1200)
@@ -208,7 +210,7 @@ def test_notification_helpers_html_and_channel_exceptions(monkeypatch):
 
     ok, msg = email.send("to@x.com", "hello")
     assert ok is False
-    assert "SendGrid rejected email: status=400" in msg
+    assert "Brevo rejected email: status=400" in msg
     assert len(msg.rsplit("body=", 1)[1]) == MAX_EXPECTED_PROVIDER_ERROR_BODY_LENGTH
 
     wa = WhatsAppChannel(api_key="k", api_url="https://wa", from_number="123")

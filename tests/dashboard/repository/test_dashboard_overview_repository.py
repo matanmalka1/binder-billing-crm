@@ -34,8 +34,8 @@ def test_business_and_binder_repository_counts_active_entities(test_db):
     test_db.add_all([le_a, le_b])
     test_db.commit()
 
-    cr_a = ClientRecord(legal_entity_id=le_a.id)
-    cr_b = ClientRecord(legal_entity_id=le_b.id)
+    cr_a = ClientRecord(legal_entity_id=le_a.id, office_client_number=100901)
+    cr_b = ClientRecord(legal_entity_id=le_b.id, office_client_number=100902)
     test_db.add_all([cr_a, cr_b])
     test_db.commit()
 
