@@ -1,5 +1,9 @@
-from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, Text
-from sqlalchemy.orm import relationship
+from __future__ import annotations
+
+from datetime import date, datetime
+
+from sqlalchemy import ForeignKey, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -16,26 +20,25 @@ class BinderIntake(Base):
 
     __tablename__ = "binder_intakes"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    binder_id = Column(
-        Integer,
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    binder_id: Mapped[int] = mapped_column(
         ForeignKey("binders.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    binder = relationship("Binder", back_populates="intakes")
+    binder: Mapped["Binder"] = relationship("Binder", back_populates="intakes")
 
     # When the material was received.
-    received_at = Column(Date, nullable=False)
+    received_at: Mapped[date] = mapped_column(nullable=False)
 
     # Who received the material at the office.
-    received_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    received_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     # General notes about the event ("arrived with an envelope", "some material is missing").
-    notes = Column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
 
     def __repr__(self):
         return (

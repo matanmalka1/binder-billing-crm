@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 """Append-only status history for annual reports."""
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.database import Base
@@ -16,13 +21,19 @@ class AnnualReportStatusHistory(Base):
 
     __tablename__ = "annual_report_status_history"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=False, index=True)
-    from_status = Column(pg_enum(AnnualReportStatus), nullable=True)
-    to_status = Column(pg_enum(AnnualReportStatus), nullable=False)
-    changed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    note = Column(Text, nullable=True)
-    occurred_at = Column(DateTime, nullable=False, default=utcnow)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    annual_report_id: Mapped[int] = mapped_column(
+        ForeignKey("annual_reports.id"), nullable=False, index=True
+    )
+    from_status: Mapped[AnnualReportStatus | None] = mapped_column(
+        pg_enum(AnnualReportStatus), nullable=True
+    )
+    to_status: Mapped[AnnualReportStatus] = mapped_column(
+        pg_enum(AnnualReportStatus), nullable=False
+    )
+    changed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(nullable=False, default=utcnow)
 
 
 __all__ = ["AnnualReportStatusHistory"]

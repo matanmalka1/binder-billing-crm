@@ -1,4 +1,9 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from __future__ import annotations
+
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -14,13 +19,13 @@ class BinderStatusLog(Base):
 
     __tablename__ = "binder_status_logs"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    binder_id = Column(Integer, ForeignKey("binders.id"), nullable=False, index=True)
-    old_status = Column(String, nullable=False)
-    new_status = Column(String, nullable=False)
-    changed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    changed_at = Column(DateTime, default=utcnow, nullable=False)
-    notes = Column(Text, nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    binder_id: Mapped[int] = mapped_column(ForeignKey("binders.id"), nullable=False, index=True)
+    old_status: Mapped[str] = mapped_column(String, nullable=False)
+    new_status: Mapped[str] = mapped_column(String, nullable=False)
+    changed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    changed_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     def __repr__(self):
         return (

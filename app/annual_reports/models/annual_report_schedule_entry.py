@@ -1,15 +1,15 @@
+from __future__ import annotations
+
 """Annual report schedule entries (annex tracking)."""
 
+from datetime import datetime
+
 from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
     ForeignKey,
-    Integer,
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.annual_reports.models.annual_report_enums import AnnualReportSchedule
 from app.database import Base
@@ -31,24 +31,27 @@ class AnnualReportScheduleEntry(Base):
         ),
     )
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    annual_report_id = Column(
-        Integer,
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    annual_report_id: Mapped[int] = mapped_column(
         ForeignKey("annual_reports.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    schedule = Column(pg_enum(AnnualReportSchedule, create_type=False), nullable=False)
-    is_required = Column(Boolean, default=True, nullable=False)
-    is_complete = Column(Boolean, default=False, nullable=False)
-    notes = Column(Text, nullable=True)
+    schedule: Mapped[AnnualReportSchedule] = mapped_column(
+        pg_enum(AnnualReportSchedule, create_type=False), nullable=False
+    )
+    is_required: Mapped[bool] = mapped_column(default=True, nullable=False)
+    is_complete: Mapped[bool] = mapped_column(default=False, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    completed_at = Column(DateTime, nullable=True)
-    completed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    annual_report = relationship("AnnualReport", back_populates="schedule_entries")
-    annex_lines = relationship(
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    completed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    annual_report: Mapped["AnnualReport"] = relationship(
+        "AnnualReport", back_populates="schedule_entries"
+    )
+    annex_lines: Mapped[list["AnnualReportAnnexData"]] = relationship(
         "AnnualReportAnnexData",
         back_populates="schedule_entry",
         cascade="all, delete-orphan",

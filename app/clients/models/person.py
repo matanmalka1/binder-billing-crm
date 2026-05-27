@@ -1,12 +1,14 @@
+from __future__ import annotations
+
+from datetime import datetime
+
 from sqlalchemy import (
     CheckConstraint,
-    Column,
-    DateTime,
     Index,
-    Integer,
     String,
     UniqueConstraint,
 )
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.enums import IdNumberType
 from app.database import Base
@@ -19,27 +21,27 @@ class Person(Base):
 
     __tablename__ = "persons"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    full_name = Column(String, nullable=False)
-    first_name = Column(String, nullable=True)
-    last_name = Column(String, nullable=True)
+    full_name: Mapped[str] = mapped_column(String, nullable=False)
+    first_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Person-valid types only — CORPORATION is rejected by the check constraint below.
-    id_number = Column(String, nullable=False)
-    id_number_type = Column(pg_enum(IdNumberType), nullable=False)
+    id_number: Mapped[str] = mapped_column(String, nullable=False)
+    id_number_type: Mapped[IdNumberType] = mapped_column(pg_enum(IdNumberType), nullable=False)
 
-    phone = Column(String, nullable=True)
-    email = Column(String, nullable=True)
+    phone: Mapped[str | None] = mapped_column(String, nullable=True)
+    email: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    address_street = Column(String, nullable=True)
-    address_building_number = Column(String, nullable=True)
-    address_apartment = Column(String, nullable=True)
-    address_city = Column(String, nullable=True)
-    address_zip_code = Column(String, nullable=True)
+    address_street: Mapped[str | None] = mapped_column(String, nullable=True)
+    address_building_number: Mapped[str | None] = mapped_column(String, nullable=True)
+    address_apartment: Mapped[str | None] = mapped_column(String, nullable=True)
+    address_city: Mapped[str | None] = mapped_column(String, nullable=True)
+    address_zip_code: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
 
     __table_args__ = (
         CheckConstraint(

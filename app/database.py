@@ -2,7 +2,7 @@ import logging
 from time import perf_counter
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import settings
 from app.core.logging_config import (
@@ -48,8 +48,10 @@ logging.getLogger("sqlalchemy.engine").setLevel(
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 # Base class for ORM models
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 def get_db():

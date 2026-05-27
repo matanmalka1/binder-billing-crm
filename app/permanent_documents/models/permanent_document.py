@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Permanent Document — a file stored permanently for a client or business.
 
@@ -19,20 +21,17 @@ Design decisions:
 - annual_report_id links supporting documents to a specific report.
 """
 
+from datetime import datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
     BigInteger,
-    Boolean,
-    Column,
-    DateTime,
     ForeignKey,
     Index,
-    Integer,
     SmallInteger,
     String,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import CheckConstraint
 
 from app.database import Base
@@ -76,30 +75,38 @@ CLIENT_SCOPE_TYPES = {
 class PermanentDocument(Base):
     __tablename__ = "permanent_documents"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     # ── Ownership ─────────────────────────────────────────────────────────────
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
-    business_id = Column(Integer, ForeignKey("businesses.id"), nullable=True, index=True)
-    scope = Column(pg_enum(DocumentScope), nullable=False)
+    client_record_id: Mapped[int] = mapped_column(
+        ForeignKey("client_records.id"), nullable=False, index=True
+    )
+    business_id: Mapped[int | None] = mapped_column(
+        ForeignKey("businesses.id"), nullable=True, index=True
+    )
+    scope: Mapped[DocumentScope] = mapped_column(pg_enum(DocumentScope), nullable=False)
 
     # ── Document identity ─────────────────────────────────────────────────────
-    document_type = Column(pg_enum(DocumentType), nullable=False)
-    storage_key = Column(String, nullable=False)  # מפתח ב-S3/R2
-    original_filename = Column(String, nullable=True)
-    file_size_bytes = Column(BigInteger, nullable=True)
-    mime_type = Column(String, nullable=True)
-    tax_year = Column(SmallInteger, nullable=True, index=True)
+    document_type: Mapped[DocumentType] = mapped_column(pg_enum(DocumentType), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String, nullable=False)  # מפתח ב-S3/R2
+    original_filename: Mapped[str | None] = mapped_column(String, nullable=True)
+    file_size_bytes: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    mime_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    tax_year: Mapped[int | None] = mapped_column(SmallInteger, nullable=True, index=True)
 
     # ── Status ────────────────────────────────────────────────────────────────
-    is_present = Column(Boolean, default=True, nullable=False)
-    is_deleted = Column(Boolean, default=False, nullable=False)
-    status = Column(pg_enum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False)
+    is_present: Mapped[bool] = mapped_column(default=True, nullable=False)
+    is_deleted: Mapped[bool] = mapped_column(default=False, nullable=False)
+    status: Mapped[DocumentStatus] = mapped_column(
+        pg_enum(DocumentStatus), default=DocumentStatus.PENDING, nullable=False
+    )
 
     # ── Versioning ────────────────────────────────────────────────────────────
-    version = Column(Integer, default=1, nullable=False, server_default="1")
-    superseded_by = Column(Integer, ForeignKey("permanent_documents.id"), nullable=True)
-    superseded_by_doc = relationship(
+    version: Mapped[int] = mapped_column(default=1, nullable=False, server_default="1")
+    superseded_by: Mapped[int | None] = mapped_column(
+        ForeignKey("permanent_documents.id"), nullable=True
+    )
+    superseded_by_doc: Mapped["PermanentDocument | None"] = relationship(
         "PermanentDocument",
         foreign_keys="[PermanentDocument.superseded_by]",
         remote_side="PermanentDocument.id",
@@ -107,15 +114,17 @@ class PermanentDocument(Base):
     )
 
     # ── Cross-domain link ─────────────────────────────────────────────────────
-    annual_report_id = Column(Integer, ForeignKey("annual_reports.id"), nullable=True)
+    annual_report_id: Mapped[int | None] = mapped_column(
+        ForeignKey("annual_reports.id"), nullable=True
+    )
 
     # ── Metadata ──────────────────────────────────────────────────────────────
-    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    uploaded_at = Column(DateTime, default=utcnow, nullable=False)
-    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    approved_at = Column(DateTime, nullable=True)
-    rejected_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # מי דחה
-    rejected_at = Column(DateTime, nullable=True)
+    uploaded_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    uploaded_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    approved_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    rejected_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)  # מי דחה
+    rejected_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     __table_args__ = (
         CheckConstraint(

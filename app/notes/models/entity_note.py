@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 EntityNote — centralized notes attached to any domain entity.
 
@@ -8,7 +10,10 @@ Design decisions:
 - records are mutable and soft-deletable, matching the rest of the codebase.
 """
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, Index, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -17,15 +22,15 @@ from app.utils.time_utils import utcnow
 class EntityNote(Base):
     __tablename__ = "entity_notes"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    entity_type = Column(String, nullable=False, index=True)
-    entity_id = Column(Integer, nullable=False, index=True)
-    note = Column(Text, nullable=False)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, nullable=False, default=utcnow)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
-    deleted_at = Column(DateTime, nullable=True)
-    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    entity_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    entity_id: Mapped[int] = mapped_column(nullable=False, index=True)
+    note: Mapped[str] = mapped_column(Text, nullable=False)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(nullable=False, default=utcnow)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
+    deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    deleted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (Index("idx_entity_notes_type_id", "entity_type", "entity_id"),)
 

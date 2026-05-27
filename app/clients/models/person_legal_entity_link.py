@@ -1,7 +1,10 @@
+from __future__ import annotations
+
+from datetime import datetime
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey, Index, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.utils.enum_utils import pg_enum
@@ -19,19 +22,21 @@ class PersonLegalEntityLink(Base):
 
     __tablename__ = "person_legal_entity_links"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    person_id = Column(Integer, ForeignKey("persons.id"), nullable=False)
-    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False)
-    role = Column(
+    person_id: Mapped[int] = mapped_column(ForeignKey("persons.id"), nullable=False)
+    legal_entity_id: Mapped[int] = mapped_column(ForeignKey("legal_entities.id"), nullable=False)
+    role: Mapped[PersonLegalEntityRole] = mapped_column(
         pg_enum(PersonLegalEntityRole),
         nullable=False,
         default=PersonLegalEntityRole.OWNER,
     )
 
-    created_at = Column(DateTime, default=utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
 
-    person = relationship("Person", foreign_keys=[person_id], lazy="select", viewonly=True)
+    person: Mapped["Person"] = relationship(
+        "Person", foreign_keys=[person_id], lazy="select", viewonly=True
+    )
 
     __table_args__ = (
         UniqueConstraint(

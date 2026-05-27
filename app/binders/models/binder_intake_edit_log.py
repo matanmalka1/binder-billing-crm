@@ -1,4 +1,9 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from __future__ import annotations
+
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -14,27 +19,26 @@ class BinderIntakeEditLog(Base):
 
     __tablename__ = "binder_intake_edit_logs"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     # The intake that was edited.
-    intake_id = Column(
-        Integer,
+    intake_id: Mapped[int] = mapped_column(
         ForeignKey("binder_intakes.id"),
         nullable=False,
         index=True,
     )
 
     # Name of the field that changed (e.g. "received_at", "notes", "business_id").
-    field_name = Column(String, nullable=False)
+    field_name: Mapped[str] = mapped_column(String, nullable=False)
 
     # String representation of the value before the edit (None if field was unset).
-    old_value = Column(Text, nullable=True)
+    old_value: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # String representation of the value after the edit.
-    new_value = Column(Text, nullable=True)
+    new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    changed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    changed_at = Column(DateTime, default=utcnow, nullable=False)
+    changed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    changed_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
 
     def __repr__(self):
         return (

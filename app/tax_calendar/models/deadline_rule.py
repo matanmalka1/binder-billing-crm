@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """DeadlineRule — versioned regulatory rule for TaxCalendar due dates.
 
 Lookup engine only — versioned via effective_from/effective_to so that historic
@@ -13,16 +15,15 @@ INV-11: Only one open-ended rule (effective_to IS NULL) per rule_type is allowed
 Enforced at DB level via uq_deadline_rule_open_ended partial unique index.
 """
 
+from datetime import date, datetime
+
 from sqlalchemy import (
     CheckConstraint,
-    Column,
-    Date,
-    DateTime,
     Index,
-    Integer,
     String,
     text,
 )
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.common.enums import DeadlineRuleType
 from app.database import Base
@@ -35,20 +36,22 @@ class DeadlineRule(Base):
 
     __tablename__ = "deadline_rules"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    rule_type = Column(pg_enum(DeadlineRuleType), nullable=False, index=True)
+    rule_type: Mapped[DeadlineRuleType] = mapped_column(
+        pg_enum(DeadlineRuleType), nullable=False, index=True
+    )
 
-    due_day_of_month = Column(Integer, nullable=False)
-    offset_months = Column(Integer, nullable=False, default=0, server_default="0")
+    due_day_of_month: Mapped[int] = mapped_column(nullable=False)
+    offset_months: Mapped[int] = mapped_column(nullable=False, default=0, server_default="0")
 
-    effective_from = Column(Date, nullable=False)
-    effective_to = Column(Date, nullable=True)
+    effective_from: Mapped[date] = mapped_column(nullable=False)
+    effective_to: Mapped[date | None] = mapped_column(nullable=True)
 
-    description = Column(String(255), nullable=True)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
 
     __table_args__ = (
         CheckConstraint(

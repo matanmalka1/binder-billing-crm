@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Authority Contact — a named contact at a government authority (רשות מסים, ביטוח לאומי, etc.)
 
@@ -25,9 +27,11 @@ Design decisions:
 - updated_at on AuthorityContact — contact details (phone, office) change over time.
 """
 
+from datetime import datetime
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import ForeignKey, Index, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 from app.utils.enum_utils import pg_enum
@@ -44,24 +48,26 @@ class ContactType(str, PyEnum):
 class AuthorityContact(Base):
     __tablename__ = "authority_contacts"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    client_record_id: Mapped[int] = mapped_column(
+        ForeignKey("client_records.id"), nullable=False, index=True
+    )
 
     # ── Contact identity ──────────────────────────────────────────────────────
-    contact_type = Column(pg_enum(ContactType), nullable=False)
-    name = Column(String, nullable=False)
-    office = Column(String, nullable=True)  # שם הסניף / המחלקה
-    phone = Column(String, nullable=True)
-    email = Column(String, nullable=True)
-    notes = Column(Text, nullable=True)
+    contact_type: Mapped[ContactType] = mapped_column(pg_enum(ContactType), nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    office: Mapped[str | None] = mapped_column(String, nullable=True)  # שם הסניף / המחלקה
+    phone: Mapped[str | None] = mapped_column(String, nullable=True)
+    email: Mapped[str | None] = mapped_column(String, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # ── Metadata ──────────────────────────────────────────────────────────────
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
 
     # ── Soft delete ───────────────────────────────────────────────────────────
-    deleted_at = Column(DateTime, nullable=True)
-    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    deleted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     __table_args__ = (Index("idx_authority_contact_type", "contact_type"),)
 

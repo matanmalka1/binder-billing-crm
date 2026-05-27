@@ -1,16 +1,16 @@
+from __future__ import annotations
+
+from datetime import date, datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    Column,
-    Date,
-    DateTime,
     ForeignKey,
     Index,
-    Integer,
     String,
     Text,
+    text,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.utils.enum_utils import pg_enum
@@ -40,48 +40,52 @@ class Binder(Base):
 
     __tablename__ = "binders"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
+    client_record_id: Mapped[int] = mapped_column(
+        ForeignKey("client_records.id"), nullable=False, index=True
+    )
 
     # Label number on the physical binder, unique per active client record.
-    binder_number = Column(String, nullable=False)
+    binder_number: Mapped[str] = mapped_column(String, nullable=False)
 
     # Binder period: when it starts and when it ends.
     # period_start is derived from the reporting period of the first material inserted.
     # NULL for newly opened binders that have not yet received any material.
-    period_start = Column(Date, nullable=True)
-    period_end = Column(Date, nullable=True)  # null = active/open binder
+    period_start: Mapped[date | None] = mapped_column(nullable=True)
+    period_end: Mapped[date | None] = mapped_column(nullable=True)  # null = active/open binder
 
     # Binder status.
-    status = Column(
+    status: Mapped[BinderStatus] = mapped_column(
         pg_enum(BinderStatus),
         default=BinderStatus.IN_OFFICE,
         nullable=False,
     )
 
     # When the binder was marked ready for pickup (used for overdue pickup detection).
-    ready_for_pickup_at = Column(DateTime, nullable=True)
+    ready_for_pickup_at: Mapped[datetime | None] = mapped_column(nullable=True)
 
     # When the client actually picked up the binder.
-    returned_at = Column(Date, nullable=True)
+    returned_at: Mapped[date | None] = mapped_column(nullable=True)
 
     # Who picked up the binder (client / courier / employee / family member).
-    pickup_person_name = Column(String, nullable=True)
+    pickup_person_name: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Physical logistics info: shelf location, binder color, material condition.
-    notes = Column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Metadata.
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     # Soft delete
-    deleted_at = Column(DateTime, nullable=True)
-    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    deleted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    intakes = relationship("BinderIntake", back_populates="binder", cascade="all, delete-orphan")
+    intakes: Mapped[list["BinderIntake"]] = relationship(
+        "BinderIntake", back_populates="binder", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("idx_binder_status", "status"),
@@ -91,8 +95,8 @@ class Binder(Base):
             "client_record_id",
             "binder_number",
             unique=True,
-            postgresql_where=deleted_at.is_(None),
-            sqlite_where=deleted_at.is_(None),
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
         ),
     )
 

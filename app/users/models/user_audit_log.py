@@ -1,6 +1,10 @@
+from __future__ import annotations
+
+from datetime import datetime
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 from app.utils.enum_utils import pg_enum
@@ -26,12 +30,18 @@ class AuditStatus(str, PyEnum):
 class UserAuditLog(Base):
     __tablename__ = "user_audit_logs"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    action = Column(pg_enum(AuditAction), nullable=False, index=True)
-    actor_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    target_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    email = Column(String, nullable=True, index=True)
-    status = Column(pg_enum(AuditStatus), nullable=False, index=True)
-    reason = Column(String, nullable=True)
-    metadata_json = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    action: Mapped[AuditAction] = mapped_column(pg_enum(AuditAction), nullable=False, index=True)
+    actor_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
+    )
+    target_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
+    )
+    email: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    status: Mapped[AuditStatus] = mapped_column(
+        pg_enum(AuditStatus), nullable=False, index=True
+    )
+    reason: Mapped[str | None] = mapped_column(String, nullable=True)
+    metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False, index=True)

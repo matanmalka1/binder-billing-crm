@@ -1,7 +1,11 @@
-import os
+from __future__ import annotations
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Sequence, Text, column
+import os
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, Index, Sequence, Text, column, text
 from sqlalchemy import event, func, select
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.clients.enums import ClientStatus
 from app.common.soft_delete import SoftDeletableMixin
@@ -20,23 +24,28 @@ class ClientRecord(SoftDeletableMixin, Base):
 
     __tablename__ = "client_records"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False, index=True)
+    legal_entity_id: Mapped[int] = mapped_column(
+        ForeignKey("legal_entities.id"), nullable=False, index=True
+    )
 
-    office_client_number = Column(
-        Integer,
+    office_client_number: Mapped[int] = mapped_column(
         office_client_number_seq,
         server_default=None if _IS_TEST_ENV else office_client_number_seq.next_value(),
         nullable=False,
     )
-    accountant_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    status = Column(pg_enum(ClientStatus), nullable=False, default=ClientStatus.ACTIVE)
-    notes = Column(Text, nullable=True)
+    accountant_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
+    )
+    status: Mapped[ClientStatus] = mapped_column(
+        pg_enum(ClientStatus), nullable=False, default=ClientStatus.ACTIVE
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
 
     __table_args__ = (
         # One active ClientRecord per LegalEntity (soft-delete aware)
@@ -56,7 +65,7 @@ class ClientRecord(SoftDeletableMixin, Base):
         ),
         Index(
             "ix_client_records_active_created_desc",
-            created_at.desc(),
+            text("created_at DESC"),
             postgresql_where=column("deleted_at").is_(None),
             sqlite_where=column("deleted_at").is_(None),
         ),

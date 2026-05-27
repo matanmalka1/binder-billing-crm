@@ -88,10 +88,12 @@ class Charge(Base):
     deleted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    annual_report = relationship(
+    annual_report: Mapped["AnnualReport | None"] = relationship(
         "AnnualReport", foreign_keys="[Charge.annual_report_id]", viewonly=True
     )
-    invoice = relationship("Invoice", foreign_keys="[Invoice.charge_id]", uselist=False)
+    invoice: Mapped["Invoice | None"] = relationship(
+        "Invoice", foreign_keys="[Invoice.charge_id]", uselist=False
+    )
 
     __table_args__ = (
         Index("idx_charge_client_record_period", "client_record_id", "period"),

@@ -1,14 +1,21 @@
+from __future__ import annotations
+
 """Deductible expense line items for an annual tax report."""
 
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum as PyEnum
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String
-from sqlalchemy.orm import relationship
+from sqlalchemy import ForeignKey, Numeric, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow
+
+if TYPE_CHECKING:
+    from app.permanent_documents.models.permanent_document import PermanentDocument
 
 
 class ExpenseCategoryType(str, PyEnum):
@@ -33,24 +40,29 @@ class AnnualReportExpenseLine(Base):
 
     __tablename__ = "annual_report_expense_lines"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    annual_report_id = Column(
-        Integer,
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    annual_report_id: Mapped[int] = mapped_column(
         ForeignKey("annual_reports.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    category = Column(pg_enum(ExpenseCategoryType), nullable=False)
-    amount = Column(Numeric(14, 2), nullable=False)
-    recognition_rate = Column(Numeric(5, 2), nullable=False, default=Decimal("1.00"))
-    external_document_reference = Column(String(255), nullable=True)
-    supporting_document_id = Column(
-        Integer, ForeignKey("permanent_documents.id"), nullable=True, index=True
+    category: Mapped[ExpenseCategoryType] = mapped_column(
+        pg_enum(ExpenseCategoryType), nullable=False
     )
-    supporting_document = relationship("PermanentDocument", lazy="select")
-    description = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    recognition_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 2), nullable=False, default=Decimal("1.00")
+    )
+    external_document_reference: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    supporting_document_id: Mapped[int | None] = mapped_column(
+        ForeignKey("permanent_documents.id"), nullable=True, index=True
+    )
+    supporting_document: Mapped["PermanentDocument | None"] = relationship(
+        "PermanentDocument", lazy="select"
+    )
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
 
     def __repr__(self):
         return (

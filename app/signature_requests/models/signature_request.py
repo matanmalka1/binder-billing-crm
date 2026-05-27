@@ -123,12 +123,14 @@ class SignatureRequest(Base):
     deleted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    annual_report = relationship(
+    annual_report: Mapped["AnnualReport | None"] = relationship(
         "AnnualReport",
         foreign_keys="[SignatureRequest.annual_report_id]",
         viewonly=True,
     )
-    audit_events = relationship("SignatureAuditEvent", back_populates="signature_request")
+    audit_events: Mapped[list["SignatureAuditEvent"]] = relationship(
+        "SignatureAuditEvent", back_populates="signature_request"
+    )
 
     __table_args__ = (
         Index("idx_sig_request_client_record", "client_record_id"),
@@ -176,7 +178,9 @@ class SignatureAuditEvent(Base):
     occurred_at: Mapped[datetime.datetime] = mapped_column(nullable=False, default=utcnow)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    signature_request = relationship("SignatureRequest", back_populates="audit_events")
+    signature_request: Mapped["SignatureRequest"] = relationship(
+        "SignatureRequest", back_populates="audit_events"
+    )
 
     __table_args__ = (Index("idx_sig_audit_occurred", "occurred_at"),)
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """TaxCalendarEntry — regulatory deadline fact for a period.
 
 Generic per-period regulatory fact, not per-client. One entry per
@@ -20,20 +22,17 @@ Compatibility matrix (obligation_type → allowed rule_type):
 """
 
 import re
+from datetime import date, datetime
 
 from sqlalchemy import (
     CheckConstraint,
-    Column,
-    Date,
-    DateTime,
     ForeignKey,
     Index,
-    Integer,
     String,
     event,
     text,
 )
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.common.enums import DeadlineRuleType, ObligationType
 from app.database import Base
@@ -70,23 +69,24 @@ class TaxCalendarEntry(Base):
 
     __tablename__ = "tax_calendar_entries"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    obligation_type = Column(pg_enum(ObligationType), nullable=False, index=True)
-    period = Column(String(7), nullable=True)
-    period_months_count = Column(Integer, nullable=True)
-    tax_year = Column(Integer, nullable=False)
-    due_date = Column(Date, nullable=False, index=True)
+    obligation_type: Mapped[ObligationType] = mapped_column(
+        pg_enum(ObligationType), nullable=False, index=True
+    )
+    period: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    period_months_count: Mapped[int | None] = mapped_column(nullable=True)
+    tax_year: Mapped[int] = mapped_column(nullable=False)
+    due_date: Mapped[date] = mapped_column(nullable=False, index=True)
 
-    deadline_rule_id = Column(
-        Integer,
+    deadline_rule_id: Mapped[int] = mapped_column(
         ForeignKey("deadline_rules.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
 
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
 
     __table_args__ = (
         CheckConstraint(

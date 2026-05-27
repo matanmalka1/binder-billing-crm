@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 VAT Audit Log — append-only audit trail for every work item action.
 
@@ -10,7 +12,10 @@ Design decisions:
   Corrections are made by appending new entries, never deleting old ones.
 """
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -19,25 +24,26 @@ from app.utils.time_utils import utcnow
 class VatAuditLog(Base):
     __tablename__ = "vat_audit_logs"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    work_item_id = Column(Integer, ForeignKey("vat_work_items.id"), nullable=False, index=True)
-    performed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    work_item_id: Mapped[int] = mapped_column(
+        ForeignKey("vat_work_items.id"), nullable=False, index=True
+    )
+    performed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     # Use ACTION_* constants from constants.py — never raw strings in service code
-    action = Column(String, nullable=False)
-    old_value = Column(Text, nullable=True)  # JSON snapshot
-    new_value = Column(Text, nullable=True)  # JSON snapshot
-    note = Column(Text, nullable=True)
+    action: Mapped[str] = mapped_column(String, nullable=False)
+    old_value: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON snapshot
+    new_value: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON snapshot
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Direct FK for efficient "show history of invoice X" queries
-    invoice_id = Column(
-        Integer,
+    invoice_id: Mapped[int | None] = mapped_column(
         ForeignKey("vat_invoices.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
 
-    performed_at = Column(DateTime, nullable=False, default=utcnow)
+    performed_at: Mapped[datetime] = mapped_column(nullable=False, default=utcnow)
 
     def __repr__(self) -> str:
         return (

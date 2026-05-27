@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 EntityAuditLog — generic, append-only audit trail for domain mutations.
 
@@ -10,7 +12,10 @@ Design decisions:
   Corrections are made by appending new entries, never deleting old ones.
 """
 
-from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String, Text
+from datetime import datetime
+
+from sqlalchemy import ForeignKey, Index, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 from app.utils.time_utils import utcnow
@@ -19,18 +24,18 @@ from app.utils.time_utils import utcnow
 class EntityAuditLog(Base):
     __tablename__ = "entity_audit_logs"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    entity_type = Column(String, nullable=False, index=True)
-    entity_id = Column(Integer, nullable=False, index=True)
-    performed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    entity_type: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    entity_id: Mapped[int] = mapped_column(nullable=False, index=True)
+    performed_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     # Use ACTION_* constants from app/audit/constants.py
-    action = Column(String, nullable=False)
-    old_value = Column(Text, nullable=True)  # JSON snapshot before mutation
-    new_value = Column(Text, nullable=True)  # JSON snapshot after mutation
-    note = Column(Text, nullable=True)
+    action: Mapped[str] = mapped_column(String, nullable=False)
+    old_value: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON snapshot before mutation
+    new_value: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON snapshot after mutation
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    performed_at = Column(DateTime, nullable=False, default=utcnow)
+    performed_at: Mapped[datetime] = mapped_column(nullable=False, default=utcnow)
 
     __table_args__ = (Index("idx_entity_audit_type_id", "entity_type", "entity_id"),)
 

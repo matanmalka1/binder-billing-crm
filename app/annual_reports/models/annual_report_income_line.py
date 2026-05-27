@@ -1,16 +1,18 @@
+from __future__ import annotations
+
 """Income line items for an annual tax report."""
 
+from datetime import datetime
+from decimal import Decimal
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
     CheckConstraint,
-    Column,
-    DateTime,
     ForeignKey,
-    Integer,
     Numeric,
     String,
 )
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 from app.utils.enum_utils import pg_enum
@@ -41,18 +43,19 @@ class AnnualReportIncomeLine(Base):
         CheckConstraint("amount >= 0", name="ck_annual_report_income_lines_amount_non_negative"),
     )
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    annual_report_id = Column(
-        Integer,
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    annual_report_id: Mapped[int] = mapped_column(
         ForeignKey("annual_reports.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    source_type = Column(pg_enum(IncomeSourceType), nullable=False)
-    amount = Column(Numeric(14, 2), nullable=False)
-    description = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+    source_type: Mapped[IncomeSourceType] = mapped_column(
+        pg_enum(IncomeSourceType), nullable=False
+    )
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    description: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
 
     def __repr__(self):
         return (

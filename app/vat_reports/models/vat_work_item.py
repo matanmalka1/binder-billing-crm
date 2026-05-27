@@ -14,23 +14,22 @@ Israeli context:
   Fields 87/66 in the VAT return correspond to total_output_net/total_input_net.
   These are snapshotted at filing time and must not change post-submission.
 """
+from __future__ import annotations
 
+
+from datetime import date, datetime
+from decimal import Decimal
 from importlib import import_module
 
 from sqlalchemy import (
-    Boolean,
-    Column,
-    Date,
-    DateTime,
     ForeignKey,
     Index,
-    Integer,
     Numeric,
     String,
     Text,
     text,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.enums import SubmissionMethod, VatType
 from app.database import Base
@@ -42,72 +41,77 @@ from app.vat_reports.models.vat_enums import VatWorkItemStatus
 class VatWorkItem(Base):
     __tablename__ = "vat_work_items"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    client_record_id = Column(Integer, ForeignKey("client_records.id"), nullable=False, index=True)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    client_record_id: Mapped[int] = mapped_column(
+        ForeignKey("client_records.id"), nullable=False, index=True
+    )
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    assigned_to: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # Period identity
-    period = Column(String(7), nullable=False)  # "YYYY-MM"
-    period_type = Column(pg_enum(VatType), nullable=False)  # snapshot at creation — immutable
+    period: Mapped[str] = mapped_column(String(7), nullable=False)  # "YYYY-MM"
+    period_type: Mapped[VatType] = mapped_column(pg_enum(VatType), nullable=False)  # snapshot at creation — immutable
 
     # Status lifecycle
-    status = Column(
+    status: Mapped[VatWorkItemStatus] = mapped_column(
         pg_enum(VatWorkItemStatus),
         nullable=False,
         default=VatWorkItemStatus.MATERIAL_RECEIVED,
     )
-    pending_materials_note = Column(Text, nullable=True)
+    pending_materials_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Denormalized VAT totals (refreshed on every invoice mutation)
-    total_output_vat = Column(Numeric(12, 2), nullable=False, default=0)
-    total_input_vat = Column(Numeric(12, 2), nullable=False, default=0)
-    net_vat = Column(Numeric(12, 2), nullable=False, default=0)
+    total_output_vat: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    total_input_vat: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    net_vat: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
 
     # Denormalized net totals — fields 87/66 in VAT return
     # Snapshotted at filing; do not recalculate post-FILED
-    total_output_net = Column(Numeric(12, 2), nullable=False, default=0)
-    total_input_net = Column(Numeric(12, 2), nullable=False, default=0)
+    total_output_net: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    total_input_net: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
 
     # Filing details (set when status → FILED)
-    final_vat_amount = Column(Numeric(12, 2), nullable=True)
-    is_overridden = Column(Boolean, nullable=False, default=False)
-    override_justification = Column(Text, nullable=True)
-    submission_method = Column(pg_enum(SubmissionMethod), nullable=True)  # replaces filing_method
-    filed_at = Column(DateTime, nullable=True)
-    filed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    submission_reference = Column(String(100), nullable=True)
+    final_vat_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    is_overridden: Mapped[bool] = mapped_column(nullable=False, default=False)
+    override_justification: Mapped[str | None] = mapped_column(Text, nullable=True)
+    submission_method: Mapped[SubmissionMethod | None] = mapped_column(
+        pg_enum(SubmissionMethod), nullable=True
+    )
+    filed_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    filed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    submission_reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
     # Amendment tracking
-    is_amendment = Column(Boolean, nullable=False, default=False)
-    amends_item_id = Column(Integer, ForeignKey("vat_work_items.id"), nullable=True)
+    is_amendment: Mapped[bool] = mapped_column(nullable=False, default=False)
+    amends_item_id: Mapped[int | None] = mapped_column(
+        ForeignKey("vat_work_items.id"), nullable=True
+    )
 
     # Cross-domain link to regulatory calendar fact
-    tax_calendar_entry_id = Column(
-        Integer,
+    tax_calendar_entry_id: Mapped[int] = mapped_column(
         ForeignKey("tax_calendar_entries.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
-    due_date_original = Column(Date, nullable=True)
-    due_date_effective = Column(Date, nullable=True)
-    due_date_override_reason = Column(String(500), nullable=True)
+    due_date_original: Mapped[date | None] = mapped_column(nullable=True)
+    due_date_effective: Mapped[date | None] = mapped_column(nullable=True)
+    due_date_override_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # Timestamps
-    created_at = Column(DateTime, nullable=False, default=utcnow)
-    updated_at = Column(DateTime, nullable=False, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(nullable=False, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(nullable=False, default=utcnow, onupdate=utcnow)
 
     # Soft delete
-    deleted_at = Column(DateTime, nullable=True)
-    deleted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    deleted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    invoices = relationship(
+    invoices: Mapped[list["VatInvoice"]] = relationship(
         "VatInvoice",
         back_populates="work_item",
         cascade="all, delete-orphan",
     )
-    original_item = relationship(
+    original_item: Mapped["VatWorkItem | None"] = relationship(
         "VatWorkItem",
         foreign_keys="[VatWorkItem.amends_item_id]",
         remote_side="VatWorkItem.id",

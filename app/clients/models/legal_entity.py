@@ -1,14 +1,19 @@
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import TYPE_CHECKING
+
 from sqlalchemy import (
-    Column,
-    Date,
-    DateTime,
     Index,
-    Integer,
     Numeric,
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.clients.models.person_legal_entity_link import PersonLegalEntityLink
 
 from app.common.enums import AdvancePaymentFrequency, EntityType, IdNumberType, VatType
 from app.database import Base
@@ -21,28 +26,30 @@ class LegalEntity(Base):
 
     __tablename__ = "legal_entities"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    id_number = Column(String, nullable=False)
-    id_number_type = Column(pg_enum(IdNumberType), nullable=False)
-    entity_type = Column(pg_enum(EntityType), nullable=True)
+    id_number: Mapped[str] = mapped_column(String, nullable=False)
+    id_number_type: Mapped[IdNumberType] = mapped_column(pg_enum(IdNumberType), nullable=False)
+    entity_type: Mapped[EntityType | None] = mapped_column(pg_enum(EntityType), nullable=True)
 
-    official_name = Column(String, nullable=False)
+    official_name: Mapped[str] = mapped_column(String, nullable=False)
 
-    vat_reporting_frequency = Column(pg_enum(VatType), nullable=True)
-    advance_payment_frequency = Column(
+    vat_reporting_frequency: Mapped[VatType | None] = mapped_column(
+        pg_enum(VatType), nullable=True
+    )
+    advance_payment_frequency: Mapped[AdvancePaymentFrequency | None] = mapped_column(
         pg_enum(AdvancePaymentFrequency, name="advance_payment_frequency"),
         nullable=True,
     )
-    vat_exempt_ceiling = Column(Numeric(12, 0), nullable=True)
-    advance_rate = Column(Numeric(5, 2), nullable=True)
-    advance_rate_updated_at = Column(Date, nullable=True)
-    annual_revenue = Column(Numeric(15, 0), nullable=True)
+    vat_exempt_ceiling: Mapped[Decimal | None] = mapped_column(Numeric(12, 0), nullable=True)
+    advance_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    advance_rate_updated_at: Mapped[date | None] = mapped_column(nullable=True)
+    annual_revenue: Mapped[Decimal | None] = mapped_column(Numeric(15, 0), nullable=True)
 
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
 
-    person_links = relationship(
+    person_links: Mapped[list["PersonLegalEntityLink"]] = relationship(
         "PersonLegalEntityLink",
         primaryjoin="LegalEntity.id == foreign(PersonLegalEntityLink.legal_entity_id)",
         lazy="select",

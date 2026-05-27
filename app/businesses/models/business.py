@@ -1,18 +1,17 @@
+from __future__ import annotations
+
+from datetime import date, datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    Column,
-    Date,
-    DateTime,
     ForeignKey,
     Index,
-    Integer,
     String,
     Text,
     and_,
     column,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.soft_delete import SoftDeletableMixin
 from app.database import Base
@@ -40,11 +39,13 @@ class Business(SoftDeletableMixin, Base):
 
     __tablename__ = "businesses"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    legal_entity_id = Column(Integer, ForeignKey("legal_entities.id"), nullable=False, index=True)
+    legal_entity_id: Mapped[int] = mapped_column(
+        ForeignKey("legal_entities.id"), nullable=False, index=True
+    )
 
-    legal_entity = relationship(
+    legal_entity: Mapped["LegalEntity"] = relationship(
         "LegalEntity",
         foreign_keys=[legal_entity_id],
         lazy="select",
@@ -52,25 +53,25 @@ class Business(SoftDeletableMixin, Base):
     )
 
     # Business details.
-    business_name = Column(String, nullable=False)  # required: every activity must have a name
-    status = Column(
+    business_name: Mapped[str] = mapped_column(String, nullable=False)  # required: every activity must have a name
+    status: Mapped[BusinessStatus] = mapped_column(
         pg_enum(BusinessStatus),
         default=BusinessStatus.ACTIVE,
         nullable=False,
     )
     # Dates.
-    opened_at = Column(Date, nullable=False)
-    closed_at = Column(Date, nullable=True)
+    opened_at: Mapped[date] = mapped_column(nullable=False)
+    closed_at: Mapped[date | None] = mapped_column(nullable=True)
 
     # Business-specific contact overrides.
-    phone_override = Column(String(20), nullable=True)
-    email_override = Column(String(254), nullable=True)
+    phone_override: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    email_override: Mapped[str | None] = mapped_column(String(254), nullable=True)
 
     # Metadata.
-    notes = Column(Text, nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
 
     # ── Computed properties ───────────────────────────────────────────────────
 

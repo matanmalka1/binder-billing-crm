@@ -1,19 +1,24 @@
+from __future__ import annotations
+
 """Annex (schedule) data lines for an annual report."""
+
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
     JSON,
-    Column,
-    DateTime,
     ForeignKey,
-    Integer,
     Text,
     UniqueConstraint,
 )
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.utils.time_utils import utcnow
+
+if TYPE_CHECKING:
+    from app.annual_reports.models.annual_report_schedule_entry import AnnualReportScheduleEntry
 
 
 class AnnualReportAnnexData(Base):
@@ -28,20 +33,21 @@ class AnnualReportAnnexData(Base):
         ),
     )
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    schedule_entry_id = Column(
-        Integer,
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    schedule_entry_id: Mapped[int] = mapped_column(
         ForeignKey("annual_report_schedules.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    line_number = Column(Integer, nullable=False)
-    data = Column(JSON, nullable=False)
-    data_version = Column(Integer, nullable=False, default=1)
-    notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=utcnow, nullable=False)
-    updated_at = Column(DateTime, nullable=True, onupdate=utcnow)
-    schedule_entry = relationship("AnnualReportScheduleEntry", back_populates="annex_lines")
+    line_number: Mapped[int] = mapped_column(nullable=False)
+    data: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    data_version: Mapped[int] = mapped_column(nullable=False, default=1)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(nullable=True, onupdate=utcnow)
+    schedule_entry: Mapped["AnnualReportScheduleEntry"] = relationship(
+        "AnnualReportScheduleEntry", back_populates="annex_lines"
+    )
 
     @hybrid_property
     def annual_report_id(self):

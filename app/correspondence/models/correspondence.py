@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import datetime
 from enum import Enum as PyEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -29,6 +30,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 from app.utils.enum_utils import pg_enum
 from app.utils.time_utils import utcnow_aware
+
+if TYPE_CHECKING:
+    from app.authority_contact.models.authority_contact import AuthorityContact
 
 
 class CorrespondenceType(str, PyEnum):
@@ -76,7 +80,7 @@ class Correspondence(Base):
     deleted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    contact = relationship(
+    contact: Mapped["AuthorityContact | None"] = relationship(
         "AuthorityContact", foreign_keys="[Correspondence.contact_id]", viewonly=True
     )
 
