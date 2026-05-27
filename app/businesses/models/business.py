@@ -53,7 +53,9 @@ class Business(SoftDeletableMixin, Base):
     )
 
     # Business details.
-    business_name: Mapped[str] = mapped_column(String, nullable=False)  # required: every activity must have a name
+    business_name: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # required: every activity must have a name
     status: Mapped[BusinessStatus] = mapped_column(
         pg_enum(BusinessStatus),
         default=BusinessStatus.ACTIVE,

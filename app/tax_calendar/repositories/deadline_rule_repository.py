@@ -14,12 +14,15 @@ class DeadlineRuleRepository:
         self.db = db
 
     def has_open_ended_rule(self, rule_type: DeadlineRuleType) -> bool:
-        return self.db.scalar(
-            select(DeadlineRule.id).where(
-                DeadlineRule.rule_type == rule_type.value,
-                DeadlineRule.effective_to.is_(None),
+        return (
+            self.db.scalar(
+                select(DeadlineRule.id).where(
+                    DeadlineRule.rule_type == rule_type.value,
+                    DeadlineRule.effective_to.is_(None),
+                )
             )
-        ) is not None
+            is not None
+        )
 
     def list_by_type(
         self,
@@ -41,10 +44,7 @@ class DeadlineRuleRepository:
             select(DeadlineRule)
             .where(DeadlineRule.rule_type == rule_type.value)
             .where(DeadlineRule.effective_from <= on_date)
-            .where(
-                (DeadlineRule.effective_to.is_(None))
-                | (DeadlineRule.effective_to >= on_date)
-            )
+            .where((DeadlineRule.effective_to.is_(None)) | (DeadlineRule.effective_to >= on_date))
             .order_by(DeadlineRule.effective_from.desc())
             .limit(1)
         ).first()

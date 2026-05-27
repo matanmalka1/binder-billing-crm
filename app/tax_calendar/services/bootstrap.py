@@ -99,7 +99,9 @@ def bootstrap_tax_calendar(
     )
 
     num_years = resolved_end - resolved_start + 1
-    total_in_range = TaxCalendarEntryRepository(db).count_in_year_range(resolved_start, resolved_end)
+    total_in_range = TaxCalendarEntryRepository(db).count_in_year_range(
+        resolved_start, resolved_end
+    )
 
     warnings: list[str] = []
     expected = EXPECTED_ENTRIES_PER_YEAR * num_years

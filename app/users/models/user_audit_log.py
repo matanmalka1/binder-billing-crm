@@ -39,9 +39,7 @@ class UserAuditLog(Base):
         ForeignKey("users.id"), nullable=True, index=True
     )
     email: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
-    status: Mapped[AuditStatus] = mapped_column(
-        pg_enum(AuditStatus), nullable=False, index=True
-    )
+    status: Mapped[AuditStatus] = mapped_column(pg_enum(AuditStatus), nullable=False, index=True)
     reason: Mapped[str | None] = mapped_column(String, nullable=True)
     metadata_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False, index=True)

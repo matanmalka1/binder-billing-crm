@@ -34,7 +34,9 @@ def test_forgot_password_returns_generic_message_and_stores_hashed_token(client,
 
     assert response.status_code == 200
     assert response.json()["message"] == "אם קיים משתמש עם האימייל הזה, נשלחו הוראות לאיפוס סיסמה"
-    records = test_db.scalars(select(PasswordResetToken).filter(PasswordResetToken.user_id == user.id)).all()
+    records = test_db.scalars(
+        select(PasswordResetToken).filter(PasswordResetToken.user_id == user.id)
+    ).all()
     assert len(records) == 1
     assert len(records[0].token_hash) == 64
     assert records[0].used_at is None

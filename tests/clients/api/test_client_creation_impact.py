@@ -78,13 +78,19 @@ def test_preview_impact_matches_actual_future_generation(test_db):
         reference_date=reference_date,
     )
     vat_work_items_count = test_db.scalar(
-        select(func.count()).select_from(VatWorkItem).filter(VatWorkItem.client_record_id == client_record.id)
+        select(func.count())
+        .select_from(VatWorkItem)
+        .filter(VatWorkItem.client_record_id == client_record.id)
     )
     advance_payments_count = test_db.scalar(
-        select(func.count()).select_from(AdvancePayment).filter(AdvancePayment.client_record_id == client_record.id)
+        select(func.count())
+        .select_from(AdvancePayment)
+        .filter(AdvancePayment.client_record_id == client_record.id)
     )
     reports_count = test_db.scalar(
-        select(func.count()).select_from(AnnualReport).filter(AnnualReport.client_record_id == client_record.id)
+        select(func.count())
+        .select_from(AnnualReport)
+        .filter(AnnualReport.client_record_id == client_record.id)
     )
     binders_count = test_db.scalar(
         select(func.count()).select_from(Binder).filter(Binder.client_record_id == client_record.id)

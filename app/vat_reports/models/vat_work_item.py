@@ -14,6 +14,7 @@ Israeli context:
   Fields 87/66 in the VAT return correspond to total_output_net/total_input_net.
   These are snapshotted at filing time and must not change post-submission.
 """
+
 from __future__ import annotations
 
 
@@ -50,7 +51,9 @@ class VatWorkItem(Base):
 
     # Period identity
     period: Mapped[str] = mapped_column(String(7), nullable=False)  # "YYYY-MM"
-    period_type: Mapped[VatType] = mapped_column(pg_enum(VatType), nullable=False)  # snapshot at creation — immutable
+    period_type: Mapped[VatType] = mapped_column(
+        pg_enum(VatType), nullable=False
+    )  # snapshot at creation — immutable
 
     # Status lifecycle
     status: Mapped[VatWorkItemStatus] = mapped_column(
@@ -61,14 +64,24 @@ class VatWorkItem(Base):
     pending_materials_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Denormalized VAT totals (refreshed on every invoice mutation)
-    total_output_vat: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
-    total_input_vat: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
-    net_vat: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    total_output_vat: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=Decimal("0.00")
+    )
+    total_input_vat: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=Decimal("0.00")
+    )
+    net_vat: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=Decimal("0.00")
+    )
 
     # Denormalized net totals — fields 87/66 in VAT return
     # Snapshotted at filing; do not recalculate post-FILED
-    total_output_net: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
-    total_input_net: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    total_output_net: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=Decimal("0.00")
+    )
+    total_input_net: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=Decimal("0.00")
+    )
 
     # Filing details (set when status → FILED)
     final_vat_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)

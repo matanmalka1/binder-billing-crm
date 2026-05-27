@@ -77,9 +77,7 @@ class TaxCalendarMaterializationService:
         rows = self.db.scalars(
             select(TaxCalendarEntry).where(
                 TaxCalendarEntry.obligation_type == obligation_type.value,
-                tuple_(TaxCalendarEntry.period, TaxCalendarEntry.period_months_count).in_(
-                    periods
-                ),
+                tuple_(TaxCalendarEntry.period, TaxCalendarEntry.period_months_count).in_(periods),
             )
         ).all()
         return {(row.period, row.period_months_count): row for row in rows}
@@ -134,7 +132,9 @@ class TaxCalendarMaterializationService:
 
     def _resolve_required_rule(self, rule_type, on_date: date):
         try:
-            return _resolve_rule(DeadlineRuleRepository(self.db), rule_type=rule_type, on_date=on_date)
+            return _resolve_rule(
+                DeadlineRuleRepository(self.db), rule_type=rule_type, on_date=on_date
+            )
         except LookupError as exc:
             raise AppError(
                 "לא מוגדר כלל מועד מתאים ליומן המס",

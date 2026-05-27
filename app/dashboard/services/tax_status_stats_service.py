@@ -44,9 +44,7 @@ class TaxStatusStatsService:
         monthly_required = required_by_type.get(VatType.MONTHLY, 0)
         monthly_submitted = submitted_by_period_type.get((monthly_period, VatType.MONTHLY), 0)
         bimonthly_required = required_by_type.get(VatType.BIMONTHLY, 0)
-        bimonthly_submitted = submitted_by_period_type.get(
-            (bimonthly_period, VatType.BIMONTHLY), 0
-        )
+        bimonthly_submitted = submitted_by_period_type.get((bimonthly_period, VatType.BIMONTHLY), 0)
         due_dates = self._due_dates(
             [
                 (monthly_period, 1, monthly_required, monthly_submitted),
@@ -97,9 +95,7 @@ class TaxStatusStatsService:
             ),
         }
 
-    def _build_advance_stat(
-        self, period: str, label: str, completed: int, total: int
-    ) -> dict:
+    def _build_advance_stat(self, period: str, label: str, completed: int, total: int) -> dict:
         pending = max(total - completed, 0)
         percent = round((completed / total) * 100) if total else 0
         return {

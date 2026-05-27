@@ -31,6 +31,7 @@ Design notes:
       (WHERE deleted_at IS NULL) — not a hard UniqueConstraint — so that a
       soft-deleted record never blocks recreation of the same period.
 """
+
 from __future__ import annotations
 
 
@@ -84,23 +85,35 @@ class AdvancePayment(SoftDeletableMixin, Base):
     )
 
     # ── Period ────────────────────────────────────────────────────────────────
-    period: Mapped[str] = mapped_column(String(7), nullable=False)  # "YYYY-MM" — first month in period
-    period_months_count: Mapped[int] = mapped_column(nullable=False, default=1)  # 1=monthly, 2=bi-monthly
-    due_date: Mapped[date] = mapped_column(nullable=False)  # Usually the 15th of the month after the period
+    period: Mapped[str] = mapped_column(
+        String(7), nullable=False
+    )  # "YYYY-MM" — first month in period
+    period_months_count: Mapped[int] = mapped_column(
+        nullable=False, default=1
+    )  # 1=monthly, 2=bi-monthly
+    due_date: Mapped[date] = mapped_column(
+        nullable=False
+    )  # Usually the 15th of the month after the period
     due_date_original: Mapped[date | None] = mapped_column(nullable=True)
     due_date_effective: Mapped[date | None] = mapped_column(nullable=True)
     due_date_override_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # ── Amounts ───────────────────────────────────────────────────────────────
-    expected_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=Decimal("0.00"))
-    paid_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, default=Decimal("0.00"), server_default="0")
+    expected_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False, default=Decimal("0.00")
+    )
+    paid_amount: Mapped[Decimal] = mapped_column(
+        Numeric(10, 2), nullable=False, default=Decimal("0.00"), server_default="0"
+    )
 
     # ── Calculation fields ────────────────────────────────────────────────────
     # turnover_amount and advance_rate are source snapshots — NULL means "unknown",
     # not zero. calculated_amount is a derived display value, NOT NULL.
     turnover_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
     advance_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
-    calculated_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    calculated_amount: Mapped[Decimal] = mapped_column(
+        Numeric(12, 2), nullable=False, default=Decimal("0.00")
+    )
     override_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
 
     # ── Status & payment ──────────────────────────────────────────────────────

@@ -34,9 +34,7 @@ class LegalEntity(Base):
 
     official_name: Mapped[str] = mapped_column(String, nullable=False)
 
-    vat_reporting_frequency: Mapped[VatType | None] = mapped_column(
-        pg_enum(VatType), nullable=True
-    )
+    vat_reporting_frequency: Mapped[VatType | None] = mapped_column(pg_enum(VatType), nullable=True)
     advance_payment_frequency: Mapped[AdvancePaymentFrequency | None] = mapped_column(
         pg_enum(AdvancePaymentFrequency, name="advance_payment_frequency"),
         nullable=True,

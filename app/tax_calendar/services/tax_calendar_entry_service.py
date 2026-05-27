@@ -249,7 +249,9 @@ def generate_for_year(db: Session, tax_year: int) -> YearGenerationResult:
         end_year=tax_year,
         generated_obligation_values=_GENERATED_OBLIGATION_VALUES,
     )
-    result = _generate_for_year(rule_repo, entry_repo, tax_year=tax_year, existing_keys=existing_keys)
+    result = _generate_for_year(
+        rule_repo, entry_repo, tax_year=tax_year, existing_keys=existing_keys
+    )
     entry_repo.flush()
     return result
 

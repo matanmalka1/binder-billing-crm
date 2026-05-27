@@ -96,6 +96,8 @@ def test_repository_soft_delete_marks_deleted_metadata(test_db):
     assert deleted is True
     assert repo.get_by_id(contact.id) is None
 
-    persisted = test_db.scalars(select(AuthorityContact).filter(AuthorityContact.id == contact.id)).first()
+    persisted = test_db.scalars(
+        select(AuthorityContact).filter(AuthorityContact.id == contact.id)
+    ).first()
     assert persisted.deleted_by == 42
     assert persisted.deleted_at is not None

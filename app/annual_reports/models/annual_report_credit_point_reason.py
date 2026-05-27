@@ -27,9 +27,7 @@ class AnnualReportCreditPoint(Base):
         nullable=False,
         index=True,
     )
-    reason: Mapped[CreditPointReason] = mapped_column(
-        pg_enum(CreditPointReason), nullable=False
-    )
+    reason: Mapped[CreditPointReason] = mapped_column(pg_enum(CreditPointReason), nullable=False)
     points: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
     notes: Mapped[str | None] = mapped_column(String, nullable=True)
 

@@ -31,8 +31,12 @@ class EntityAuditLog(Base):
 
     # Use ACTION_* constants from app/audit/constants.py
     action: Mapped[str] = mapped_column(String, nullable=False)
-    old_value: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON snapshot before mutation
-    new_value: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON snapshot after mutation
+    old_value: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )  # JSON snapshot before mutation
+    new_value: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )  # JSON snapshot after mutation
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     performed_at: Mapped[datetime] = mapped_column(nullable=False, default=utcnow)

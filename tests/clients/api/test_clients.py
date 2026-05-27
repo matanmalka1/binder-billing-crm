@@ -148,7 +148,8 @@ def test_create_client_rejects_blank_business_before_creating_client(
     assert response.status_code == 422
     assert (
         test_db.scalar(
-            select(func.count()).select_from(ClientRecord)
+            select(func.count())
+            .select_from(ClientRecord)
             .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
             .filter(LegalEntity.id_number == "ONB-BLANK")
         )

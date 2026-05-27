@@ -41,11 +41,14 @@ class TaxCalendarEntryRepository:
         )
 
     def count_in_year_range(self, start_year: int, end_year: int) -> int:
-        return self.db.scalar(
-            select(func.count()).select_from(TaxCalendarEntry).where(
-                TaxCalendarEntry.tax_year.between(start_year, end_year)
+        return (
+            self.db.scalar(
+                select(func.count())
+                .select_from(TaxCalendarEntry)
+                .where(TaxCalendarEntry.tax_year.between(start_year, end_year))
             )
-        ) or 0
+            or 0
+        )
 
     def load_existing_keys(
         self,

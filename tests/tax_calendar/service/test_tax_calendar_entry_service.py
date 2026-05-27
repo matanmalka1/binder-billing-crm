@@ -87,8 +87,12 @@ def _count_entries(
     period_months_count: int | None = None,
     tax_year: int | None = None,
 ) -> int:
-    stmt = select(func.count()).select_from(TaxCalendarEntry).where(
-        TaxCalendarEntry.obligation_type == obligation_type.value,
+    stmt = (
+        select(func.count())
+        .select_from(TaxCalendarEntry)
+        .where(
+            TaxCalendarEntry.obligation_type == obligation_type.value,
+        )
     )
     if period_months_count is not None:
         stmt = stmt.where(TaxCalendarEntry.period_months_count == period_months_count)

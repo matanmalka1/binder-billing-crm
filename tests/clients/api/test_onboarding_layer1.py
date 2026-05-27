@@ -85,7 +85,9 @@ def test_obligations_created_with_client_record_id(client, test_db, advisor_head
     assert resp.status_code == 201
     cr_id = resp.json()["client_record_id"]
 
-    vat_items = test_db.scalars(select(VatWorkItem).filter(VatWorkItem.client_record_id == cr_id)).all()
+    vat_items = test_db.scalars(
+        select(VatWorkItem).filter(VatWorkItem.client_record_id == cr_id)
+    ).all()
     advance_payments = test_db.scalars(
         select(AdvancePayment).filter(AdvancePayment.client_record_id == cr_id)
     ).all()

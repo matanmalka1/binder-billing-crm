@@ -10,6 +10,7 @@ Design decisions:
 - No line-item breakdown — header-level totals sufficient for tax advisory work.
 - counterparty_id_type enables validation routing (IL checksum vs. foreign).
 """
+
 from __future__ import annotations
 
 
@@ -67,7 +68,9 @@ class VatInvoice(Base):
 
     # Counterparty
     counterparty_name: Mapped[str] = mapped_column(String, nullable=False)
-    counterparty_id: Mapped[str | None] = mapped_column(String, nullable=True)  # מספר עוסק / ת"ז / דרכון
+    counterparty_id: Mapped[str | None] = mapped_column(
+        String, nullable=True
+    )  # מספר עוסק / ת"ז / דרכון
     counterparty_id_type: Mapped[CounterpartyIdType | None] = mapped_column(
         pg_enum(CounterpartyIdType), nullable=True
     )
@@ -84,7 +87,9 @@ class VatInvoice(Base):
     rate_type: Mapped[VatRateType] = mapped_column(
         pg_enum(VatRateType), nullable=False, default=VatRateType.STANDARD
     )
-    deduction_rate: Mapped[Decimal] = mapped_column(Numeric(5, 4), nullable=False, default=Decimal("1.0000"))
+    deduction_rate: Mapped[Decimal] = mapped_column(
+        Numeric(5, 4), nullable=False, default=Decimal("1.0000")
+    )
     # Auto-populated from CATEGORY_DEDUCTION_RATES on create/update
 
     # Exceptional invoice flag (> 25,000 ₪ net — requires special handling)

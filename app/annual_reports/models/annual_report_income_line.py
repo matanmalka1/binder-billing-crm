@@ -49,9 +49,7 @@ class AnnualReportIncomeLine(Base):
         nullable=False,
         index=True,
     )
-    source_type: Mapped[IncomeSourceType] = mapped_column(
-        pg_enum(IncomeSourceType), nullable=False
-    )
+    source_type: Mapped[IncomeSourceType] = mapped_column(pg_enum(IncomeSourceType), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow, nullable=False)

@@ -23,29 +23,29 @@ class _Resp:
 
 def test_email_channel_disabled_missing_config_and_success(monkeypatch):
     disabled = EmailChannel(
-            enabled=False,
-            api_key="",
-            api_url=BREVO_API_URL,
-            from_address="",
-        )
+        enabled=False,
+        api_key="",
+        api_url=BREVO_API_URL,
+        from_address="",
+    )
     assert disabled.send("a@b.com", "hello") == (True, None)
 
     missing_key = EmailChannel(
-            enabled=True,
-            api_key="",
-            api_url=BREVO_API_URL,
-            from_address="from@x.com",
-        )
+        enabled=True,
+        api_key="",
+        api_url=BREVO_API_URL,
+        from_address="from@x.com",
+    )
     ok, msg = missing_key.send("a@b.com", "hello")
     assert ok is False
     assert "BREVO_API_KEY" in msg
 
     missing_from = EmailChannel(
-            enabled=True,
-            api_key="k",
-            api_url=BREVO_API_URL,
-            from_address="",
-        )
+        enabled=True,
+        api_key="k",
+        api_url=BREVO_API_URL,
+        from_address="",
+    )
     ok, msg = missing_from.send("a@b.com", "hello")
     assert ok is False
     assert "EMAIL_FROM_ADDRESS" in msg
@@ -59,12 +59,12 @@ def test_email_channel_disabled_missing_config_and_success(monkeypatch):
 
     monkeypatch.setattr("httpx.post", _post_ok)
     enabled = EmailChannel(
-            enabled=True,
-            api_key="k",
-            api_url=BREVO_API_URL,
-            from_address="from@x.com",
-            from_name="CRM",
-        )
+        enabled=True,
+        api_key="k",
+        api_url=BREVO_API_URL,
+        from_address="from@x.com",
+        from_name="CRM",
+    )
     assert enabled.send("a@b.com", "hello")[0] is True
     assert captured["url"] == BREVO_API_URL
     assert captured["kwargs"]["json"]["textContent"] == "hello"
@@ -194,11 +194,11 @@ def test_notification_helpers_html_and_channel_exceptions(monkeypatch):
     monkeypatch.setattr("httpx.post", _raise_post)
 
     email = EmailChannel(
-            enabled=True,
-            api_key="k",
-            api_url=BREVO_API_URL,
-            from_address="from@x.com",
-        )
+        enabled=True,
+        api_key="k",
+        api_url=BREVO_API_URL,
+        from_address="from@x.com",
+    )
     ok, msg = email.send("to@x.com", "hello")
     assert ok is False
     assert "Brevo email request failed" in msg

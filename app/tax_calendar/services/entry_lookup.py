@@ -23,7 +23,9 @@ def find_periodic_entry(
     period: str,
     period_months_count: int,
 ) -> TaxCalendarEntry | None:
-    return TaxCalendarEntryRepository(db).find_periodic(obligation_type, period, period_months_count)
+    return TaxCalendarEntryRepository(db).find_periodic(
+        obligation_type, period, period_months_count
+    )
 
 
 def find_annual_entry_id(db: Session, tax_year: int) -> int | None:

@@ -44,7 +44,9 @@ class BinderIntakeMaterial(Base):
     __tablename__ = "binder_intake_materials"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    intake_id: Mapped[int] = mapped_column(ForeignKey("binder_intakes.id"), nullable=False, index=True)
+    intake_id: Mapped[int] = mapped_column(
+        ForeignKey("binder_intakes.id"), nullable=False, index=True
+    )
 
     # Which business the material belongs to (nullable for client-level generic material).
     business_id: Mapped[int | None] = mapped_column(
@@ -66,7 +68,9 @@ class BinderIntakeMaterial(Base):
 
     period_year: Mapped[int] = mapped_column(nullable=False)
     period_month_start: Mapped[int] = mapped_column(nullable=False)  # 1–12
-    period_month_end: Mapped[int] = mapped_column(nullable=False)  # 1–12; equals period_month_start for monthly
+    period_month_end: Mapped[int] = mapped_column(
+        nullable=False
+    )  # 1–12; equals period_month_start for monthly
 
     # Optional free-text note (not the period — use structured fields above for period).
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
