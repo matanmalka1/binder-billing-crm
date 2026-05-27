@@ -1,5 +1,6 @@
 import datetime as _dt
-from datetime import date
+from dataclasses import dataclass
+from datetime import date, datetime
 
 from sqlalchemy import asc, desc, extract, func, nullslast, or_, select
 from sqlalchemy.orm import Session
@@ -10,6 +11,24 @@ from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
 from app.common.repositories.base_repository import BaseRepository
 from app.utils.time_utils import utcnow
+
+
+@dataclass(frozen=True)
+class BinderListRow:
+    id: int
+    client_record_id: int
+    office_client_number: int | None
+    client_name: str
+    client_id_number: str
+    binder_number: str
+    status: BinderStatus
+    period_start: date | None
+    period_end: date | None
+    ready_for_pickup_at: datetime | None
+    returned_at: date | None
+    pickup_person_name: str | None
+    notes: str | None
+    created_at: datetime
 
 
 class BinderRepository(BaseRepository[Binder]):
@@ -214,6 +233,84 @@ class BinderRepository(BaseRepository[Binder]):
         )
         stmt = self.apply_pagination(stmt, page, page_size)
         return list(self.db.scalars(stmt).all()), int(self.db.scalar(count_stmt) or 0)
+
+    def list_active_paginated_projected(
+        self,
+        *,
+        client_record_id: int | None = None,
+        status: str | None = None,
+        include_returned: bool = True,
+        query: str | None = None,
+        client_name_filter: str | None = None,
+        binder_number: str | None = None,
+        year: int | None = None,
+        sort_by: str = "period_start",
+        sort_dir: str = "desc",
+        page: int = 1,
+        page_size: int = 20,
+    ) -> tuple[list[BinderListRow], int]:
+        # LegalEntity join is needed for count only when filtering/sorting by client_name.
+        # The projection SELECT always needs it to populate client fields.
+        needs_join_for_filter = sort_by == "client_name" or bool(query or client_name_filter)
+        filter_kwargs = dict(
+            client_record_id=client_record_id,
+            status=status,
+            include_returned=include_returned,
+            query=query,
+            client_name_filter=client_name_filter,
+            binder_number=binder_number,
+            year=year,
+        )
+
+        count_stmt = self._filtered_active_stmt(
+            select(func.count(Binder.id)),
+            **filter_kwargs,
+            include_legal_entity=needs_join_for_filter,
+        )
+
+        proj_stmt = self._filtered_active_stmt(
+            select(
+                Binder.id,
+                Binder.client_record_id,
+                ClientRecord.office_client_number,
+                LegalEntity.official_name.label("client_name"),
+                LegalEntity.id_number.label("client_id_number"),
+                Binder.binder_number,
+                Binder.status,
+                Binder.period_start,
+                Binder.period_end,
+                Binder.ready_for_pickup_at,
+                Binder.returned_at,
+                Binder.pickup_person_name,
+                Binder.notes,
+                Binder.created_at,
+            ),
+            **filter_kwargs,
+            include_legal_entity=True,
+        )
+        proj_stmt = self._order_active_paginated_stmt(proj_stmt, sort_by=sort_by, sort_dir=sort_dir)
+        proj_stmt = self.apply_pagination(proj_stmt, page, page_size)
+
+        rows = [
+            BinderListRow(
+                id=row.id,
+                client_record_id=row.client_record_id,
+                office_client_number=row.office_client_number,
+                client_name=row.client_name,
+                client_id_number=row.client_id_number,
+                binder_number=row.binder_number,
+                status=row.status,
+                period_start=row.period_start,
+                period_end=row.period_end,
+                ready_for_pickup_at=row.ready_for_pickup_at,
+                returned_at=row.returned_at,
+                pickup_person_name=row.pickup_person_name,
+                notes=row.notes,
+                created_at=row.created_at,
+            )
+            for row in self.db.execute(proj_stmt).all()
+        ]
+        return rows, int(self.db.scalar(count_stmt) or 0)
 
     def count_by_status_filtered(
         self,

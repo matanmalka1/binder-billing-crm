@@ -3,9 +3,9 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.actions.action_registry import get_binder_actions
+from app.actions.action_registry import get_binder_actions, get_binder_actions_for_state
 from app.binders.models.binder import Binder
-from app.binders.repositories.binder_repository import BinderRepository
+from app.binders.repositories.binder_repository import BinderListRow, BinderRepository
 from app.binders.schemas.binder import BinderResponse
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
@@ -101,6 +101,32 @@ class BinderListService:
             client_id_number=client_id_number_map.get(binder.client_record_id),
         )
 
+    @staticmethod
+    def _row_to_response(row: BinderListRow, ref_date: date) -> BinderResponse:
+        return BinderResponse(
+            id=row.id,
+            client_record_id=row.client_record_id,
+            office_client_number=row.office_client_number,
+            client_name=row.client_name,
+            client_id_number=row.client_id_number,
+            binder_number=row.binder_number,
+            status=row.status,
+            period_start=row.period_start,
+            period_end=row.period_end,
+            returned_at=row.returned_at,
+            pickup_person_name=row.pickup_person_name,
+            notes=row.notes,
+            created_at=row.created_at,
+            days_in_office=(
+                max(0, (ref_date - row.period_start).days)
+                if row.period_start is not None
+                else None
+            ),
+            available_actions=get_binder_actions_for_state(
+                binder_id=row.id, status=row.status
+            ),
+        )
+
     def list_binders_enriched(
         self,
         *,
@@ -121,7 +147,7 @@ class BinderListService:
         effective_sort_by = sort_by if sort_by in _ALLOWED_SORT_COLS else "period_start"
 
         ref_date = reference_date or date.today()
-        binders, total = self.binder_repo.list_active_paginated(
+        rows, total = self.binder_repo.list_active_paginated_projected(
             client_record_id=client_record_id,
             status=status,
             include_returned=(status is not None),
@@ -142,21 +168,5 @@ class BinderListService:
             year=year,
         )
 
-        client_record_ids = list({binder.client_record_id for binder in binders})
-        office_client_number_map, client_name_map, client_id_number_map = (
-            self._build_client_context_maps(client_record_ids)
-        )
-
-        items: list[BinderResponse] = []
-        for binder in binders:
-            items.append(
-                self.build_binder_response(
-                    binder,
-                    reference_date=ref_date,
-                    office_client_number=office_client_number_map.get(binder.client_record_id),
-                    client_name=client_name_map.get(binder.client_record_id),
-                    client_id_number=client_id_number_map.get(binder.client_record_id),
-                )
-            )
-
+        items = [self._row_to_response(row, ref_date) for row in rows]
         return items, total, counters

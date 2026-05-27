@@ -128,3 +128,139 @@ def test_build_binder_response_handles_null_period_start(test_db, test_user):
 
     assert response.period_start is None
     assert response.days_in_office is None
+
+
+# ── Projection path (list_active_paginated_projected) ─────────────────────────
+
+
+def test_list_binders_enriched_returns_client_name_from_projection(test_db, test_user):
+    _c1, _c2, b1, b2 = _seed_binders(test_db, test_user.id)
+    service = BinderListService(test_db)
+
+    items, total, _ = service.list_binders_enriched()
+
+    by_id = {item.id: item for item in items}
+    assert by_id[b1.id].client_name == "Alpha Client"
+    assert by_id[b2.id].client_name == "Beta Client"
+    assert total == 2
+
+
+def test_list_binders_enriched_status_filter(test_db, test_user):
+    _c1, _c2, _b1, b2 = _seed_binders(test_db, test_user.id)
+    service = BinderListService(test_db)
+
+    items, total, _ = service.list_binders_enriched(status="ready_for_pickup")
+
+    assert total == 1
+    assert items[0].id == b2.id
+    assert items[0].status == BinderStatus.READY_FOR_PICKUP
+
+
+def test_list_binders_enriched_excludes_deleted_client_records(test_db, test_user):
+    from app.utils.time_utils import utcnow
+
+    active = seed_client_identity(test_db, full_name="Active Client", id_number="BLSDEL1")
+    deleted = seed_client_identity(
+        test_db, full_name="Deleted Client", id_number="BLSDEL2", deleted_at=utcnow()
+    )
+
+    b_active = Binder(
+        client_record_id=active.id,
+        binder_number="DEL-A1",
+        period_start=date.today(),
+        status=BinderStatus.IN_OFFICE,
+        created_by=test_user.id,
+    )
+    b_deleted_client = Binder(
+        client_record_id=deleted.id,
+        binder_number="DEL-D1",
+        period_start=date.today(),
+        status=BinderStatus.IN_OFFICE,
+        created_by=test_user.id,
+    )
+    test_db.add_all([b_active, b_deleted_client])
+    test_db.commit()
+
+    service = BinderListService(test_db)
+    items, total, _ = service.list_binders_enriched()
+
+    returned_ids = {item.id for item in items}
+    assert b_active.id in returned_ids
+    assert b_deleted_client.id not in returned_ids
+
+
+def test_list_binders_enriched_excludes_soft_deleted_binders(test_db, test_user):
+    from app.utils.time_utils import utcnow
+
+    c = seed_client_identity(test_db, full_name="SoftDel Client", id_number="BLSSDEL")
+    b_live = Binder(
+        client_record_id=c.id,
+        binder_number="SD-1",
+        period_start=date.today(),
+        status=BinderStatus.IN_OFFICE,
+        created_by=test_user.id,
+    )
+    b_deleted = Binder(
+        client_record_id=c.id,
+        binder_number="SD-2",
+        period_start=date.today(),
+        status=BinderStatus.RETURNED,
+        deleted_at=utcnow(),
+        created_by=test_user.id,
+    )
+    test_db.add_all([b_live, b_deleted])
+    test_db.commit()
+
+    service = BinderListService(test_db)
+    items, _, _ = service.list_binders_enriched()
+
+    returned_ids = {item.id for item in items}
+    assert b_live.id in returned_ids
+    assert b_deleted.id not in returned_ids
+
+
+def test_list_binders_enriched_pagination(test_db, test_user):
+    c = seed_client_identity(test_db, full_name="Page Client", id_number="BLSPAG")
+    binders = [
+        Binder(
+            client_record_id=c.id,
+            binder_number=f"PG-{i}",
+            period_start=date.today() - timedelta(days=i),
+            status=BinderStatus.IN_OFFICE,
+            created_by=test_user.id,
+        )
+        for i in range(5)
+    ]
+    test_db.add_all(binders)
+    test_db.commit()
+
+    service = BinderListService(test_db)
+
+    page1, total, _ = service.list_binders_enriched(page=1, page_size=3)
+    page2, _, _ = service.list_binders_enriched(page=2, page_size=3)
+
+    assert total == 5
+    assert len(page1) == 3
+    assert len(page2) == 2
+    assert {item.id for item in page1}.isdisjoint({item.id for item in page2})
+
+
+def test_list_binders_enriched_empty_result(test_db, test_user):
+    service = BinderListService(test_db)
+    items, total, counters = service.list_binders_enriched(query="__no_match__")
+
+    assert items == []
+    assert total == 0
+    assert counters["total"] == 0
+
+
+def test_list_binders_enriched_available_actions_from_projection(test_db, test_user):
+    _c1, _c2, b1, b2 = _seed_binders(test_db, test_user.id)
+    # b1 = IN_OFFICE → should have "ready"; b2 = READY_FOR_PICKUP → should have "return"
+    service = BinderListService(test_db)
+    items, _, _ = service.list_binders_enriched()
+
+    by_id = {item.id: item for item in items}
+    assert "ready" in {a.key for a in by_id[b1.id].available_actions}
+    assert "return" in {a.key for a in by_id[b2.id].available_actions}
+    assert "revert_ready" in {a.key for a in by_id[b2.id].available_actions}
