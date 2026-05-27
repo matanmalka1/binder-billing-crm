@@ -149,21 +149,17 @@ class VatWorkItemQueryRepository(BaseRepository[VatWorkItem]):
         period_type: VatType | None = None,
         client_name: str | None = None,
     ) -> dict[VatWorkItemStatus, int]:
-        stmt = (
-            scope_to_active_clients_stmt(
-                select(VatWorkItem.status, func.count(VatWorkItem.id)),
-                VatWorkItem,
-            )
-            .join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id)
-            .where(VatWorkItem.deleted_at.is_(None))
-        )
+        stmt = scope_to_active_clients_stmt(
+            select(VatWorkItem.status, func.count(VatWorkItem.id)),
+            VatWorkItem,
+        ).where(VatWorkItem.deleted_at.is_(None))
         if year is not None:
             stmt = stmt.where(VatWorkItem.period.startswith(f"{year}-"))
         if period_type is not None:
             stmt = stmt.where(VatWorkItem.period_type == period_type)
         if client_name:
             term = f"%{client_name.strip()}%"
-            stmt = stmt.where(
+            stmt = stmt.join(LegalEntity, LegalEntity.id == ClientRecord.legal_entity_id).where(
                 LegalEntity.official_name.ilike(term)
                 | func.coalesce(LegalEntity.id_number, "").ilike(term)
             )

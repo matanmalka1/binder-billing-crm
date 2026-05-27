@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
@@ -14,7 +14,7 @@ from app.vat_reports.repositories.vat_work_item_filters import (
 )
 
 
-def _base_stmt():
+def _active_base():
     return scope_to_active_clients_stmt(select(VatWorkItem), VatWorkItem).where(
         VatWorkItem.deleted_at.is_(None)
     )
@@ -28,64 +28,117 @@ def list_due_date_groups(
     status: VatWorkItemStatus | None = None,
     year: int | None = None,
 ) -> list[dict]:
-    """One summary dict per operational due date."""
-    stmt = apply_vat_work_item_filters(
-        _base_stmt(),
+    """One summary dict per operational due date.
+
+    Uses two projection queries instead of loading ORM objects:
+    1. Aggregated counts per due_date_effective.
+    2. Distinct (due_date_effective, period, period_type) pairs to build periods[].
+    """
+    today = date.today()
+
+    filed = VatWorkItemStatus.FILED
+    canceled = VatWorkItemStatus.CANCELED
+
+    # ── Query 1: aggregated counts per due_date_effective ────────────────────
+    counts_stmt = apply_vat_work_item_filters(
+        scope_to_active_clients_stmt(
+            select(
+                VatWorkItem.due_date_effective,
+                func.count(VatWorkItem.id).label("total_count"),
+                func.sum(case((VatWorkItem.status == filed, 1), else_=0)).label("filed_count"),
+                func.sum(
+                    case((VatWorkItem.status == VatWorkItemStatus.PENDING_MATERIALS, 1), else_=0)
+                ).label("pending_count"),
+                func.sum(
+                    case(
+                        (VatWorkItem.status.notin_([filed, canceled]), 1),
+                        else_=0,
+                    )
+                ).label("not_filed_count"),
+                func.sum(
+                    case(
+                        (
+                            VatWorkItem.status.notin_([filed, canceled])
+                            & (VatWorkItem.due_date_effective < today),
+                            1,
+                        ),
+                        else_=0,
+                    )
+                ).label("overdue_count"),
+            ),
+            VatWorkItem,
+        ).where(VatWorkItem.deleted_at.is_(None)),
         period_type=period_type,
         client_record_ids=client_record_ids,
     )
     if year is not None:
-        stmt = stmt.where(VatWorkItem.period.startswith(f"{year}-"))
+        counts_stmt = counts_stmt.where(VatWorkItem.period.startswith(f"{year}-"))
     if status is not None:
-        stmt = stmt.where(VatWorkItem.status == status)
+        counts_stmt = counts_stmt.where(VatWorkItem.status == status)
+    counts_stmt = counts_stmt.where(VatWorkItem.due_date_effective.is_not(None)).group_by(
+        VatWorkItem.due_date_effective
+    )
 
-    rows = db.scalars(stmt).all()
-    today = date.today()
+    count_rows = db.execute(counts_stmt).all()
+    if not count_rows:
+        return []
 
-    groups: dict[str, dict] = {}
-    for row in rows:
-        if row.due_date_effective is None:
-            continue
+    # ── Query 2: distinct (due_date_effective, period, period_type) pairs ────
+    periods_stmt = apply_vat_work_item_filters(
+        scope_to_active_clients_stmt(
+            select(
+                VatWorkItem.due_date_effective,
+                VatWorkItem.period,
+                VatWorkItem.period_type,
+            ).distinct(),
+            VatWorkItem,
+        ).where(VatWorkItem.deleted_at.is_(None)),
+        period_type=period_type,
+        client_record_ids=client_record_ids,
+    )
+    if year is not None:
+        periods_stmt = periods_stmt.where(VatWorkItem.period.startswith(f"{year}-"))
+    if status is not None:
+        periods_stmt = periods_stmt.where(VatWorkItem.status == status)
+    periods_stmt = periods_stmt.where(VatWorkItem.due_date_effective.is_not(None))
 
-        deadline = row.due_date_effective
-        due_date = deadline.isoformat()
-        if due_date not in groups:
-            groups[due_date] = {
-                "group_key": due_date,
-                "due_date": deadline,
-                "period": row.period,
-                "period_type": row.period_type,
-                "periods": [],
-                "total_count": 0,
-                "filed_count": 0,
-                "pending_count": 0,
-                "not_filed_count": 0,
-                "overdue_count": 0,
+    period_rows = db.execute(periods_stmt).all()
+
+    # ── Assemble periods[] per due_date ───────────────────────────────────────
+    periods_by_due: dict[date, list[dict]] = {}
+    for row in period_rows:
+        periods_by_due.setdefault(row.due_date_effective, []).append(
+            {"period": row.period, "period_type": row.period_type}
+        )
+
+    for period_list in periods_by_due.values():
+        period_list.sort(
+            key=lambda p: (0 if p["period_type"] == VatType.BIMONTHLY else 1, p["period"])
+        )
+
+    # ── Build result dicts ────────────────────────────────────────────────────
+    groups = []
+    for row in count_rows:
+        dd = row.due_date_effective
+        period_list = periods_by_due.get(dd, [])
+        # representative period/period_type from the first entry in sorted periods[]
+        first = period_list[0] if period_list else {"period": None, "period_type": None}
+        groups.append(
+            {
+                "group_key": dd.isoformat(),
+                "due_date": dd,
+                "period": first["period"],
+                "period_type": first["period_type"],
+                "periods": period_list,
+                "total_count": int(row.total_count),
+                "filed_count": int(row.filed_count),
+                "pending_count": int(row.pending_count),
+                "not_filed_count": int(row.not_filed_count),
+                "overdue_count": int(row.overdue_count),
             }
-        g = groups[due_date]
-        period_summary = {
-            "period": row.period,
-            "period_type": row.period_type,
-        }
-        if period_summary not in g["periods"]:
-            g["periods"].append(period_summary)
-            g["periods"].sort(
-                key=lambda p: (
-                    0 if p["period_type"] == VatType.BIMONTHLY else 1,
-                    p["period"],
-                )
-            )
-        g["total_count"] += 1
-        if row.status == VatWorkItemStatus.FILED:
-            g["filed_count"] += 1
-        if row.status == VatWorkItemStatus.PENDING_MATERIALS:
-            g["pending_count"] += 1
-        if row.status not in (VatWorkItemStatus.FILED, VatWorkItemStatus.CANCELED):
-            g["not_filed_count"] += 1
-            if deadline < today:
-                g["overdue_count"] += 1
+        )
 
-    return sorted(groups.values(), key=lambda g: g["due_date"])
+    return sorted(groups, key=lambda g: g["due_date"])
 
 
 def list_by_due_date_paginated(
@@ -104,7 +157,7 @@ def list_by_due_date_paginated(
         client_record_ids=client_record_ids,
     )
     stmt = apply_vat_work_item_filters(
-        _base_stmt(),
+        _active_base(),
         client_record_ids=client_record_ids,
     )
     if status is not None:

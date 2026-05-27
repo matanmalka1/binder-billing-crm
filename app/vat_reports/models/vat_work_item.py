@@ -156,6 +156,13 @@ class VatWorkItem(Base):
             postgresql_where=text("deleted_at IS NULL"),
             sqlite_where=text("deleted_at IS NULL"),
         ),
+        Index(
+            "ix_vat_work_items_active_due_client",
+            "due_date_effective",
+            "client_record_id",
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
     )
 
     def __repr__(self) -> str:
