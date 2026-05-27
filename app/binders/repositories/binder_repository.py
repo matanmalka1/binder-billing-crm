@@ -457,12 +457,16 @@ class BinderRepository(BaseRepository[Binder]):
 
     def get_active_by_client_record(self, client_record_id: int) -> Binder | None:
         """Return the intake-eligible binder for a client_record."""
-        stmt = self._active_client_stmt().where(
-            Binder.client_record_id == client_record_id,
-            Binder.location_status == BinderLocationStatus.IN_OFFICE,
-            Binder.capacity_status == BinderCapacityStatus.OPEN,
-            Binder.deleted_at.is_(None),
-        ).order_by(nullslast(Binder.period_start.desc()), Binder.id.desc())
+        stmt = (
+            self._active_client_stmt()
+            .where(
+                Binder.client_record_id == client_record_id,
+                Binder.location_status == BinderLocationStatus.IN_OFFICE,
+                Binder.capacity_status == BinderCapacityStatus.OPEN,
+                Binder.deleted_at.is_(None),
+            )
+            .order_by(nullslast(Binder.period_start.desc()), Binder.id.desc())
+        )
         return self.db.scalars(stmt).first()
 
     def list_by_client_paginated(
@@ -498,12 +502,20 @@ class BinderRepository(BaseRepository[Binder]):
         """Return {client_record_id: binder} for each client's intake-eligible binder."""
         if not client_record_ids:
             return {}
-        stmt = self._active_client_stmt().where(
-            Binder.client_record_id.in_(client_record_ids),
-            Binder.location_status == BinderLocationStatus.IN_OFFICE,
-            Binder.capacity_status == BinderCapacityStatus.OPEN,
-            Binder.deleted_at.is_(None),
-        ).order_by(Binder.client_record_id.asc(), nullslast(Binder.period_start.desc()), Binder.id.desc())
+        stmt = (
+            self._active_client_stmt()
+            .where(
+                Binder.client_record_id.in_(client_record_ids),
+                Binder.location_status == BinderLocationStatus.IN_OFFICE,
+                Binder.capacity_status == BinderCapacityStatus.OPEN,
+                Binder.deleted_at.is_(None),
+            )
+            .order_by(
+                Binder.client_record_id.asc(),
+                nullslast(Binder.period_start.desc()),
+                Binder.id.desc(),
+            )
+        )
         rows = self.db.scalars(stmt).all()
         for row in rows:
             row.client_record_id = row.client_record_id

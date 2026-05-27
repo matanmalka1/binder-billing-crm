@@ -53,7 +53,9 @@ class SearchService:
         )
 
         has_client_filter = bool(query or client_name or id_number or client_status or entity_type)
-        has_binder_filter = bool(query or binder_number or binder_location_status or binder_capacity_status)
+        has_binder_filter = bool(
+            query or binder_number or binder_location_status or binder_capacity_status
+        )
 
         # --- Pure client-only search: DB-level pagination ---
         if has_client_filter and not has_binder_filter:

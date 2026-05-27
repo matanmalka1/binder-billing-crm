@@ -126,9 +126,7 @@ class BinderListService:
             notes=row.notes,
             created_at=row.created_at,
             days_in_office=(
-                max(0, (ref_date - row.period_start).days)
-                if row.period_start is not None
-                else None
+                max(0, (ref_date - row.period_start).days) if row.period_start is not None else None
             ),
             available_actions=get_binder_actions_for_state(
                 location_status=row.location_status,

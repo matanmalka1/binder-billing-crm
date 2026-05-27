@@ -70,7 +70,7 @@ def test_timeline_excludes_noisy_notification_events(test_db):
     notification = Notification(
         client_record_id=business.client_id,
         business_id=business.id,
-            trigger=NotificationTrigger.BINDER_READY_FOR_HANDOVER,
+        trigger=NotificationTrigger.BINDER_READY_FOR_HANDOVER,
         channel=NotificationChannel.EMAIL,
         recipient="client@example.com",
         content_snapshot="Ready",
