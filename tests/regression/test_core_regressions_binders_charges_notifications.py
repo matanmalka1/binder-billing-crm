@@ -32,7 +32,8 @@ def test_binder_receive_creates_in_office_binder(client, advisor_headers, test_d
     assert response.status_code == 201
     data = response.json()
     assert data["binder"]["binder_number"] == "100501/1"
-    assert data["binder"]["status"] == "in_office"
+    assert data["binder"]["location_status"] == "in_office"
+    assert data["binder"]["capacity_status"] == "open"
 
 
 def test_open_binders_endpoint_returns_items(client, advisor_headers):
