@@ -3,19 +3,16 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.repositories.binder_intake_material_repository import (
     BinderIntakeMaterialRepository,
 )
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import (
-    BinderStatusLogRepository,
-)
+from app.binders.services.binder_lifecycle_service import BinderLifecycleService
 from app.binders.services.messages import (
     BINDER_CLIENT_LOCKED,
-    BINDER_CREATED_OLD_STATUS,
     BINDER_RECEIVED,
 )
 from app.businesses.models.business import BusinessStatus
@@ -39,7 +36,7 @@ class BinderIntakeService:
     def __init__(self, db: Session):
         self.db = db
         self.binder_repo = BinderRepository(db)
-        self.status_log_repo = BinderStatusLogRepository(db)
+        self.lifecycle_service = BinderLifecycleService(db)
         self.intake_repo = BinderIntakeRepository(db)
         self.material_repo = BinderIntakeMaterialRepository(db)
         # Used for the "all businesses locked" guard before intake is accepted.
@@ -91,12 +88,14 @@ class BinderIntakeService:
             is_new_binder = False
         else:
             if active_binder and open_new_binder:
-                # Close the current active binder in office and open a fresh IN_OFFICE binder.
                 active_binder.period_end = self._resolve_closing_period_structured(
                     active_binder.id, received_at
                 )
-                active_binder.status = BinderStatus.CLOSED_IN_OFFICE
-                self.db.flush()
+                self.lifecycle_service.mark_full(
+                    active_binder.id,
+                    changed_by_user_id=received_by,
+                    notes=BINDER_RECEIVED,
+                )
 
             if client_record.office_client_number is None:
                 raise AppError(BINDER_OFFICE_NUMBER_MISSING, "BINDER.OFFICE_NUMBER_MISSING")
@@ -107,14 +106,19 @@ class BinderIntakeService:
                 period_start=None,
                 created_by=received_by,
             )
-            self.status_log_repo.append(
-                binder_id=binder.id,
-                old_status=BINDER_CREATED_OLD_STATUS,
-                new_status=BinderStatus.IN_OFFICE.value,
-                changed_by=received_by,
+            self.lifecycle_service.log_initial_state(
+                binder=binder,
+                changed_by_user_id=received_by,
                 notes=BINDER_RECEIVED,
             )
             is_new_binder = True
+
+        if not is_new_binder:
+            self.lifecycle_service.receive_material(
+                binder,
+                changed_by_user_id=received_by,
+                allow_full_in_office=True,
+            )
 
         # Old-period guard: if any material is for a period older than the binder's
         # current period_start, the intake must include a note explaining the mismatch.
@@ -249,15 +253,16 @@ class BinderIntakeService:
         """
         Return the latest older binder whose stored period window can contain the intake.
 
-        Only binders still physically in the office are eligible. READY_FOR_PICKUP and
-        RETURNED binders are excluded because they should not receive fresh intake rows.
+        Only binders still physically in the office are eligible. A full binder can
+        receive old-period material only when its stored period window contains
+        the incoming material period.
         """
         candidates: list[Binder] = []
         binders = self.binder_repo.list_by_client_record(client_record_id)
         for binder in binders:
             if binder.id == active_binder_id:
                 continue
-            if binder.status != BinderStatus.CLOSED_IN_OFFICE:
+            if binder.location_status != BinderLocationStatus.IN_OFFICE:
                 continue
             if binder.period_start is None or binder.period_end is None:
                 continue

@@ -19,7 +19,8 @@ router = APIRouter(
 def list_binders(
     db: DBSession,
     user: CurrentUser,
-    status_filter: str | None = Query(None, alias="status"),
+    location_status: str | None = None,
+    capacity_status: str | None = None,
     client_record_id: int | None = None,
     query: str | None = None,
     client_name: str | None = None,
@@ -34,7 +35,8 @@ def list_binders(
     service = BinderListService(db)
     items, total, counters = service.list_binders_enriched(
         client_record_id=client_record_id,
-        status=status_filter,
+        location_status=location_status,
+        capacity_status=capacity_status,
         query=query,
         client_name_filter=client_name,
         binder_number=binder_number,

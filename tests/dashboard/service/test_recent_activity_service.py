@@ -8,7 +8,6 @@ from app.audit.constants import (
     ENTITY_CHARGE,
     ENTITY_CLIENT,
 )
-from app.binders.models.binder import BinderStatus
 from app.dashboard.services.recent_activity_service import RecentActivityService
 
 
@@ -59,12 +58,13 @@ def test_recent_activity_batches_related_entity_lookups(monkeypatch):
             ),
         ]
     )
-    service.binder_status_log_repo = SimpleNamespace(
+    service.binder_lifecycle_log_repo = SimpleNamespace(
         list_recent=lambda _limit: [
             SimpleNamespace(
                 id=4,
                 binder_id=30,
-                new_status=BinderStatus.READY_FOR_PICKUP.value,
+                field_name="location_status",
+                new_value="ready_for_handover",
                 changed_at=now,
             )
         ]

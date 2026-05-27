@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.binders.models.binder import BinderStatus
+from app.binders.models.binder import BinderCapacityStatus, BinderLocationStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
@@ -42,13 +42,14 @@ def test_active_queries_and_soft_delete(test_db):
         period_start=date(2024, 3, 1),
         created_by=user.id,
     )
-    binder_returned = repo.create(
+    binder_handed_over = repo.create(
         client_record_id=client_a.id,
         binder_number="BA-2",
         period_start=date(2024, 3, 2),
         created_by=user.id,
     )
-    repo.update_status(binder_returned.id, BinderStatus.RETURNED, binder=binder_returned)
+    binder_handed_over.location_status = BinderLocationStatus.HANDED_OVER
+    test_db.flush()
 
     _binder_other = repo.create(
         client_record_id=client_b.id,
@@ -65,7 +66,9 @@ def test_active_queries_and_soft_delete(test_db):
 
     assert repo.count_active() == 2  # binder_active + binder_other
     assert repo.count_active(client_record_id=client_a.id) == 1
-    assert repo.count_by_status(BinderStatus.IN_OFFICE) == 2
+    counts = repo.count_by_lifecycle_filtered()
+    assert counts["location_in_office"] == 2
+    assert counts["capacity_open"] == 3
 
     deleted = repo.soft_delete(binder_active.id, deleted_by=user.id)
     assert deleted is True

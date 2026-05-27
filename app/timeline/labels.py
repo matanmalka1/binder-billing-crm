@@ -41,17 +41,17 @@ CHARGE_TYPE_HE = {
     "other": "אחר",
 }
 
-# "none" is a legacy sentinel value that may appear in old status_log rows
-# before the enum was introduced — kept for backward compatibility.
-BINDER_STATUS_HE = {
-    "none": "חדש",
+BINDER_LIFECYCLE_HE = {
+    "null": "חדש",
     "in_office": "במשרד",
-    "ready_for_pickup": "מוכן לאיסוף",
-    "returned": "הוחזר",
+    "ready_for_handover": "מוכן למסירה",
+    "handed_over": "נמסר ללקוח",
+    "open": "פתוח",
+    "full": "מלא",
 }
 
 NOTIFICATION_TRIGGER_HE = {
     "binder_received": "קלסר התקבל",
-    "binder_ready_for_pickup": "קלסר מוכן לאיסוף",
+    "binder_ready_for_handover": "קלסר מוכן למסירה",
     "manual_payment_reminder": "תזכורת תשלום ידנית",
 }

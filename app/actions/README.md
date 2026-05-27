@@ -65,7 +65,7 @@ It is consumed internally by other modules that attach `available_actions` to re
 - `build_confirm` is the canonical constructor for confirm dialogs and centralizes common confirm metadata.
 - Binder actions:
   - `in_office` => `ready`
-  - `ready_for_pickup` => `return` (`payload_schema="requires_input"`)
+  - `ready_for_handover` => `return` (`payload_schema="requires_input"`)
 - Business actions:
   - endpoints are built only from `client_id`; missing `client_id` fails fast
   - `active` => `freeze` (advisor only)

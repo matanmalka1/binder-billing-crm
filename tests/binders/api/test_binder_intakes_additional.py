@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
 from app.binders.models.binder_intake import BinderIntake
 from tests.helpers.identity import seed_client_identity
 
@@ -17,7 +17,8 @@ def _seed_binder_and_intakes(db, user_id: int):
         binder_number="BIN-1",
         period_start=date.today(),
         created_by=user_id,
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
     )
     db.add(binder)
     db.commit()

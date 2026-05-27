@@ -2,9 +2,8 @@ from datetime import date
 
 from pydantic import BaseModel, Field
 
-from app.binders.models.binder import BinderStatus
+from app.binders.models.binder import BinderCapacityStatus, BinderLocationStatus
 from app.binders.models.binder_intake_material import MaterialType
-from app.core.action_schemas import ActionDescriptor
 from app.core.api_types import ApiDateTime
 
 # ── Intake request ────────────────────────────────────────────────────────────
@@ -38,10 +37,9 @@ class BinderReceiveRequest(BaseModel):
     materials: list[BinderIntakeMaterialRequest] = Field(default_factory=list)
 
 
-class BinderReturnRequest(BaseModel):
-    pickup_person_name: str | None = None
-    returned_by: int | None = None
-    returned_at: date | None = None
+class BinderHandoverToClientRequest(BaseModel):
+    handover_recipient_name: str | None = None
+    handed_over_at: date | None = None
 
 
 # ── Core response ─────────────────────────────────────────────────────────────
@@ -56,24 +54,27 @@ class BinderResponse(BaseModel):
     binder_number: str
     period_start: date | None = None
     period_end: date | None = None
-    status: BinderStatus
-    returned_at: date | None = None
-    pickup_person_name: str | None = None
+    location_status: BinderLocationStatus
+    capacity_status: BinderCapacityStatus
+    ready_for_handover_at: ApiDateTime | None = None
+    handed_over_at: date | None = None
+    handover_recipient_name: str | None = None
     notes: str | None = None
     created_at: ApiDateTime
     # ── Derived (computed by service, not stored) ─────────────────────────────
     days_in_office: int | None = None  # today - period_start
-    available_actions: list[ActionDescriptor] = Field(default_factory=list)
+    available_actions: list[str] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
 
 class BinderListCounters(BaseModel):
     total: int
-    in_office: int
-    closed_in_office: int
-    ready_for_pickup: int
-    returned: int
+    location_in_office: int
+    location_ready_for_handover: int
+    location_handed_over: int
+    capacity_open: int
+    capacity_full: int
 
 
 class BinderListResponse(BaseModel):
@@ -129,7 +130,7 @@ class BinderReceiveResult(BaseModel):
     is_new_binder: bool
 
 
-class BinderMarkReadyBulkRequest(BaseModel):
+class BinderMarkReadyForHandoverBulkRequest(BaseModel):
     client_record_id: int
     until_period_year: int
     until_period_month: int = Field(ge=1, le=12)
@@ -164,13 +165,14 @@ class BinderHandoverResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Status history ────────────────────────────────────────────────────────────
+# ── Lifecycle history ─────────────────────────────────────────────────────────
 
 
 class BinderHistoryEntry(BaseModel):
-    old_status: str
-    new_status: str
-    changed_by: int
+    field_name: str
+    old_value: str
+    new_value: str
+    changed_by_user_id: int
     changed_by_name: str | None = None  # enriched by service
     changed_at: ApiDateTime
     notes: str | None = None

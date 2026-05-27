@@ -11,10 +11,10 @@ from app.utils.time_utils import utcnow
 
 class BinderHandover(Base):
     """
-    Grouped handover event: one or more binders physically returned to the client together.
+    Grouped handover event: one or more binders physically handed to the client together.
 
     Records who received the binders on the client side, when, and up to which
-    reporting-period cutoff the binders were returned.
+    reporting-period cutoff the binders covered.
     """
 
     __tablename__ = "binder_handovers"
@@ -30,7 +30,7 @@ class BinderHandover(Base):
     # Date the handover physically took place.
     handed_over_at: Mapped[date] = mapped_column(nullable=False)
 
-    # Reporting-period cutoff: all binders up to this period were returned.
+    # Reporting-period cutoff: all binders up to this period were handed over.
     until_period_year: Mapped[int] = mapped_column(nullable=False)
     until_period_month: Mapped[int] = mapped_column(nullable=False)  # 1–12
 
@@ -47,7 +47,7 @@ class BinderHandover(Base):
 
 
 class BinderHandoverBinder(Base):
-    """Association between a handover event and the specific binders returned in it."""
+    """Association between a handover event and the specific binders included in it."""
 
     __tablename__ = "binder_handover_binders"
 

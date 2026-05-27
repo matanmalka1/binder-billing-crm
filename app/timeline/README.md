@@ -80,7 +80,7 @@ Response:
 
 Main event categories currently built:
 - Binder events:
-  - `binder_received`, `binder_returned`, `binder_status_change`
+  - `binder_received`, `binder_handed_over`, `binder_lifecycle_change`
 - Financial events:
   - `charge_created`, `charge_issued`, `charge_paid`, `invoice_attached`
 - Tax/annual events:
@@ -99,8 +99,8 @@ Explicitly excluded noisy events:
 - `reminder_created` — raw reminder setup is not client activity.
 - `notification_sent` — automated send rows are noisy.
 - `signature_request_created` — lifecycle audit rows are more useful.
-- Initial binder `none -> in_office` status logs when `binder_received` exists.
-- Same-status binder status log rows.
+- Initial binder `null -> in_office` lifecycle logs when `binder_received` exists.
+- Same-value binder lifecycle log rows.
 
 Not included in this module currently:
 - Tax calendar upcoming deadlines.
@@ -110,7 +110,7 @@ Not included in this module currently:
 
 ### Hebrew label maps
 
-`timeline_binder_event_builders.py` maps binder statuses to Hebrew labels.
+`timeline_binder_event_builders.py` maps binder lifecycle values to Hebrew labels.
 `timeline_charge_event_builders.py` maps the full `ChargeType` enum to Hebrew.
 `timeline_tax_builders.py` maps annual report status transitions.
 
@@ -132,7 +132,7 @@ Authorization failures are handled by shared role/auth dependencies.
 Timeline composes data from:
 - `clients` (client-record existence check; `legal_entity_id` resolution)
 - `businesses` (business IDs for business-scoped event sources)
-- `binders` + `binder_status_logs`
+- `binders` + `binder_lifecycle_logs`
 - `charge` + `invoice`
 - `annual_reports` + `annual_report_status_history`
 - `permanent_documents`

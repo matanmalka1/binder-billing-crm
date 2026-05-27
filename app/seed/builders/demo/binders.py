@@ -5,12 +5,12 @@ from random import Random
 
 from sqlalchemy import func, select
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
 from app.binders.models.binder_handover import BinderHandover, BinderHandoverBinder
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.models.binder_intake_edit_log import BinderIntakeEditLog
 from app.binders.models.binder_intake_material import BinderIntakeMaterial, MaterialType
-from app.binders.models.binder_status_log import BinderStatusLog
+from app.binders.models.binder_lifecycle_log import BinderLifecycleLog
 from app.common.enums import VatType
 
 from ...data.demo_catalog import BUSINESS_NOTES
@@ -56,17 +56,26 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
         cursor = cfg.reference_date - timedelta(days=rng.randint(240, 700))
         for seq in range(1, num + 1):
             period_start = cursor
-            status = rng.choices(
-                [BinderStatus.CLOSED_IN_OFFICE, BinderStatus.RETURNED],
+            location_status = rng.choices(
+                [BinderLocationStatus.IN_OFFICE, BinderLocationStatus.HANDED_OVER],
                 weights=[40, 60],
                 k=1,
             )[0]
+            capacity_status = (
+                rng.choices(
+                    [BinderCapacityStatus.OPEN, BinderCapacityStatus.FULL],
+                    weights=[35, 65],
+                    k=1,
+                )[0]
+                if location_status == BinderLocationStatus.IN_OFFICE
+                else BinderCapacityStatus.FULL
+            )
             duration = rng.randint(20, 90)
             period_end = min(
                 cfg.reference_date - timedelta(days=1),
                 period_start + timedelta(days=duration),
             )
-            returned_at = period_end if status == BinderStatus.RETURNED else None
+            handed_over_at = period_end if location_status == BinderLocationStatus.HANDED_OVER else None
             cursor = period_end + timedelta(days=rng.randint(1, 14))
 
             binder = Binder(
@@ -74,11 +83,14 @@ def create_binders(db, rng: Random, cfg, businesses, users) -> list[Binder]:
                 binder_number=f"{office_num}/{existing_count + seq}",
                 period_start=period_start,
                 period_end=period_end,
-                returned_at=returned_at,
-                status=status,
+                handed_over_at=handed_over_at,
+                location_status=location_status,
+                capacity_status=capacity_status,
                 created_by=rng.choice(users).id,
-                pickup_person_name=(
-                    full_name(rng) if status == BinderStatus.RETURNED else None
+                handover_recipient_name=(
+                    full_name(rng)
+                    if location_status == BinderLocationStatus.HANDED_OVER
+                    else None
                 ),
                 notes=rng.choice(BUSINESS_NOTES),
             )
@@ -101,13 +113,14 @@ def create_binder_logs(db, rng: Random, binders, users) -> None:
         ) + timedelta(hours=rng.randint(8, 16))
         logs.append(
             (
-                BinderStatus.IN_OFFICE.value,
-                BinderStatus.IN_OFFICE.value,
+                "null",
+                BinderLocationStatus.IN_OFFICE.value,
                 "קבלת קלסר",
                 intake_time,
+                "location_status",
             )
         )
-        if binder.status == BinderStatus.CLOSED_IN_OFFICE:
+        if binder.capacity_status == BinderCapacityStatus.FULL:
             closed_time = intake_time + timedelta(
                 days=rng.randint(2, 14), hours=rng.randint(1, 8)
             )
@@ -115,66 +128,54 @@ def create_binder_logs(db, rng: Random, binders, users) -> None:
                 closed_time = now
             logs.append(
                 (
-                    BinderStatus.IN_OFFICE.value,
-                    BinderStatus.CLOSED_IN_OFFICE.value,
+                    BinderCapacityStatus.OPEN.value,
+                    BinderCapacityStatus.FULL.value,
                     "הקלסר נסגר במשרד",
                     closed_time,
+                    "capacity_status",
                 )
             )
-        elif binder.status == BinderStatus.READY_FOR_PICKUP:
+        if binder.location_status == BinderLocationStatus.HANDED_OVER:
             ready_time = intake_time + timedelta(
                 days=rng.randint(2, 14), hours=rng.randint(1, 8)
             )
             if ready_time > now:
                 ready_time = now
-            logs.append(
-                (
-                    BinderStatus.IN_OFFICE.value,
-                    BinderStatus.READY_FOR_PICKUP.value,
-                    "הטיפול הושלם",
-                    ready_time,
-                )
-            )
-        elif binder.status == BinderStatus.RETURNED:
-            ready_time = intake_time + timedelta(
-                days=rng.randint(2, 14), hours=rng.randint(1, 8)
-            )
-            if ready_time > now:
-                ready_time = now
-            returned_base = (
-                binder.returned_at or binder.period_end or binder.period_start
-            )
-            returned_time = datetime.combine(
-                returned_base, datetime.min.time(), tzinfo=UTC
+            handed_over_base = binder.handed_over_at or binder.period_end or binder.period_start
+            handed_over_time = datetime.combine(
+                handed_over_base, datetime.min.time(), tzinfo=UTC
             ) + timedelta(hours=rng.randint(9, 18))
-            if returned_time < ready_time:
-                returned_time = ready_time + timedelta(hours=1)
-            if returned_time > now:
-                returned_time = now
+            if handed_over_time < ready_time:
+                handed_over_time = ready_time + timedelta(hours=1)
+            if handed_over_time > now:
+                handed_over_time = now
             logs.append(
                 (
-                    BinderStatus.IN_OFFICE.value,
-                    BinderStatus.READY_FOR_PICKUP.value,
-                    "מוכן לאיסוף",
+                    BinderLocationStatus.IN_OFFICE.value,
+                    BinderLocationStatus.READY_FOR_HANDOVER.value,
+                    "מוכן למסירה",
                     ready_time,
+                    "location_status",
                 )
             )
             logs.append(
                 (
-                    BinderStatus.READY_FOR_PICKUP.value,
-                    BinderStatus.RETURNED.value,
+                    BinderLocationStatus.READY_FOR_HANDOVER.value,
+                    BinderLocationStatus.HANDED_OVER.value,
                     "נמסר ללקוח",
-                    returned_time,
+                    handed_over_time,
+                    "location_status",
                 )
             )
 
-        for old_status, new_status, note, changed_at in logs:
+        for old_value, new_value, note, changed_at, field_name in logs:
             db.add(
-                BinderStatusLog(
+                BinderLifecycleLog(
                     binder_id=binder.id,
-                    old_status=old_status,
-                    new_status=new_status,
-                    changed_by=rng.choice(users).id,
+                    field_name=field_name,
+                    old_value=old_value,
+                    new_value=new_value,
+                    changed_by_user_id=rng.choice(users).id,
                     changed_at=changed_at,
                     notes=note,
                 )
@@ -266,18 +267,18 @@ def create_binder_intake_materials(
 
 def create_binder_handovers(db, rng: Random, binders, users) -> list[BinderHandover]:
     handovers: list[BinderHandover] = []
-    returned_by_client: dict[int, list[Binder]] = {}
+    handed_over_by_client: dict[int, list[Binder]] = {}
     for binder in binders:
-        if binder.status != BinderStatus.RETURNED:
+        if binder.location_status != BinderLocationStatus.HANDED_OVER:
             continue
-        returned_by_client.setdefault(get_seed_client_record_id(binder), []).append(
+        handed_over_by_client.setdefault(get_seed_client_record_id(binder), []).append(
             binder
         )
 
-    for client_id, client_binders in returned_by_client.items():
+    for client_id, client_binders in handed_over_by_client.items():
         ordered = sorted(
             client_binders,
-            key=lambda b: (b.returned_at or b.period_end or b.period_start, b.id),
+            key=lambda b: (b.handed_over_at or b.period_end or b.period_start, b.id),
         )
         index = 0
         while index < len(ordered):
@@ -285,11 +286,11 @@ def create_binder_handovers(db, rng: Random, binders, users) -> list[BinderHando
             group = ordered[index : index + group_size]
             index += group_size
             handed_over_at = max(
-                (b.returned_at or b.period_end or b.period_start) for b in group
+                (b.handed_over_at or b.period_end or b.period_start) for b in group
             )
             handover = BinderHandover(
                 client_record_id=client_id,
-                received_by_name=group[-1].pickup_person_name or full_name(rng),
+                received_by_name=group[-1].handover_recipient_name or full_name(rng),
                 handed_over_at=handed_over_at,
                 until_period_year=handed_over_at.year,
                 until_period_month=handed_over_at.month,

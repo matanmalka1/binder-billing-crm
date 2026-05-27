@@ -8,7 +8,7 @@ from app.advance_payments.repositories.advance_payment_repository import (
 from app.annual_reports.repositories.annual_report_repository import (
     AnnualReportRepository,
 )
-from app.binders.models.binder import BinderStatus
+from app.binders.models.binder import BinderLocationStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.schemas.business_status_card import (
     AdvancePaymentsCard,
@@ -122,8 +122,8 @@ class StatusCardService:
 
     def _binders_card(self, client_record_id: int) -> BindersCard:
         rows = self._binder_repo.list_by_client_record(client_record_id)
-        active = [r for r in rows if r.status != BinderStatus.RETURNED]
-        in_office = sum(1 for r in active if r.status == BinderStatus.IN_OFFICE)
+        active = [r for r in rows if r.location_status != BinderLocationStatus.HANDED_OVER]
+        in_office = sum(1 for r in active if r.location_status == BinderLocationStatus.IN_OFFICE)
         return BindersCard(active_count=len(active), in_office_count=in_office)
 
     def _documents_card(self, client_record_id: int) -> DocumentsCard:

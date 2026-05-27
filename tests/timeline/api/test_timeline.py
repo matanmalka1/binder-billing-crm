@@ -2,7 +2,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from itertools import count
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
 from app.charge.models.charge import Charge, ChargeStatus, ChargeType
 from app.invoice.models.invoice import Invoice
 from app.notification.models.notification import (
@@ -55,8 +55,9 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
             client_record_id=business.client_id,
             binder_number="B-100",
             period_start=date.today() - timedelta(days=5),
-            returned_at=date.today() - timedelta(days=1),
-            status=BinderStatus.RETURNED,
+            handed_over_at=date.today() - timedelta(days=1),
+            location_status=BinderLocationStatus.HANDED_OVER,
+            capacity_status=BinderCapacityStatus.OPEN,
             created_by=test_user.id,
         )
         test_db.add(binder)
@@ -98,7 +99,7 @@ def test_timeline_orders_events_newest_first(client, test_db, advisor_headers, t
         notification = Notification(
             client_record_id=business.client_id,
             business_id=business.id,
-            trigger=NotificationTrigger.BINDER_READY_FOR_PICKUP,
+            trigger=NotificationTrigger.BINDER_READY_FOR_HANDOVER,
             channel=NotificationChannel.EMAIL,
             recipient="test@example.com",
             content_snapshot="Ready",

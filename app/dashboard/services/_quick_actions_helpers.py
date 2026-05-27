@@ -18,12 +18,12 @@ from app.notification.models.notification import NotificationTrigger
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.services.constants import (
     ANNUAL_REMINDER_COOLDOWN_DAYS,
-    PICKUP_REMINDER_COOLDOWN_DAYS,
+    HANDOVER_REMINDER_COOLDOWN_DAYS,
 )
 
 CATEGORY_ORDER = {"annual_reports": 1, "binders": 2}
 
-_BINDER_PICKUP_OVERDUE_DAYS = 30
+_BINDER_HANDOVER_OVERDUE_DAYS = 30
 _ANNUAL_PENDING_CLIENT_DAYS = 3
 _UPCOMING_WINDOW_DAYS = 14
 
@@ -125,7 +125,7 @@ def build_binder_actions(
     business_repo: BusinessRepository,
     notification_repo: NotificationRepository,
 ) -> list[dict]:
-    binders = binder_repo.list_overdue_pickup(_BINDER_PICKUP_OVERDUE_DAYS)
+    binders = binder_repo.list_overdue_handover(_BINDER_HANDOVER_OVERDUE_DAYS)
     if not binders:
         return []
 
@@ -133,7 +133,7 @@ def build_binder_actions(
     client_record_ids = [b.client_record_id for b in binders if b.client_record_id]
     client_name_map = _batch_client_names(business_repo.db, client_record_ids)
     last_reminders = notification_repo.latest_by_binder_ids(
-        [b.id for b in binders], NotificationTrigger.PICKUP_REMINDER
+        [b.id for b in binders], NotificationTrigger.HANDOVER_REMINDER
     )
 
     result: list[dict] = []
@@ -141,24 +141,24 @@ def build_binder_actions(
         last_reminder = last_reminders.get(binder.id)
         if last_reminder:
             days_since = (now_utc - last_reminder.created_at.replace(tzinfo=_dt.UTC)).days
-            if days_since < PICKUP_REMINDER_COOLDOWN_DAYS:
+            if days_since < HANDOVER_REMINDER_COOLDOWN_DAYS:
                 continue
 
         client_name = client_name_map.get(binder.client_record_id)
 
-        days_waiting = int((now_utc - binder.ready_for_pickup_at.replace(tzinfo=_dt.UTC)).days)
-        due_date = binder.ready_for_pickup_at.date()
-        due_label = f"ממתין לאיסוף {days_waiting} ימים"
+        days_waiting = int((now_utc - binder.ready_for_handover_at.replace(tzinfo=_dt.UTC)).days)
+        due_date = binder.ready_for_handover_at.date()
+        due_label = f"ממתין למסירה {days_waiting} ימים"
 
         action = build_action(
-            key="binder_pickup_reminder",
-            label="שלח תזכורת איסוף",
+            key="binder_handover_reminder",
+            label="שלח תזכורת מסירה",
             method="post",
-            endpoint=f"/binders/{binder.id}/pickup-reminder",
-            action_id=f"binder-{binder.id}-pickup-reminder",
+            endpoint=f"/binders/{binder.id}/handover-reminder",
+            action_id=f"binder-{binder.id}-handover-reminder",
             confirm=build_confirm(
-                title="שליחת תזכורת איסוף",
-                message=f"לשלוח תזכורת ל{client_name or 'לקוח'} לאסוף את קלסר {binder.binder_number}?",
+                title="שליחת תזכורת מסירה",
+                message=f"לשלוח תזכורת ל{client_name or 'לקוח'} למסירת קלסר {binder.binder_number}?",
                 confirm_label="שלח",
             ),
         )

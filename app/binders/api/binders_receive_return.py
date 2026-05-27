@@ -1,17 +1,18 @@
 from fastapi import APIRouter, Depends, status
 
-from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
 from app.binders.schemas.binder import (
     BinderHandoverRequest,
     BinderHandoverResponse,
+    BinderHandoverToClientRequest,
     BinderIntakeResponse,
-    BinderMarkReadyBulkRequest,
+    BinderMarkReadyForHandoverBulkRequest,
     BinderReceiveRequest,
     BinderReceiveResult,
     BinderResponse,
-    BinderReturnRequest,
 )
+from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
 from app.binders.services.binder_handover_service import BinderHandoverService
+from app.binders.services.binder_lifecycle_service import BinderLifecycleService
 from app.binders.services.binder_list_service import BinderListService
 from app.binders.services.binder_service import BinderService
 from app.users.api.deps import CurrentUser, DBSession, require_role
@@ -32,7 +33,6 @@ def fetch_client_and_build_response(binder, db: DBSession) -> BinderResponse:
 
 @router.post("/receive", response_model=BinderReceiveResult, status_code=status.HTTP_201_CREATED)
 def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUser):
-    """Receive material into existing binder or create new one."""
     service = BinderService(db)
     materials = [m.model_dump() for m in request.materials] if request.materials else []
     binder, intake, is_new_binder = service.receive_binder(
@@ -51,68 +51,28 @@ def receive_binder(request: BinderReceiveRequest, db: DBSession, user: CurrentUs
     )
 
 
-@router.post("/mark-ready-bulk", response_model=list[BinderResponse])
-def mark_ready_bulk(request: BinderMarkReadyBulkRequest, db: DBSession, user: CurrentUser):
-    """Mark all eligible binders for a client as ready for pickup up to a cutoff period."""
-    service = BinderService(db)
-    binders = service.mark_ready_bulk(
+@router.post("/mark-ready-for-handover-bulk", response_model=list[BinderResponse])
+def mark_ready_for_handover_bulk(
+    request: BinderMarkReadyForHandoverBulkRequest,
+    db: DBSession,
+    user: CurrentUser,
+):
+    binders = BinderLifecycleService(db).mark_ready_for_handover_bulk(
         client_record_id=request.client_record_id,
         until_period_year=request.until_period_year,
         until_period_month=request.until_period_month,
-        user_id=user.id,
+        changed_by_user_id=user.id,
     )
     return [fetch_client_and_build_response(binder, db) for binder in binders]
 
 
-@router.post("/{binder_id}/ready", response_model=BinderResponse)
-def mark_ready_for_pickup(binder_id: int, db: DBSession, user: CurrentUser):
-    """Mark binder as ready for pickup."""
-    service = BinderService(db)
-    binder = service.mark_ready_for_pickup(binder_id=binder_id, user_id=user.id)
-    return fetch_client_and_build_response(binder, db)
-
-
-@router.post("/{binder_id}/return", response_model=BinderResponse)
-def return_binder(
-    binder_id: int,
-    db: DBSession,
-    user: CurrentUser,
-    request: BinderReturnRequest | None = None,
-):
-    """Return binder to client."""
-    service = BinderService(db)
-    pickup_person_name = (
-        request.pickup_person_name.strip()
-        if request and request.pickup_person_name and request.pickup_person_name.strip()
-        else user.full_name
-    )
-    returned_by = request.returned_by if request and request.returned_by is not None else user.id
-    binder = service.return_binder(
-        binder_id=binder_id,
-        pickup_person_name=pickup_person_name,
-        returned_by=returned_by,
-        returned_at=request.returned_at if request else None,
-    )
-    return fetch_client_and_build_response(binder, db)
-
-
-@router.post("/{binder_id}/revert-ready", response_model=BinderResponse)
-def revert_ready(binder_id: int, db: DBSession, user: CurrentUser):
-    """Revert binder from READY_FOR_PICKUP back to IN_OFFICE."""
-    service = BinderService(db)
-    binder = service.revert_ready(binder_id=binder_id, user_id=user.id)
-    return fetch_client_and_build_response(binder, db)
-
-
 @router.post(
-    "/handover",
+    "/handover-to-client-bulk",
     response_model=BinderHandoverResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create_handover(request: BinderHandoverRequest, db: DBSession, user: CurrentUser):
-    """Return multiple binders to a client in a single grouped handover event."""
-    service = BinderHandoverService(db)
-    handover = service.create_handover(
+def handover_to_client_bulk(request: BinderHandoverRequest, db: DBSession, user: CurrentUser):
+    handover = BinderHandoverService(db).create_handover(
         client_record_id=request.client_record_id,
         binder_ids=request.binder_ids,
         received_by_name=request.received_by_name,
@@ -134,3 +94,64 @@ def create_handover(request: BinderHandoverRequest, db: DBSession, user: Current
         notes=handover.notes,
         created_at=handover.created_at,
     )
+
+
+@router.post("/{binder_id}/receive-material", response_model=BinderResponse)
+def receive_material(binder_id: int, db: DBSession, user: CurrentUser):
+    binder = BinderLifecycleService(db).receive_material_by_id(
+        binder_id=binder_id,
+        changed_by_user_id=user.id,
+    )
+    return fetch_client_and_build_response(binder, db)
+
+
+@router.post("/{binder_id}/mark-full", response_model=BinderResponse)
+def mark_full(binder_id: int, db: DBSession, user: CurrentUser):
+    binder = BinderLifecycleService(db).mark_full(
+        binder_id=binder_id,
+        changed_by_user_id=user.id,
+    )
+    return fetch_client_and_build_response(binder, db)
+
+
+@router.post("/{binder_id}/reopen-capacity", response_model=BinderResponse)
+def reopen_capacity(binder_id: int, db: DBSession, user: CurrentUser):
+    binder = BinderLifecycleService(db).reopen_capacity(
+        binder_id=binder_id,
+        changed_by_user_id=user.id,
+    )
+    return fetch_client_and_build_response(binder, db)
+
+
+@router.post("/{binder_id}/mark-ready-for-handover", response_model=BinderResponse)
+def mark_ready_for_handover(binder_id: int, db: DBSession, user: CurrentUser):
+    binder = BinderLifecycleService(db).mark_ready_for_handover(
+        binder_id=binder_id,
+        changed_by_user_id=user.id,
+    )
+    return fetch_client_and_build_response(binder, db)
+
+
+@router.post("/{binder_id}/revert-ready-for-handover", response_model=BinderResponse)
+def revert_ready_for_handover(binder_id: int, db: DBSession, user: CurrentUser):
+    binder = BinderLifecycleService(db).revert_ready_for_handover(
+        binder_id=binder_id,
+        changed_by_user_id=user.id,
+    )
+    return fetch_client_and_build_response(binder, db)
+
+
+@router.post("/{binder_id}/handover-to-client", response_model=BinderResponse)
+def handover_to_client(
+    binder_id: int,
+    db: DBSession,
+    user: CurrentUser,
+    request: BinderHandoverToClientRequest | None = None,
+):
+    binder = BinderLifecycleService(db).handover_to_client(
+        binder_id=binder_id,
+        changed_by_user_id=user.id,
+        handed_over_at=request.handed_over_at if request else None,
+        handover_recipient_name=request.handover_recipient_name if request else None,
+    )
+    return fetch_client_and_build_response(binder, db)

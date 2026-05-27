@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.binders.models.binder import BinderStatus
+from app.binders.models.binder import BinderCapacityStatus, BinderLocationStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.repositories.business_repository import BusinessRepository
 from app.clients.enums import ClientStatus
@@ -41,7 +41,8 @@ class SearchService:
         binder_number: str | None = None,
         client_status: ClientStatus | None = None,
         entity_type: EntityType | None = None,
-        binder_status: BinderStatus | None = None,
+        binder_location_status: BinderLocationStatus | None = None,
+        binder_capacity_status: BinderCapacityStatus | None = None,
         filename: str | None = None,
         page: int = 1,
         page_size: int = 20,
@@ -52,7 +53,7 @@ class SearchService:
         )
 
         has_client_filter = bool(query or client_name or id_number or client_status or entity_type)
-        has_binder_filter = bool(query or binder_number or binder_status)
+        has_binder_filter = bool(query or binder_number or binder_location_status or binder_capacity_status)
 
         # --- Pure client-only search: DB-level pagination ---
         if has_client_filter and not has_binder_filter:
@@ -127,13 +128,14 @@ class SearchService:
 
         if has_binder_filter:
             db_binder_number = binder_number or (query if not (client_name or id_number) else None)
-            include_returned = binder_status == BinderStatus.RETURNED
+            include_handed_over = binder_location_status == BinderLocationStatus.HANDED_OVER
             binders = self.binder_repo.list_active(
                 binder_number=db_binder_number,
-                status=binder_status.value if binder_status else None,
+                location_status=binder_location_status.value if binder_location_status else None,
+                capacity_status=binder_capacity_status.value if binder_capacity_status else None,
                 page=1,
                 page_size=_MIXED_SEARCH_BINDER_LIMIT,
-                include_returned=include_returned,
+                include_handed_over=include_handed_over,
             )
             binder_cr_ids = [b.client_record_id for b in binders]
             records = {

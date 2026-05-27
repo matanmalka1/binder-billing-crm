@@ -1,36 +1,38 @@
 from types import SimpleNamespace
 
 from app.actions.binder_actions import get_binder_actions
-from app.binders.models.binder import BinderStatus
+from app.binders.models.binder import BinderCapacityStatus, BinderLocationStatus
 
 
-def test_in_office_binder_only_exposes_ready_action():
-    binder = SimpleNamespace(id=10, status=BinderStatus.IN_OFFICE)
-
-    actions = get_binder_actions(binder)
-
-    assert [action.key for action in actions] == ["ready"]
-
-
-def test_closed_in_office_binder_also_exposes_ready_action():
-    binder = SimpleNamespace(id=13, status=BinderStatus.CLOSED_IN_OFFICE)
-
-    actions = get_binder_actions(binder)
-
-    assert [action.key for action in actions] == ["ready"]
+def _binder(location_status, capacity_status):
+    return SimpleNamespace(
+        id=10,
+        location_status=location_status,
+        capacity_status=capacity_status,
+    )
 
 
-def test_ready_for_pickup_binder_exposes_revert_and_return_with_pickup_input():
-    binder = SimpleNamespace(id=11, status=BinderStatus.READY_FOR_PICKUP)
+def test_intake_eligible_binder_exposes_receive_capacity_and_handover_actions():
+    binder = _binder(BinderLocationStatus.IN_OFFICE, BinderCapacityStatus.OPEN)
 
     actions = get_binder_actions(binder)
 
-    assert [action.key for action in actions] == ["revert_ready", "return"]
-    assert actions[1].payload_schema == "requires_input"
-    assert actions[1].confirm is True
+    assert actions == ["mark_ready_for_handover", "receive_material", "mark_full"]
 
 
-def test_returned_binder_has_no_actions():
-    binder = SimpleNamespace(id=12, status=BinderStatus.RETURNED)
+def test_full_in_office_binder_exposes_reopen_and_handover_actions():
+    binder = _binder(BinderLocationStatus.IN_OFFICE, BinderCapacityStatus.FULL)
+
+    assert get_binder_actions(binder) == ["mark_ready_for_handover", "reopen_capacity"]
+
+
+def test_ready_for_handover_binder_exposes_revert_and_handover_actions():
+    binder = _binder(BinderLocationStatus.READY_FOR_HANDOVER, BinderCapacityStatus.FULL)
+
+    assert get_binder_actions(binder) == ["revert_ready_for_handover", "handover_to_client"]
+
+
+def test_handed_over_binder_has_no_actions():
+    binder = _binder(BinderLocationStatus.HANDED_OVER, BinderCapacityStatus.FULL)
 
     assert get_binder_actions(binder) == []

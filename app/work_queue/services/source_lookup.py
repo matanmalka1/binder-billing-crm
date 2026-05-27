@@ -12,7 +12,7 @@ from app.advance_payments.models.advance_payment import (
 )
 from app.annual_reports.models.annual_report_enums import AnnualReportStatus
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderLocationStatus
 from app.charge.models.charge import Charge, ChargeStatus
 from app.common.source_types import WorkQueueSourceType, source_route
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
@@ -144,9 +144,9 @@ def load_source_states(
                 row.id,
                 f"קלסר {row.binder_number}",
                 row.client_record_id,
-                row.status,
+                row.location_status,
                 is_deleted=row.deleted_at is not None,
-                is_final=row.status == BinderStatus.RETURNED,
+                is_final=row.location_status == BinderLocationStatus.HANDED_OVER,
                 route=source_route(WorkQueueSourceType.BINDER, row.id),
             )
 

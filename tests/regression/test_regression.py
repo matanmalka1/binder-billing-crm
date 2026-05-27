@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
 
 
 def test_binder_receive_endpoint_creates_in_office_binder(
@@ -34,7 +34,8 @@ def test_binder_receive_endpoint_creates_in_office_binder(
     assert response.status_code == 201
     data = response.json()
     assert data["binder"]["binder_number"] == "100601/1"
-    assert data["binder"]["status"] == "in_office"
+    assert data["binder"]["location_status"] == "in_office"
+    assert data["binder"]["capacity_status"] == "open"
 
 
 def test_open_binders_endpoint_returns_items(
@@ -50,7 +51,8 @@ def test_open_binders_endpoint_returns_items(
         client_record_id=test_client.id,
         binder_number="REG-002",
         period_start=date.today() - timedelta(days=100),
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
         created_by=test_user.id,
     )
     test_db.add(binder)

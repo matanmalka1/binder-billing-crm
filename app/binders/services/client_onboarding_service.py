@@ -2,17 +2,13 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from app.binders.models.binder import BinderStatus
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import (
-    BinderStatusLogRepository,
-)
+from app.binders.services.binder_lifecycle_service import BinderLifecycleService
 from app.clients.models.client_record import ClientRecord
 
 _log = logging.getLogger(__name__)
 
-_AUTO_BINDER_STATUS_LOG_OLD_VALUE = "null"
-_AUTO_BINDER_STATUS_LOG_NOTES = "קלסר נפתח אוטומטית"
+_AUTO_BINDER_LIFECYCLE_LOG_NOTES = "קלסר נפתח אוטומטית"
 
 
 def create_initial_binder(
@@ -35,7 +31,6 @@ def create_initial_binder(
         raise ValueError(f"לא ניתן ליצור קלסר: מספר לקוח משרד חסר ללקוח {client_record.id}")
 
     binder_repo = BinderRepository(db)
-    status_log_repo = BinderStatusLogRepository(db)
     seq = binder_repo.count_all_by_client(client_record.id) + 1
     binder = binder_repo.create(
         client_record_id=client_record.id,
@@ -43,10 +38,8 @@ def create_initial_binder(
         period_start=None,
         created_by=actor_id,
     )
-    status_log_repo.append(
-        binder_id=binder.id,
-        old_status=_AUTO_BINDER_STATUS_LOG_OLD_VALUE,
-        new_status=BinderStatus.IN_OFFICE.value,
-        changed_by=actor_id,
-        notes=_AUTO_BINDER_STATUS_LOG_NOTES,
+    BinderLifecycleService(db).log_initial_state(
+        binder=binder,
+        changed_by_user_id=actor_id,
+        notes=_AUTO_BINDER_LIFECYCLE_LOG_NOTES,
     )

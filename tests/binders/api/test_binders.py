@@ -10,11 +10,6 @@ def _seed_client(test_db, id_number: str, office_client_number: int) -> SeededCl
     )
 
 
-def _receive_payload(payload: dict) -> dict:
-    # /binders/receive now returns BinderReceiveResult with nested binder data.
-    return payload["binder"] if "binder" in payload else payload
-
-
 def _receive_request(
     client_record_id: int, received_by: int, received_at: str = "2026-02-08"
 ) -> dict:
@@ -34,11 +29,9 @@ def _receive_request(
     }
 
 
-def test_binder_status_change_creates_log(client, auth_token, test_db, test_user):
-    """Test that binder status changes create audit logs."""
+def test_binder_receive_creates_initial_lifecycle_log(client, auth_token, test_db, test_user):
     test_client = _seed_client(test_db, "111222333", office_client_number=100101)
 
-    # Receive binder
     response = client.post(
         "/api/v1/binders/receive",
         headers={"Authorization": f"Bearer {auth_token}"},
@@ -46,39 +39,33 @@ def test_binder_status_change_creates_log(client, auth_token, test_db, test_user
     )
 
     assert response.status_code == 201
-    binder_data = _receive_payload(response.json())
+    binder_data = response.json()["binder"]
     binder_id = binder_data["id"]
     assert binder_data["binder_number"] == "100101/1"
     assert binder_data["period_start"] == "2026-02-01"
-    actions = binder_data.get("available_actions", [])
-    assert any(action["key"] == "ready" for action in actions)
-    ready_action = next(action for action in actions if action["key"] == "ready")
-    assert "id" not in ready_action
-    assert ready_action["endpoint"] == f"/binders/{binder_id}/ready"
-    assert ready_action["confirm"] is True
-    assert ready_action["confirm_title"] == "אישור סימון כמוכן לאיסוף"
+    assert binder_data["location_status"] == "in_office"
+    assert binder_data["capacity_status"] == "open"
+    assert binder_data["available_actions"] == [
+        "mark_ready_for_handover",
+        "receive_material",
+        "mark_full",
+    ]
 
-    # Verify status log was created
-    from app.binders.repositories.binder_status_log_repository import (
-        BinderStatusLogRepository,
+    from app.binders.repositories.binder_lifecycle_log_repository import (
+        BinderLifecycleLogRepository,
     )
 
-    log_repo = BinderStatusLogRepository(test_db)
-    logs = log_repo.list_by_binder(binder_id)
+    logs = BinderLifecycleLogRepository(test_db).list_by_binder(binder_id)
 
-    assert len(logs) == 1
-    assert logs[0].old_status == "null"
-    assert logs[0].new_status == "in_office"
-    assert logs[0].changed_by == test_user.id
+    assert len(logs) == 2
+    assert [(log.field_name, log.old_value, log.new_value) for log in logs] == [
+        ("location_status", "null", "in_office"),
+        ("capacity_status", "null", "open"),
+    ]
+    assert logs[0].changed_by_user_id == test_user.id
 
 
-def test_binder_ready_endpoint_and_return_accepts_empty_body(
-    client,
-    auth_token,
-    test_db,
-    test_user,
-):
-    """Test /ready route and optional body support on /return."""
+def test_lifecycle_endpoints_return_final_contract(client, auth_token, test_db, test_user):
     test_client = _seed_client(test_db, "444555666", office_client_number=100102)
 
     receive_response = client.post(
@@ -87,76 +74,79 @@ def test_binder_ready_endpoint_and_return_accepts_empty_body(
         json=_receive_request(test_client.id, test_user.id),
     )
     assert receive_response.status_code == 201
-    binder_id = _receive_payload(receive_response.json())["id"]
+    binder_id = receive_response.json()["binder"]["id"]
+
+    full_response = client.post(
+        f"/api/v1/binders/{binder_id}/mark-full",
+        headers={"Authorization": f"Bearer {auth_token}"},
+    )
+    assert full_response.status_code == 200
+    assert full_response.json()["capacity_status"] == "full"
+    assert full_response.json()["available_actions"] == [
+        "mark_ready_for_handover",
+        "reopen_capacity",
+    ]
 
     ready_response = client.post(
-        f"/api/v1/binders/{binder_id}/ready",
+        f"/api/v1/binders/{binder_id}/mark-ready-for-handover",
         headers={"Authorization": f"Bearer {auth_token}"},
     )
     assert ready_response.status_code == 200
-    ready_data = ready_response.json()
-    assert ready_data["status"] == "ready_for_pickup"
-    ready_actions = ready_data.get("available_actions", [])
-    assert any(action["key"] == "return" for action in ready_actions)
-    return_action = next(action for action in ready_actions if action["key"] == "return")
-    assert "id" not in return_action
-    assert return_action["endpoint"] == f"/binders/{binder_id}/return"
-    assert return_action["confirm"] is True
-    assert return_action["confirm_title"] == "אישור החזרת קלסר"
-    assert return_action["payload_schema"] == "requires_input"
+    assert ready_response.json()["location_status"] == "ready_for_handover"
+    assert ready_response.json()["available_actions"] == [
+        "revert_ready_for_handover",
+        "handover_to_client",
+    ]
 
-    return_response = client.post(
-        f"/api/v1/binders/{binder_id}/return",
+    handover_response = client.post(
+        f"/api/v1/binders/{binder_id}/handover-to-client",
         headers={"Authorization": f"Bearer {auth_token}"},
-        json={},
+        json={"handover_recipient_name": "Dana", "handed_over_at": "2026-03-03"},
     )
 
-    assert return_response.status_code == 200
-    returned_data = return_response.json()
-    assert returned_data["status"] == "returned"
-
-    from app.binders.repositories.binder_status_log_repository import (
-        BinderStatusLogRepository,
-    )
-
-    log_repo = BinderStatusLogRepository(test_db)
-    logs = log_repo.list_by_binder(binder_id)
-
-    # Should have: intake, mark ready, return
-    assert len(logs) >= 3
-    assert logs[-1].new_status == "returned"
+    assert handover_response.status_code == 200
+    handed_over = handover_response.json()
+    assert handed_over["location_status"] == "handed_over"
+    assert handed_over["capacity_status"] == "full"
+    assert handed_over["handover_recipient_name"] == "Dana"
+    assert handed_over["available_actions"] == []
 
 
-def test_binder_list_includes_available_actions(client, auth_token, test_db, test_user):
-    """List endpoint includes action tokens per binder."""
+def test_binder_list_filters_and_counters_use_lifecycle_fields(
+    client, auth_token, test_db, test_user
+):
     test_client = _seed_client(test_db, "777888999", office_client_number=100103)
 
-    client.post(
+    receive_response = client.post(
         "/api/v1/binders/receive",
         headers={"Authorization": f"Bearer {auth_token}"},
         json=_receive_request(test_client.id, test_user.id),
     )
-
-    list_response = client.get(
-        "/api/v1/binders",
+    binder_id = receive_response.json()["binder"]["id"]
+    client.post(
+        f"/api/v1/binders/{binder_id}/mark-ready-for-handover",
         headers={"Authorization": f"Bearer {auth_token}"},
     )
+
+    list_response = client.get(
+        "/api/v1/binders?location_status=ready_for_handover",
+        headers={"Authorization": f"Bearer {auth_token}"},
+    )
+
     assert list_response.status_code == 200
     data = list_response.json()
-    assert "items" in data
-    assert "counters" in data
-    assert len(data["items"]) >= 1
-    assert "available_actions" in data["items"][0]
+    assert [item["id"] for item in data["items"]] == [binder_id]
     assert set(data["counters"]) == {
         "total",
-        "in_office",
-        "closed_in_office",
-        "ready_for_pickup",
-        "returned",
+        "location_in_office",
+        "location_ready_for_handover",
+        "location_handed_over",
+        "capacity_open",
+        "capacity_full",
     }
 
 
-def test_mark_ready_bulk_marks_closed_and_open_binders_up_to_cutoff(
+def test_mark_ready_for_handover_bulk_marks_matching_client_binders(
     client,
     auth_token,
     test_db,
@@ -206,7 +196,7 @@ def test_mark_ready_bulk_marks_closed_and_open_binders_up_to_cutoff(
     second_binder_id = second_receive.json()["binder"]["id"]
 
     bulk_ready = client.post(
-        "/api/v1/binders/mark-ready-bulk",
+        "/api/v1/binders/mark-ready-for-handover-bulk",
         headers={"Authorization": f"Bearer {auth_token}"},
         json={
             "client_record_id": test_client.id,
@@ -218,13 +208,59 @@ def test_mark_ready_bulk_marks_closed_and_open_binders_up_to_cutoff(
     assert bulk_ready.status_code == 200
     data = bulk_ready.json()
     assert [binder["id"] for binder in data] == [first_binder_id]
-    assert data[0]["status"] == "ready_for_pickup"
+    assert data[0]["location_status"] == "ready_for_handover"
 
     binders = client.get(
-        f"/api/v1/binders?client_record_id={test_client.id}&status=ready_for_pickup",
+        f"/api/v1/binders?client_record_id={test_client.id}&location_status=ready_for_handover",
         headers={"Authorization": f"Bearer {auth_token}"},
     )
     assert binders.status_code == 200
     ready_ids = {item["id"] for item in binders.json()["items"]}
     assert first_binder_id in ready_ids
     assert second_binder_id not in ready_ids
+
+
+def test_handover_to_client_bulk_records_group_and_transitions_binders(
+    client,
+    auth_token,
+    test_db,
+    test_user,
+):
+    test_client = _seed_client(test_db, "888000111", office_client_number=100105)
+    receive_response = client.post(
+        "/api/v1/binders/receive",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        json=_receive_request(test_client.id, test_user.id),
+    )
+    assert receive_response.status_code == 201
+    binder_id = receive_response.json()["binder"]["id"]
+    ready_response = client.post(
+        f"/api/v1/binders/{binder_id}/mark-ready-for-handover",
+        headers={"Authorization": f"Bearer {auth_token}"},
+    )
+    assert ready_response.status_code == 200
+
+    response = client.post(
+        "/api/v1/binders/handover-to-client-bulk",
+        headers={"Authorization": f"Bearer {auth_token}"},
+        json={
+            "client_record_id": test_client.id,
+            "binder_ids": [binder_id],
+            "received_by_name": "Dana",
+            "handed_over_at": "2026-03-03",
+            "until_period_year": 2026,
+            "until_period_month": 2,
+        },
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["binder_ids"] == [binder_id]
+    assert payload["received_by_name"] == "Dana"
+
+    binder = client.get(
+        f"/api/v1/binders/{binder_id}",
+        headers={"Authorization": f"Bearer {auth_token}"},
+    )
+    assert binder.status_code == 200
+    assert binder.json()["location_status"] == "handed_over"

@@ -2,8 +2,8 @@ from datetime import date, timedelta
 
 from sqlalchemy import func, select
 
-from app.binders.models.binder import Binder, BinderStatus
-from app.binders.models.binder_status_log import BinderStatusLog
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
+from app.binders.models.binder_lifecycle_log import BinderLifecycleLog
 from app.clients.models.client_record import ClientRecord
 
 
@@ -20,32 +20,36 @@ def test_readonly_get_endpoints_keep_db_state_intact(
         client_record_id=c.id,
         binder_number="BND-OPEN",
         period_start=today,
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
         created_by=test_user.id,
     )
     b_overdue = Binder(
         client_record_id=c.id,
         binder_number="BND-OVERDUE",
         period_start=today - timedelta(days=100),
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
         created_by=test_user.id,
     )
     b_due_today = Binder(
         client_record_id=c.id,
         binder_number="BND-DUE",
         period_start=today,
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
         created_by=test_user.id,
     )
     test_db.add_all([b_open, b_overdue, b_due_today])
     test_db.commit()
 
     test_db.refresh(b_open)
-    log = BinderStatusLog(
+    log = BinderLifecycleLog(
         binder_id=b_open.id,
-        old_status="null",
-        new_status="in_office",
-        changed_by=test_user.id,
+        field_name="location_status",
+        old_value="null",
+        new_value="in_office",
+        changed_by_user_id=test_user.id,
         notes="seed",
     )
     test_db.add(log)
@@ -53,9 +57,12 @@ def test_readonly_get_endpoints_keep_db_state_intact(
 
     baseline = {
         "binders": test_db.scalar(select(func.count(Binder.id))),
-        "logs": test_db.scalar(select(func.count(BinderStatusLog.id))),
+        "logs": test_db.scalar(select(func.count(BinderLifecycleLog.id))),
         "clients": test_db.scalar(select(func.count(ClientRecord.id))),
-        "statuses": {b.id: b.status.value for b in test_db.scalars(select(Binder)).all()},
+        "lifecycles": {
+            b.id: (b.location_status.value, b.capacity_status.value)
+            for b in test_db.scalars(select(Binder)).all()
+        },
     }
 
     r_client_binders = client.get(
@@ -74,8 +81,9 @@ def test_readonly_get_endpoints_keep_db_state_intact(
     assert "open_charges_count" in r_overview.json()
 
     assert test_db.scalar(select(func.count(Binder.id))) == baseline["binders"]
-    assert test_db.scalar(select(func.count(BinderStatusLog.id))) == baseline["logs"]
+    assert test_db.scalar(select(func.count(BinderLifecycleLog.id))) == baseline["logs"]
     assert test_db.scalar(select(func.count(ClientRecord.id))) == baseline["clients"]
-    assert {b.id: b.status.value for b in test_db.scalars(select(Binder)).all()} == baseline[
-        "statuses"
-    ]
+    assert {
+        b.id: (b.location_status.value, b.capacity_status.value)
+        for b in test_db.scalars(select(Binder)).all()
+    } == baseline["lifecycles"]

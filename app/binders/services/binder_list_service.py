@@ -10,7 +10,13 @@ from app.binders.schemas.binder import BinderResponse
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 
-_ALLOWED_SORT_COLS = {"period_start", "days_in_office", "status", "client_name"}
+_ALLOWED_SORT_COLS = {
+    "period_start",
+    "days_in_office",
+    "location_status",
+    "capacity_status",
+    "client_name",
+}
 _UNSET = object()
 
 
@@ -110,11 +116,13 @@ class BinderListService:
             client_name=row.client_name,
             client_id_number=row.client_id_number,
             binder_number=row.binder_number,
-            status=row.status,
+            location_status=row.location_status,
+            capacity_status=row.capacity_status,
             period_start=row.period_start,
             period_end=row.period_end,
-            returned_at=row.returned_at,
-            pickup_person_name=row.pickup_person_name,
+            ready_for_handover_at=row.ready_for_handover_at,
+            handed_over_at=row.handed_over_at,
+            handover_recipient_name=row.handover_recipient_name,
             notes=row.notes,
             created_at=row.created_at,
             days_in_office=(
@@ -123,7 +131,8 @@ class BinderListService:
                 else None
             ),
             available_actions=get_binder_actions_for_state(
-                binder_id=row.id, status=row.status
+                location_status=row.location_status,
+                capacity_status=row.capacity_status,
             ),
         )
 
@@ -131,7 +140,8 @@ class BinderListService:
         self,
         *,
         client_record_id: int | None = None,
-        status: str | None = None,
+        location_status: str | None = None,
+        capacity_status: str | None = None,
         query: str | None = None,
         client_name_filter: str | None = None,
         binder_number: str | None = None,
@@ -149,8 +159,9 @@ class BinderListService:
         ref_date = reference_date or date.today()
         rows, total = self.binder_repo.list_active_paginated_projected(
             client_record_id=client_record_id,
-            status=status,
-            include_returned=(status is not None),
+            location_status=location_status,
+            capacity_status=capacity_status,
+            include_handed_over=(location_status is not None),
             query=query,
             client_name_filter=client_name_filter,
             binder_number=binder_number,
@@ -160,7 +171,7 @@ class BinderListService:
             page=page,
             page_size=page_size,
         )
-        counters = self.binder_repo.count_by_status_filtered(
+        counters = self.binder_repo.count_by_lifecycle_filtered(
             client_record_id=client_record_id,
             query=query,
             client_name_filter=client_name_filter,

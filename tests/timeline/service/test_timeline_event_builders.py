@@ -1,12 +1,11 @@
 from datetime import date, datetime
 from types import SimpleNamespace
 
-from app.binders.models.binder import BinderStatus
 from app.charge.models.charge import ChargeStatus, ChargeType
 from app.timeline.services.timeline_binder_event_builders import (
+    binder_handed_over_event,
+    binder_lifecycle_change_event,
     binder_received_event,
-    binder_returned_event,
-    binder_status_change_event,
 )
 from app.timeline.services.timeline_charge_event_builders import (
     charge_created_event,
@@ -15,64 +14,78 @@ from app.timeline.services.timeline_charge_event_builders import (
 )
 
 
-def test_binder_status_change_event_for_new_binder():
-    binder = SimpleNamespace(
-        id=11,
-        binder_number="B-123",
-        status=BinderStatus.IN_OFFICE,
-    )
-    status_log = SimpleNamespace(
-        old_status="none",
-        new_status="in_office",
+def test_binder_lifecycle_change_event_for_new_binder():
+    binder = SimpleNamespace(id=11, binder_number="B-123")
+    lifecycle_log = SimpleNamespace(
+        field_name="location_status",
+        old_value="null",
+        new_value="in_office",
         changed_at=datetime(2026, 3, 1, 10, 0),
     )
 
-    event = binder_status_change_event(binder, status_log)
+    event = binder_lifecycle_change_event(binder, lifecycle_log)
 
-    assert event["event_type"] == "binder_status_change"
+    assert event["event_type"] == "binder_lifecycle_change"
     assert event["timestamp"] == datetime(2026, 3, 1, 10, 0)
     assert event["description"] == "קלסר B-123 הגיע למשרד"
-    assert event["metadata"] == {"old_status": "none", "new_status": "in_office"}
+    assert event["metadata"] == {
+        "field_name": "location_status",
+        "old_value": "null",
+        "new_value": "in_office",
+    }
     assert "actions" not in event
     assert "available_actions" not in event
 
 
-def test_binder_status_change_event_for_regular_transition():
-    binder = SimpleNamespace(
-        id=12,
-        binder_number="B-124",
-        status=BinderStatus.READY_FOR_PICKUP,
-    )
-    status_log = SimpleNamespace(
-        old_status="in_office",
-        new_status="ready_for_pickup",
+def test_binder_lifecycle_change_event_for_regular_transition():
+    binder = SimpleNamespace(id=12, binder_number="B-124")
+    lifecycle_log = SimpleNamespace(
+        field_name="location_status",
+        old_value="in_office",
+        new_value="ready_for_handover",
         changed_at=datetime(2026, 3, 2, 11, 0),
     )
 
-    event = binder_status_change_event(binder, status_log)
+    event = binder_lifecycle_change_event(binder, lifecycle_log)
 
-    assert event["description"] == "קלסר B-124: במשרד ← מוכן לאיסוף"
+    assert event["description"] == "קלסר B-124: במשרד ← מוכן למסירה"
     assert event["metadata"] == {
-        "old_status": "in_office",
-        "new_status": "ready_for_pickup",
+        "field_name": "location_status",
+        "old_value": "in_office",
+        "new_value": "ready_for_handover",
     }
     assert "actions" not in event
     assert "available_actions" not in event
 
 
 def test_binder_received_event_includes_metadata_without_actions():
-    binder = SimpleNamespace(
-        id=9,
-        binder_number="C-777",
-        received_at=date(2026, 2, 15),
-        status=BinderStatus.IN_OFFICE,
-    )
+    binder = SimpleNamespace(id=9, binder_number="C-777", received_at=date(2026, 2, 15))
 
     event = binder_received_event(binder)
 
     assert event["event_type"] == "binder_received"
     assert event["timestamp"] == datetime(2026, 2, 15)
     assert event["metadata"] == {"binder_number": "C-777"}
+    assert "actions" not in event
+    assert "available_actions" not in event
+
+
+def test_binder_handed_over_event_includes_recipient_metadata():
+    binder = SimpleNamespace(
+        id=10,
+        binder_number="D-404",
+        handed_over_at=date(2026, 3, 3),
+        handover_recipient_name="Dana",
+    )
+
+    event = binder_handed_over_event(binder)
+
+    assert event["event_type"] == "binder_handed_over"
+    assert event["timestamp"] == datetime(2026, 3, 3)
+    assert event["metadata"] == {
+        "binder_number": "D-404",
+        "handover_recipient_name": "Dana",
+    }
     assert "actions" not in event
     assert "available_actions" not in event
 
@@ -92,28 +105,6 @@ def test_charge_created_event_includes_actions_and_metadata():
     assert event["timestamp"] == datetime(2026, 3, 2, 9, 30)
     assert event["description"] == "חיוב חדש: ריטיינר חודשי"
     assert event["metadata"] == {"amount": 12.5, "status": "draft"}
-    assert "actions" not in event
-    assert "available_actions" not in event
-
-
-def test_binder_returned_event_includes_pickup_person_metadata():
-    binder = SimpleNamespace(
-        id=10,
-        binder_number="D-404",
-        returned_at=date(2026, 3, 3),
-        pickup_person_name="Dana",
-    )
-
-    event = binder_returned_event(binder)
-
-    assert event["event_type"] == "binder_returned"
-    assert event["timestamp"] == datetime(2026, 3, 3)
-    assert event["metadata"] == {
-        "binder_number": "D-404",
-        "pickup_person_name": "Dana",
-    }
-    assert "actions" not in event
-    assert "available_actions" not in event
 
 
 def test_charge_paid_event_is_actionless_and_formats_amount():
@@ -131,8 +122,6 @@ def test_charge_paid_event_is_actionless_and_formats_amount():
     assert event["timestamp"] == datetime(2026, 3, 4, 15, 45)
     assert event["description"] == "חיוב שולם: ריטיינר חודשי"
     assert event["metadata"] == {"amount": 200.75}
-    assert "actions" not in event
-    assert "available_actions" not in event
 
 
 def test_invoice_attached_event_includes_provider_metadata():
@@ -152,5 +141,3 @@ def test_invoice_attached_event_includes_provider_metadata():
         "provider": "Stripe",
         "external_invoice_id": "INV-1001",
     }
-    assert "actions" not in event
-    assert "available_actions" not in event

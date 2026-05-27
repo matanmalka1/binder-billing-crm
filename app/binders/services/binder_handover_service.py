@@ -2,27 +2,22 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderLocationStatus
 from app.binders.models.binder_handover import BinderHandover
 from app.binders.repositories.binder_handover_repository import BinderHandoverRepository
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import (
-    BinderStatusLogRepository,
-)
-from app.binders.services.messages import (
-    BINDER_HANDOVER_INVALID_BINDERS,
-    BINDER_PICKED_UP_BY,
-)
+from app.binders.services.binder_lifecycle_service import BinderLifecycleService
+from app.binders.services.messages import BINDER_HANDOVER_INVALID_BINDERS
 from app.core.exceptions import AppError
 
 
 class BinderHandoverService:
-    """Grouped binder handover: return multiple binders to a client in one event."""
+    """Grouped binder handover: hand over multiple binders to a client in one event."""
 
     def __init__(self, db: Session):
         self.db = db
         self.binder_repo = BinderRepository(db)
-        self.status_log_repo = BinderStatusLogRepository(db)
+        self.lifecycle_service = BinderLifecycleService(db)
         self.handover_repo = BinderHandoverRepository(db)
 
     def create_handover(
@@ -37,29 +32,23 @@ class BinderHandoverService:
         notes: str | None = None,
     ) -> BinderHandover:
         """
-        Return multiple binders to a client in a single grouped handover event.
+        Hand over multiple binders to a client in a single grouped event.
 
         Validates:
         - All binders belong to client_record_id
-        - All binders are in READY_FOR_PICKUP status
+        - All binders are ready for handover
 
-        Transitions each binder to RETURNED and creates a BinderHandover record.
+        Transitions each binder to handed_over and creates a BinderHandover record.
         """
         binders = self._load_and_validate_binders(client_record_id, binder_ids)
 
         for binder in binders:
-            old_status = binder.status.value
-            binder.status = BinderStatus.RETURNED
-            binder.returned_at = handed_over_at
-            binder.pickup_person_name = received_by_name
-            self.db.flush()
-
-            self.status_log_repo.append(
-                binder_id=binder.id,
-                old_status=old_status,
-                new_status=BinderStatus.RETURNED.value,
-                changed_by=actor_id,
-                notes=BINDER_PICKED_UP_BY.format(pickup_person_name=received_by_name),
+            self.lifecycle_service.handover_loaded_binder(
+                binder,
+                changed_by_user_id=actor_id,
+                handed_over_at=handed_over_at,
+                handover_recipient_name=received_by_name,
+                notes=notes,
             )
 
         handover = self.handover_repo.create(
@@ -83,7 +72,7 @@ class BinderHandoverService:
             binder = self.binder_repo.get_by_id_for_update(bid)
             if not binder or binder.client_record_id != client_record_id:
                 raise AppError(BINDER_HANDOVER_INVALID_BINDERS, "BINDER.HANDOVER_INVALID")
-            if binder.status != BinderStatus.READY_FOR_PICKUP:
+            if binder.location_status != BinderLocationStatus.READY_FOR_HANDOVER:
                 raise AppError(BINDER_HANDOVER_INVALID_BINDERS, "BINDER.HANDOVER_INVALID")
             binders.append(binder)
         return binders

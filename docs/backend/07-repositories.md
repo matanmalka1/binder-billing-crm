@@ -46,7 +46,8 @@ class BinderListRow:
     client_name: str
     client_id_number: str
     binder_number: str
-    status: BinderStatus
+    location_status: BinderLocationStatus
+    capacity_status: BinderCapacityStatus
     ...
 ```
 

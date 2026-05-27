@@ -4,7 +4,7 @@ Notification — outbound message sent to a client or business contact.
 Israeli context:
   Primary channels are WhatsApp (360dialog) and Email (SendGrid).
   Notifications are triggered automatically by system events (binder received,
-  ready for pickup) or manually by an advisor (payment reminder).
+  ready for handover) or manually by an advisor (payment reminder).
 
 Design decisions:
 - client_record_id is the primary anchor (legal entity record).
@@ -42,8 +42,8 @@ class NotificationStatus(str, PyEnum):
 
 class NotificationTrigger(str, PyEnum):
     BINDER_RECEIVED = "binder_received"
-    BINDER_READY_FOR_PICKUP = "binder_ready_for_pickup"
-    PICKUP_REMINDER = "pickup_reminder"
+    BINDER_READY_FOR_HANDOVER = "binder_ready_for_handover"
+    HANDOVER_REMINDER = "handover_reminder"
     ANNUAL_REPORT_CLIENT_REMINDER = "annual_report_client_reminder"
     MANUAL_PAYMENT_REMINDER = "manual_payment_reminder"
 

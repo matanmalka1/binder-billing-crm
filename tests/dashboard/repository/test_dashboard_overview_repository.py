@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.businesses.models.business import Business
 from app.businesses.repositories.business_repository import BusinessRepository
@@ -56,18 +56,20 @@ def test_business_and_binder_repository_counts_active_entities(test_db):
         client_record_id=cr_a.id,
         binder_number="B-1",
         period_start=date(2024, 3, 1),
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
         created_by=user.id,
     )
-    binder_returned = Binder(
+    binder_handed_over = Binder(
         client_record_id=cr_b.id,
         binder_number="B-2",
         period_start=date(2024, 3, 2),
-        returned_at=date(2024, 3, 5),
-        status=BinderStatus.RETURNED,
+        handed_over_at=date(2024, 3, 5),
+        location_status=BinderLocationStatus.HANDED_OVER,
+        capacity_status=BinderCapacityStatus.OPEN,
         created_by=user.id,
     )
-    test_db.add_all([binder_active, binder_returned])
+    test_db.add_all([binder_active, binder_handed_over])
     test_db.commit()
 
     total_businesses = BusinessRepository(test_db).count()
@@ -75,5 +77,5 @@ def test_business_and_binder_repository_counts_active_entities(test_db):
 
     assert total_businesses >= 2
     assert active_binders >= 1
-    # Returned binder should not be counted as active.
+    # Handed-over binder should not be counted as active.
     assert active_binders < total_businesses + 1

@@ -382,10 +382,11 @@ def upgrade() -> None:
     sa.Column('binder_number', sa.String(), nullable=False),
     sa.Column('period_start', sa.Date(), nullable=True),
     sa.Column('period_end', sa.Date(), nullable=True),
-    sa.Column('status', sa.Enum('in_office', 'closed_in_office', 'ready_for_pickup', 'returned', name='binderstatus'), nullable=False),
-    sa.Column('ready_for_pickup_at', sa.DateTime(), nullable=True),
-    sa.Column('returned_at', sa.Date(), nullable=True),
-    sa.Column('pickup_person_name', sa.String(), nullable=True),
+    sa.Column('location_status', sa.Enum('in_office', 'ready_for_handover', 'handed_over', name='binder_location_status'), nullable=False),
+    sa.Column('capacity_status', sa.Enum('open', 'full', name='binder_capacity_status'), nullable=False),
+    sa.Column('ready_for_handover_at', sa.DateTime(), nullable=True),
+    sa.Column('handed_over_at', sa.Date(), nullable=True),
+    sa.Column('handover_recipient_name', sa.String(), nullable=True),
     sa.Column('notes', sa.Text(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('created_by', sa.Integer(), nullable=False),
@@ -397,7 +398,8 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index('idx_binder_period_start', 'binders', ['period_start'], unique=False)
-    op.create_index('idx_binder_status', 'binders', ['status'], unique=False)
+    op.create_index('idx_binder_location_status', 'binders', ['location_status'], unique=False)
+    op.create_index('idx_binder_capacity_status', 'binders', ['capacity_status'], unique=False)
     op.create_index(op.f('ix_binders_client_record_id'), 'binders', ['client_record_id'], unique=False)
     op.create_index('uq_binder_number_per_client', 'binders', ['client_record_id', 'binder_number'], unique=True, postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
     op.create_table('vat_work_items',
@@ -581,19 +583,20 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_binder_intakes_binder_id'), 'binder_intakes', ['binder_id'], unique=False)
-    op.create_table('binder_status_logs',
+    op.create_table('binder_lifecycle_logs',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('binder_id', sa.Integer(), nullable=False),
-    sa.Column('old_status', sa.String(), nullable=False),
-    sa.Column('new_status', sa.String(), nullable=False),
-    sa.Column('changed_by', sa.Integer(), nullable=False),
+    sa.Column('field_name', sa.String(), nullable=False),
+    sa.Column('old_value', sa.String(), nullable=False),
+    sa.Column('new_value', sa.String(), nullable=False),
+    sa.Column('changed_by_user_id', sa.Integer(), nullable=False),
     sa.Column('changed_at', sa.DateTime(), nullable=False),
     sa.Column('notes', sa.Text(), nullable=True),
     sa.ForeignKeyConstraint(['binder_id'], ['binders.id'], ),
-    sa.ForeignKeyConstraint(['changed_by'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['changed_by_user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_binder_status_logs_binder_id'), 'binder_status_logs', ['binder_id'], unique=False)
+    op.create_index(op.f('ix_binder_lifecycle_logs_binder_id'), 'binder_lifecycle_logs', ['binder_id'], unique=False)
     op.create_table('charges',
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('client_record_id', sa.Integer(), nullable=False),
@@ -663,7 +666,7 @@ def upgrade() -> None:
     sa.Column('business_id', sa.Integer(), nullable=True),
     sa.Column('binder_id', sa.Integer(), nullable=True),
     sa.Column('annual_report_id', sa.Integer(), nullable=True),
-    sa.Column('trigger', sa.Enum('binder_received', 'binder_ready_for_pickup', 'pickup_reminder', 'annual_report_client_reminder', 'manual_payment_reminder', name='notificationtrigger'), nullable=False),
+    sa.Column('trigger', sa.Enum('binder_received', 'binder_ready_for_handover', 'handover_reminder', 'annual_report_client_reminder', 'manual_payment_reminder', name='notificationtrigger'), nullable=False),
     sa.Column('channel', sa.Enum('whatsapp', 'email', name='notificationchannel'), nullable=False),
     sa.Column('severity', sa.Enum('info', 'warning', 'urgent', 'critical', name='notificationseverity'), nullable=False),
     sa.Column('recipient', sa.String(), nullable=False),
@@ -989,8 +992,8 @@ def downgrade() -> None:
     op.drop_index('idx_charge_status', table_name='charges')
     op.drop_index('idx_charge_client_record_period', table_name='charges')
     op.drop_table('charges')
-    op.drop_index(op.f('ix_binder_status_logs_binder_id'), table_name='binder_status_logs')
-    op.drop_table('binder_status_logs')
+    op.drop_index(op.f('ix_binder_lifecycle_logs_binder_id'), table_name='binder_lifecycle_logs')
+    op.drop_table('binder_lifecycle_logs')
     op.drop_index(op.f('ix_binder_intakes_binder_id'), table_name='binder_intakes')
     op.drop_table('binder_intakes')
     op.drop_index(op.f('ix_binder_handover_binders_handover_id'), table_name='binder_handover_binders')
@@ -1026,7 +1029,8 @@ def downgrade() -> None:
     op.drop_table('vat_work_items')
     op.drop_index('uq_binder_number_per_client', table_name='binders', postgresql_where=sa.text('deleted_at IS NULL'), sqlite_where=sa.text('deleted_at IS NULL'))
     op.drop_index(op.f('ix_binders_client_record_id'), table_name='binders')
-    op.drop_index('idx_binder_status', table_name='binders')
+    op.drop_index('idx_binder_capacity_status', table_name='binders')
+    op.drop_index('idx_binder_location_status', table_name='binders')
     op.drop_index('idx_binder_period_start', table_name='binders')
     op.drop_table('binders')
     op.drop_index(op.f('ix_binder_handovers_client_record_id'), table_name='binder_handovers')

@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.binders.models.binder import BinderStatus
+from app.binders.models.binder import BinderLocationStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.users.models.user import User, UserRole
 from app.users.services.auth_service import AuthService
@@ -33,13 +33,14 @@ def test_binder_number_is_unique_per_client_across_statuses(test_db):
     user = _user(test_db)
     client = _client(test_db, "Binder Unique", "BU001")
 
-    returned = repo.create(
+    handed_over = repo.create(
         client_record_id=client.id,
         binder_number="BU-1",
         period_start=date(2024, 1, 1),
         created_by=user.id,
     )
-    repo.update_status(returned.id, BinderStatus.RETURNED, binder=returned)
+    handed_over.location_status = BinderLocationStatus.HANDED_OVER
+    test_db.flush()
 
     with pytest.raises(IntegrityError):
         repo.create(

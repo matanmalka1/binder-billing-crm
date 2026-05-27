@@ -1,15 +1,13 @@
 from sqlalchemy.orm import Session
 
 from app.binders.models.binder import Binder
-from app.binders.models.binder_status_log import BinderStatusLog
+from app.binders.models.binder_lifecycle_log import BinderLifecycleLog
 from app.binders.repositories.binder_intake_material_repository import (
     BinderIntakeMaterialRepository,
 )
 from app.binders.repositories.binder_intake_repository import BinderIntakeRepository
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import (
-    BinderStatusLogRepository,
-)
+from app.binders.repositories.binder_lifecycle_log_repository import BinderLifecycleLogRepository
 from app.binders.schemas.binder import (
     BinderHistoryEntry,
     BinderIntakeMaterialResponse,
@@ -26,29 +24,30 @@ class BinderHistoryService:
     def __init__(self, db: Session):
         self.db = db
         self.binder_repo = BinderRepository(db)
-        self.log_repo = BinderStatusLogRepository(db)
+        self.log_repo = BinderLifecycleLogRepository(db)
         self.intake_repo = BinderIntakeRepository(db)
         self.material_repo = BinderIntakeMaterialRepository(db)
         self.user_repo = UserRepository(db)
 
-    def build_history_entries(self, logs: list[BinderStatusLog]) -> list[BinderHistoryEntry]:
-        """Enrich status log records with changed_by user names."""
-        user_ids = {log.changed_by for log in logs}
+    def build_history_entries(self, logs: list[BinderLifecycleLog]) -> list[BinderHistoryEntry]:
+        """Enrich lifecycle log records with changed_by user names."""
+        user_ids = {log.changed_by_user_id for log in logs}
         users = [self.user_repo.get_by_id(uid) for uid in user_ids]
         name_map = {u.id: u.full_name for u in users if u}
         return [
             BinderHistoryEntry(
-                old_status=log.old_status,
-                new_status=log.new_status,
-                changed_by=log.changed_by,
-                changed_by_name=name_map.get(log.changed_by),
+                field_name=log.field_name,
+                old_value=log.old_value,
+                new_value=log.new_value,
+                changed_by_user_id=log.changed_by_user_id,
+                changed_by_name=name_map.get(log.changed_by_user_id),
                 changed_at=log.changed_at,
                 notes=log.notes,
             )
             for log in logs
         ]
 
-    def get_binder_history(self, binder_id: int) -> tuple[Binder, list[BinderStatusLog]] | None:
+    def get_binder_history(self, binder_id: int) -> tuple[Binder, list[BinderLifecycleLog]] | None:
         binder = self.binder_repo.get_by_id(binder_id)
         if not binder:
             return None

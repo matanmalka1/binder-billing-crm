@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 from sqlalchemy import update
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
 from app.binders.services.binder_intake_service import BinderIntakeService
 from app.businesses.models.business import Business, BusinessStatus
 from app.clients.models.client_record import ClientRecord
@@ -72,7 +72,8 @@ def test_receive_reuses_existing_binder_for_same_client(test_db, test_user):
         binder_number="100302/1",
         period_start=date.today(),
         created_by=test_user.id,
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
     )
     test_db.add(existing)
     test_db.commit()
@@ -100,7 +101,8 @@ def test_receive_backfills_period_start_for_existing_binder_without_period(test_
         binder_number="100307/1",
         period_start=None,
         created_by=test_user.id,
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
     )
     test_db.add(existing)
     test_db.commit()
@@ -143,7 +145,7 @@ def test_receive_raises_when_all_businesses_locked(test_db, test_user):
     assert exc_info.value.code == "BINDER.CLIENT_LOCKED"
 
 
-def test_receive_second_binder_increments_seq_after_closed_binder(test_db, test_user):
+def test_receive_second_binder_increments_seq_after_full_binder(test_db, test_user):
     client = _client(test_db, "BI-SVC-SEQ-001", office_client_number=100304)
     _business(test_db, client.id)
 
@@ -152,7 +154,8 @@ def test_receive_second_binder_increments_seq_after_closed_binder(test_db, test_
         binder_number="100304/1",
         period_start=date.today(),
         created_by=test_user.id,
-        status=BinderStatus.CLOSED_IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.FULL,
     )
     test_db.add(existing)
     test_db.commit()
@@ -170,7 +173,7 @@ def test_receive_second_binder_increments_seq_after_closed_binder(test_db, test_
     assert binder.period_start == date(2026, 3, 1)
 
 
-def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
+def test_receive_old_period_prefers_matching_in_office_full_binder(test_db, test_user):
     client = _client(test_db, "BI-SVC-OLD-001", office_client_number=100305)
     _business(test_db, client.id)
 
@@ -180,14 +183,16 @@ def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
         period_start=date(2026, 1, 1),
         period_end=date(2026, 2, 28),
         created_by=test_user.id,
-        status=BinderStatus.CLOSED_IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.FULL,
     )
     active_binder = Binder(
         client_record_id=client.id,
         binder_number="100305/2",
         period_start=date(2026, 3, 1),
         created_by=test_user.id,
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
     )
     test_db.add(old_binder)
     test_db.add(active_binder)
@@ -207,29 +212,31 @@ def test_receive_old_period_prefers_matching_closed_binder(test_db, test_user):
     assert is_new is False
     assert binder.id == old_binder.id
     assert intake.binder_id == old_binder.id
-    assert test_db.get(Binder, active_binder.id).status == BinderStatus.IN_OFFICE
+    assert test_db.get(Binder, active_binder.id).location_status == BinderLocationStatus.IN_OFFICE
 
 
 def test_receive_old_period_falls_back_to_active_binder_with_note(test_db, test_user):
     client = _client(test_db, "BI-SVC-OLD-002", office_client_number=100306)
     _business(test_db, client.id)
 
-    closed_binder = Binder(
+    full_binder = Binder(
         client_record_id=client.id,
         binder_number="100306/1",
         period_start=date(2026, 1, 1),
         period_end=date(2026, 1, 31),
         created_by=test_user.id,
-        status=BinderStatus.CLOSED_IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.FULL,
     )
     active_binder = Binder(
         client_record_id=client.id,
         binder_number="100306/2",
         period_start=date(2026, 3, 1),
         created_by=test_user.id,
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
     )
-    test_db.add(closed_binder)
+    test_db.add(full_binder)
     test_db.add(active_binder)
     test_db.commit()
     test_db.refresh(active_binder)
@@ -248,5 +255,5 @@ def test_receive_old_period_falls_back_to_active_binder_with_note(test_db, test_
     assert binder.id == active_binder.id
     assert intake.binder_id == active_binder.id
     refreshed_active = test_db.get(Binder, active_binder.id)
-    assert refreshed_active.status == BinderStatus.IN_OFFICE
+    assert refreshed_active.location_status == BinderLocationStatus.IN_OFFICE
     assert refreshed_active.period_end is None

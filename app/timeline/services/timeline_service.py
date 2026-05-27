@@ -6,9 +6,8 @@ from app.annual_reports.models.annual_report_status_history import (
     AnnualReportStatusHistory,
 )
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import (
-    BinderStatusLogRepository,
-)
+from app.binders.repositories.binder_lifecycle_log_repository import BinderLifecycleLogRepository
+from app.binders.services.messages import BINDER_RECEIVED
 from app.businesses.models.business import Business
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
@@ -16,8 +15,8 @@ from app.core.exceptions import NotFoundError
 from app.invoice.repositories.invoice_repository import InvoiceRepository
 from app.timeline.services.timeline_binder_event_builders import (
     binder_received_event,
-    binder_returned_event,
-    binder_status_change_event,
+    binder_handed_over_event,
+    binder_lifecycle_change_event,
 )
 from app.timeline.services.timeline_charge_event_builders import (
     charge_created_event,
@@ -40,7 +39,7 @@ class TimelineService:
     def __init__(self, db: Session):
         self.db = db
         self.binder_repo = BinderRepository(db)
-        self.status_log_repo = BinderStatusLogRepository(db)
+        self.lifecycle_log_repo = BinderLifecycleLogRepository(db)
         self.charge_repo = ChargeRepository(db)
         self.invoice_repo = InvoiceRepository(db)
         self.client_record_repo = ClientRecordRepository(db)
@@ -70,9 +69,9 @@ class TimelineService:
         for binder in binders:
             if getattr(binder, "received_at", None) or getattr(binder, "period_start", None):
                 events.append(binder_received_event(binder))
-            if binder.returned_at:
-                events.append(binder_returned_event(binder))
-            self._append_status_change_events(events, binder)
+            if binder.handed_over_at:
+                events.append(binder_handed_over_event(binder))
+            self._append_lifecycle_change_events(events, binder)
 
         # Bounded fetch — clients with more than _TIMELINE_BULK_LIMIT
         # charges will have older events silently truncated.
@@ -103,23 +102,21 @@ class TimelineService:
 
     @staticmethod
     def _status_str(value) -> str | None:
-        """Normalise a status that may be a plain string or a BinderStatus Enum to its string value."""
+        """Normalise an enum or string lifecycle value."""
         if value is None:
             return None
         return value.value if hasattr(value, "value") else str(value)
 
-    def _append_status_change_events(self, events: list[dict], binder) -> None:
-        logs = self.status_log_repo.list_by_binder(binder.id)
-        for status_log in logs:
-            old_status = self._status_str(getattr(status_log, "old_status", None))
-            new_status = self._status_str(getattr(status_log, "new_status", None))
-            if old_status == new_status:
+    def _append_lifecycle_change_events(self, events: list[dict], binder) -> None:
+        logs = self.lifecycle_log_repo.list_by_binder(binder.id)
+        for lifecycle_log in logs:
+            old_value = self._status_str(getattr(lifecycle_log, "old_value", None))
+            new_value = self._status_str(getattr(lifecycle_log, "new_value", None))
+            if old_value == new_value and getattr(lifecycle_log, "notes", None) != BINDER_RECEIVED:
                 continue
-            # Skip the synthetic none → in_office row written by the status-log
-            # trigger on binder creation; it duplicates the binder_received event.
-            if old_status in (None, "none") and new_status == "in_office":
+            if old_value in (None, "null") and new_value == "in_office":
                 continue
-            events.append(binder_status_change_event(binder, status_log))
+            events.append(binder_lifecycle_change_event(binder, lifecycle_log))
 
     def _build_annual_report_events(self, client_record_id: int | None) -> list[dict]:
         stmt = (

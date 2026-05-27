@@ -1,345 +1,38 @@
-# Binders Module
+# Binders Domain
 
-> Last audited: 2026-04-18
+Manages physical binder intake, office lifecycle, handover, history, and list views.
 
-Manages the physical binder lifecycle in the CRM: receiving materials, keeping a single active binder per client, marking binders ready for pickup, returning them, tracking intake/history, and exposing list views with derived operational metadata.
+## Lifecycle Model
 
-## Scope
+Binder lifecycle is split into two fields:
 
-This module provides:
-- Binder intake via find-or-create semantics at the client level
-- Generated binder numbers per client (`office_client_number/sequence`)
-- Lifecycle transitions between `in_office`, `closed_in_office`, `ready_for_pickup`, and `returned`
-- Reverting `ready_for_pickup` back to `in_office`
-- Open-binder and client-binder list views with pagination
-- Binder history and intake-history endpoints
-- Soft delete with audit fields
-- Derived UX fields such as `days_in_office` and `available_actions`
+- `location_status`: `in_office`, `ready_for_handover`, `handed_over`
+- `capacity_status`: `open`, `full`
 
-## Domain Model
+Only `location_status=in_office` and `capacity_status=open` is eligible for material intake.
+All lifecycle and capacity transitions go through `BinderLifecycleService`.
 
-Implementation references:
-- Model: `app/binders/models/binder.py`
-- Intake model: `app/binders/models/binder_intake.py`
-- Intake material model: `app/binders/models/binder_intake_material.py`
-- Status log model: `app/binders/models/binder_status_log.py`
-- Handover model: `app/binders/models/binder_handover.py`
-- Schemas: `app/binders/schemas/binder.py`
-- Extended schemas: `app/binders/schemas/binder_extended.py`
-- Repository: `app/binders/repositories/binder_repository.py`
-- Service: `app/binders/services/binder_service.py`
-- Intake service: `app/binders/services/binder_intake_service.py`
-- List service: `app/binders/services/binder_list_service.py`
-- Operations service: `app/binders/services/binder_operations_service.py`
-- History service: `app/binders/services/binder_history_service.py`
-- Handover service: `app/binders/services/binder_handover_service.py`
-- Helpers: `app/binders/services/binder_helpers.py`
+## Audit
 
-### `Binder`
+Lifecycle changes are recorded in `BinderLifecycleLog` using one row per changed field:
 
-Primary fields:
-- `id` (PK)
-- `client_record_id` (FK -> `client_records.id`, required)
-- `binder_number` (required)
-- `period_start` (optional; derived from the first structured material period)
-- `period_end` (optional)
-- `status` (`in_office`, `closed_in_office`, `ready_for_pickup`, `returned`)
-- `returned_at` (optional)
-- `pickup_person_name` (optional)
-- `notes` (optional)
-- `created_at`
-- `created_by` (FK -> `users.id`, required)
-- `deleted_at`, `deleted_by`
-
-Notes:
-- Binders belong to a client, not a business.
-- Only one active `in_office` binder exists per client in the receive flow.
-- `binder_number` is unique per `client_record_id` for non-deleted rows, across all statuses.
-
-### `BinderIntake`
-
-Records a single material intake event.
-
-Fields:
-- `id` (PK)
-- `binder_id` (FK -> `binders.id`, required)
-- `received_at` (required)
-- `received_by` (FK -> `users.id`, required)
-- `notes` (optional)
-- `created_at`
-
-### `BinderIntakeMaterial`
-
-One material item within an intake event.
-
-Fields:
-- `id` (PK)
-- `intake_id` (FK -> `binder_intakes.id`, required)
-- `business_id` (FK -> `businesses.id`, optional)
-- `material_type` (enum, required)
-- `annual_report_id` (FK -> `annual_reports.id`, optional)
-- `vat_report_id` (FK -> `vat_work_items.id`, optional)
-- `period_year` (optional for legacy rows; required for new intake payloads)
-- `period_month_start` (optional for legacy rows; required for new intake payloads)
-- `period_month_end` (optional for legacy rows; required for new intake payloads)
-- `description` (optional)
-- `created_at`
-
-Material type values:
-- `vat`
-- `income_tax`
-- `annual_report`
-- `salary`
-- `bookkeeping`
-- `national_insurance`
-- `capital_declaration`
-- `pension_and_insurance`
-- `corporate_docs`
-- `tax_assessment`
-- `other`
-
-### `BinderStatusLog`
-
-Status-transition audit records for binders.
+- `field_name`
+- `old_value`
+- `new_value`
+- `changed_by_user_id`
+- `changed_at`
+- `notes`
 
 ## API
 
-Routes are mounted under `/api/v1`.
+Lifecycle endpoints:
 
-### Core binder routes
+- `POST /api/v1/binders/{binder_id}/receive-material`
+- `POST /api/v1/binders/{binder_id}/mark-full`
+- `POST /api/v1/binders/{binder_id}/reopen-capacity`
+- `POST /api/v1/binders/{binder_id}/mark-ready-for-handover`
+- `POST /api/v1/binders/{binder_id}/revert-ready-for-handover`
+- `POST /api/v1/binders/{binder_id}/handover-to-client`
 
-Base prefix: `/api/v1/binders`
-
-Default roles:
-- `ADVISOR`
-- `SECRETARY`
-
-Delete is restricted to:
-- `ADVISOR`
-
-### Receive binder
-- `POST /api/v1/binders/receive`
-- Response model: `BinderReceiveResult`
-
-Request body:
-
-```json
-{
-  "client_record_id": 123,
-  "received_at": "2026-04-13",
-  "received_by": 7,
-  "open_new_binder": false,
-  "notes": "Optional",
-  "materials": [
-    {
-      "material_type": "vat",
-      "business_id": 45,
-      "annual_report_id": null,
-      "vat_report_id": 81,
-      "period_year": 2026,
-      "period_month_start": 4,
-      "period_month_end": 4,
-      "description": "Optional note"
-    }
-  ]
-}
-```
-
-Behavior:
-- validates the client exists
-- blocks intake if the client has businesses and none are `active`
-- if an active `in_office` binder already exists for the client, appends a new intake to it
-- if `open_new_binder=true`, closes the current active binder period, marks it `closed_in_office`, and opens a new binder
-- if no active binder exists, creates one with a generated number: `office_client_number/sequence`
-- writes an initial status log entry for newly created binders
-- sends the binder-received notification only when a new binder is created
-
-Important:
-- The request does not accept `binder_number`
-- `binder_number` is generated by the service
-- `period_start` is derived from the first material row and is no longer accepted in the request
-
-### Mark ready for pickup
-- `POST /api/v1/binders/{binder_id}/ready`
-- Response model: `BinderResponse`
-
-Behavior:
-- valid from `in_office` and `closed_in_office`
-- writes a status log entry
-- sends a ready-for-pickup notification
-
-### Bulk mark ready
-- `POST /api/v1/binders/mark-ready-bulk`
-- Response model: `list[BinderResponse]`
-
-Request body:
-
-```json
-{
-  "client_record_id": 123,
-  "until_period_year": 2026,
-  "until_period_month": 4
-}
-```
-
-Behavior:
-- scans the client's `in_office` and `closed_in_office` binders
-- uses the latest structured material period per binder
-- marks only binders whose latest material period is `<=` the requested cutoff
-
-### Return binder
-- `POST /api/v1/binders/{binder_id}/return`
-- Response model: `BinderResponse`
-- Request body is optional: `BinderReturnRequest`
-
-Behavior:
-- valid only from `ready_for_pickup`
-- if request body is omitted or blank, `pickup_person_name` defaults to the authenticated user's `full_name`
-- `returned_by` defaults to the authenticated user's `id`
-- `returned_at` defaults to today if not provided
-- if `period_end` is still null, it is set to the effective return date
-- writes a status log entry
-
-### Handover binders
-- `POST /api/v1/binders/handover`
-- Response model: `BinderHandoverResponse`
-
-Behavior:
-- returns multiple `ready_for_pickup` binders for one `client_record_id` in a single grouped handover event
-- records `received_by_name`, `handed_over_at`, cutoff period, returned binder IDs, and optional notes
-- transitions each binder to `returned` and writes status log entries
-
-### Revert ready state
-- `POST /api/v1/binders/{binder_id}/revert-ready`
-- Response model: `BinderResponse`
-
-Behavior:
-- valid only from `ready_for_pickup`
-- changes status back to `in_office`
-- writes a status log entry
-
-### List binders
-- `GET /api/v1/binders`
-- Response model: `BinderListResponse`
-
-Query params:
-- `status`
-- `client_record_id`
-- `query`
-- `client_name`
-- `binder_number`
-- `year`
-- `page` (default `1`)
-- `page_size` (default `20`, max `100`)
-- `sort_by` (`period_start`, `days_in_office`, `status`, `client_name`)
-- `sort_dir` (`asc`, `desc`, default `desc`)
-
-Behavior:
-- default listing excludes `returned` binders
-- when `status=returned`, returned binders are included
-- response includes `counters` across the filtered non-deleted set before status pill filtering
-- counters include `closed_in_office`
-
-### Get binder by id
-- `GET /api/v1/binders/{binder_id}`
-- Response model: `BinderResponse`
-
-### Soft delete binder
-- `DELETE /api/v1/binders/{binder_id}`
-- Role: `ADVISOR`
-- Returns `204 No Content`
-
-Behavior:
-- sets `status=returned`
-- sets `returned_at` if missing
-- sets `deleted_at` and `deleted_by`
-
-### Open binders operations route
-- `GET /api/v1/binders/open`
-- Response model: `BinderListResponseExtended`
-
-Behavior:
-- returns binders where `status != returned` and `deleted_at is null`
-
-### Binder history
-- `GET /api/v1/binders/{binder_id}/history`
-- Response model: `BinderHistoryResponse`
-
-### Binder intake history
-- `GET /api/v1/binders/{binder_id}/intakes`
-- Response model: `BinderIntakeListResponse`
-
-## Cross-Domain Client Route
-
-The client-scoped binder list is served by this module:
-- `app/binders/api/client_binders_router.py`
-
-Route:
-- `GET /api/v1/clients/{client_record_id}/binders`
-
-Behavior:
-- validates the client exists (via `ClientService`)
-- returns all non-deleted binders for that client, across all statuses
-- uses `BinderOperationsService` enrichment
-
-The initial binder created on client registration is handled by:
-- `app/binders/services/client_onboarding_service.py` (`create_initial_binder`)
-
-## Lifecycle Rules
-
-Transition rules enforced by `app/binders/services/binder_helpers.py`:
-- `in_office -> ready_for_pickup`
-- `closed_in_office -> ready_for_pickup`
-- `ready_for_pickup -> returned`
-- `ready_for_pickup -> in_office` via `revert-ready`
-- return requires a non-empty pickup person name
-
-Operational rules:
-- only one active `in_office` binder is reused by the intake flow for a client
-- setting `open_new_binder=true` marks the existing binder `closed_in_office` and opens a fresh `in_office` binder
-- `days_in_office` is computed as `reference_date - period_start` only when `period_start` is set
-- `available_actions` are generated for the main binder list/detail responses
-
-## Error Codes
-
-Common domain errors surfaced by binder services:
-- `BINDER.NOT_FOUND`
-- `BINDER.INVALID_STATUS`
-- `BINDER.MISSING_PICKUP_PERSON`
-- `BINDER.CLIENT_LOCKED`
-- `CLIENT.NOT_FOUND`
-
-Notes:
-- history GET currently raises a plain 404 HTTP response with the binder-not-found message
-- intake-history uses `BINDER.NOT_FOUND` via the service layer
-
-Errors otherwise follow the global envelope from `app/core/exceptions.py` with:
-- `error.code`
-- `error.message`
-- `error.details` (null or domain-specific object)
-- `error.request_id` (when available)
-
-## Tests
-
-Binder-domain test suites currently present in the repository:
-- `tests/binders/api/test_binders.py`
-- `tests/binders/api/test_binders_list_get_additional.py`
-- `tests/binders/api/test_binder_history.py`
-- `tests/binders/api/test_binder_intakes_additional.py`
-- `tests/binders/service/test_binder_service_basic.py`
-- `tests/binders/service/test_binder_service_locking.py`
-- `tests/binders/service/test_binder_list_service.py`
-- `tests/binders/service/test_binder_operations_service.py`
-- `tests/binders/service/test_binder_intake_service_additional.py`
-- `tests/binders/service/test_binder_helpers.py`
-- `tests/binders/service/test_operational_signals.py`
-- `tests/binders/repository/test_binder_repository.py`
-- `tests/actions/test_binder_actions.py`
-- `tests/businesses/api/test_business_binders_api.py`
-- `tests/regression/test_core_regressions_binders_charges_notifications.py`
-
-Run binder-related tests:
-
-```bash
-JWT_SECRET=test-secret pytest -q tests/binders tests/actions/test_binder_actions.py tests/businesses/api/test_business_binders_api.py tests/regression/test_core_regressions_binders_charges_notifications.py
-```
+List filters use `location_status` and `capacity_status`.
+Responses return lifecycle values only; UI labels live in the frontend.

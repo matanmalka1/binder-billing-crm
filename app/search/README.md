@@ -78,7 +78,7 @@ Behavior:
 - Anything beyond those ceilings is excluded from results
 
 Binder matching details:
-- Base binder source is `BinderRepository.list_active(...)` (non-returned + non-deleted)
+- Base binder source is `BinderRepository.list_active(...)` (not handed over + non-deleted)
 - If `binder_number` is provided, it is used as DB binder-number filter
 - Else, if `query` is provided and `client_name`/`id_number` are not provided, `query` is reused as binder-number filter
 

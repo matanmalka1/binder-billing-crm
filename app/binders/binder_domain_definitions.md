@@ -78,14 +78,14 @@ A binder that:
 - can still receive new material
 - is physically in the office
 
-### Closed Binder Still in Office
+### Full Binder Still in Office
 A binder that:
 - is full
 - can no longer receive new material
 - is still physically stored in the office
-- has not yet been returned to the client
+- has not yet been handed over to the client
 
-### Returned Binder
+### Handed-Over Binder
 A binder that:
 - was physically handed back to the client
 - is no longer in office storage
@@ -93,8 +93,8 @@ A binder that:
 - its binder number must never be reused
 
 Important:
-- **"closed but still in office" is not the same as "returned"**
-- `is_full` alone is not enough to represent all logistics states cleanly
+- **"full but still in office" is not the same as "handed over"**
+- capacity alone is not enough to represent all logistics states cleanly
 
 ---
 
@@ -246,12 +246,12 @@ This confirms that binder storage is logistics-driven, not purely period-driven.
 
 ---
 
-## Ready for Pickup Meaning
+## Ready for Handover Meaning
 
-`ready_for_pickup` is a logistics/office status.
+`ready_for_handover` is a logistics/office status.
 It means:
 - the office finished the relevant work for the material stored in the binder(s)
-- the physical binder(s) are ready to be returned to the client
+- the physical binder(s) are ready to be handed over to the client
 
 Important:
 - readiness may apply to **multiple binders together**, based on a reporting-period cutoff
@@ -267,18 +267,18 @@ If new material later affects only some of those binders, readiness may be rever
 
 ---
 
-## Return / Handover Rules
+## Handover Rules
 
-Returning binders to a client is a **group handover event**, not just an isolated binder status change.
+A handover to a client is a **group handover event**, not just an isolated binder lifecycle change.
 
-A return event may include multiple binders together.
+A handover event may include multiple binders together.
 
 The handover event must store at least:
 - who received the binders on the client side
 - when the binders were handed over
-- until which reporting period the binders were returned
+- until which reporting period the binders were handed over
 
-This means the domain needs a grouped return concept, not only a per-binder `returned` flag.
+This means the domain needs a grouped handover concept, not only a per-binder lifecycle value.
 
 ---
 
@@ -301,18 +301,18 @@ Therefore:
 ## Domain Implications for the Current Model
 
 The current domain model is not fully accurate if it only relies on:
-- a single binder status without separating "closed but still in office"
+- a single binder status without separating "full but still in office"
 - free-text period inside material description
-- single-binder return semantics
+- single-binder handover semantics
 
 The domain requires at least these concepts:
 
 - `Binder` as the physical client-level binder
 - `BinderIntake` as the physical receipt event
 - `BinderIntakeMaterial` as the material row
-- `BinderStatusLog` for binder lifecycle audit
+- `BinderLifecycleLog` for binder lifecycle audit
 - field-level audit trail for intake/material edits
-- grouped binder return / handover event for multi-binder return flows
+- grouped binder handover event for multi-binder handover flows
 
 ---
 
@@ -323,8 +323,8 @@ The cleanest interpretation is:
 - **Binder** = physical logistics container for one client
 - **BinderIntake** = one physical material arrival
 - **BinderIntakeMaterial** = one classified material row
-- **Binder closed** = full, no more material enters, still in office
-- **Ready for pickup** = office finished work and can return relevant binder(s)
-- **Returned** = physically handed back to the client through a grouped handover event
+- **Binder full** = no more material enters, still in office
+- **Ready for handover** = office finished work and can hand over relevant binder(s)
+- **Handed over** = physically handed back to the client through a grouped handover event
 
 This is the operational truth of the domain.

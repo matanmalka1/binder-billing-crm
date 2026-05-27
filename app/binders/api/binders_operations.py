@@ -38,7 +38,7 @@ def list_open_binders(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    """List open binders (status != RETURNED)."""
+    """List binders that have not been handed over."""
     service = BinderOperationsService(db)
     items, total = service.get_open_binders(page=page, page_size=page_size)
     return _build_response(items, service, page, page_size, total)

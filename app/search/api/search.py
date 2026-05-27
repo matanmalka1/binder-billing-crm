@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 
-from app.binders.models.binder import BinderStatus
+from app.binders.models.binder import BinderCapacityStatus, BinderLocationStatus
 from app.clients.enums import ClientStatus
 from app.common.enums import EntityType
 from app.search.schemas.search import SearchResponse, SearchResult
@@ -25,7 +25,8 @@ def search(
     binder_number: str | None = None,
     client_status: ClientStatus | None = None,
     entity_type: EntityType | None = None,
-    binder_status: BinderStatus | None = None,
+    binder_location_status: BinderLocationStatus | None = None,
+    binder_capacity_status: BinderCapacityStatus | None = None,
     filename: str | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
@@ -39,7 +40,8 @@ def search(
         binder_number=binder_number,
         client_status=client_status,
         entity_type=entity_type,
-        binder_status=binder_status,
+        binder_location_status=binder_location_status,
+        binder_capacity_status=binder_capacity_status,
         filename=filename,
         page=page,
         page_size=page_size,

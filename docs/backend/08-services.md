@@ -2,7 +2,7 @@
 
 ## Role
 
-Services own business logic. They are the single entry point for cross-domain orchestration, status transition rules, derived state computation, and DTO mapping. Routers should call one service method per endpoint unless the existing endpoint pattern has a narrow transport concern.
+Services own business logic. They are the single entry point for cross-domain orchestration, lifecycle transition rules, derived state computation, and DTO mapping. Routers should call one service method per endpoint unless the existing endpoint pattern has a narrow transport concern.
 
 ## Instantiation Pattern
 
@@ -59,7 +59,10 @@ def _row_to_response(row: BinderListRow, ref_date: date) -> BinderResponse:
         id=row.id,
         client_name=row.client_name,
         days_in_office=max(0, (ref_date - row.period_start).days) if row.period_start else None,
-        available_actions=get_binder_actions_for_state(binder_id=row.id, status=row.status),
+        available_actions=get_binder_actions_for_state(
+            location_status=row.location_status,
+            capacity_status=row.capacity_status,
+        ),
     )
 ```
 
@@ -69,7 +72,8 @@ Large domains split service logic across multiple files by responsibility:
 
 ```
 app/binders/services/
-├── binder_service.py        # writes: create, update status, delete
+├── binder_service.py        # writes: receive, delete
+├── binder_lifecycle_service.py  # lifecycle and capacity transitions
 └── binder_list_service.py   # reads: list, enrich, single get
 ```
 
@@ -100,24 +104,8 @@ Sensitive write operations (imports, bulk actions, notification sends) accept an
 
 All branching logic lives in services. Routers must not contain `if`/`elif`/`else` that dispatch to different code paths based on business state.
 
-Bad (in router):
-```python
-if binder.status == BinderStatus.IN_OFFICE:
-    service.mark_ready(binder_id)
-else:
-    raise HTTPException(400, "...")
-```
-
-Correct (in service):
-```python
-def mark_ready_for_pickup(self, binder_id: int) -> Binder:
-    binder = self.binder_repo.get_by_id(binder_id)
-    if not binder:
-        raise NotFoundError(...)
-    if binder.status != BinderStatus.IN_OFFICE:
-        raise ConflictError("קלסר אינו במצב קבלה", "BINDER.INVALID_STATUS_TRANSITION")
-    return self.binder_repo.update_status(binder_id, BinderStatus.READY_FOR_PICKUP, ...)
-```
+Binder lifecycle and capacity changes must go through `BinderLifecycleService`.
+Routers and repositories must not mutate `location_status` or `capacity_status` directly.
 
 ## Fine-Grained Authorization
 

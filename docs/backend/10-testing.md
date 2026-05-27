@@ -68,7 +68,8 @@ def test_something(test_db, test_user):
     binder = Binder(
         client_record_id=client.id,
         binder_number="AA-100",
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
         created_by=test_user.id,
     )
     test_db.add(binder)
@@ -81,11 +82,11 @@ def test_something(test_db, test_user):
 Service tests instantiate the service directly with `test_db` and assert on returned values. They hit real SQLite — no mocking. This is the dominant test pattern:
 
 ```python
-def test_list_binders_enriched_status_filter(test_db, test_user):
+def test_list_binders_enriched_location_filter(test_db, test_user):
     c1, c2, b1, b2 = _seed_binders(test_db, test_user.id)
     service = BinderListService(test_db)
 
-    items, total, _ = service.list_binders_enriched(status="ready_for_pickup")
+    items, total, _ = service.list_binders_enriched(location_status="ready_for_handover")
 
     assert total == 1
     assert items[0].id == b2.id

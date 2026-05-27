@@ -79,7 +79,7 @@ def test_item_shape(test_db):
     assert item["days_delta"] < 0  # overdue
 
 
-def test_max_7_items_returned(test_db):
+def test_max_7_items_are_included(test_db):
     biz = create_business(test_db)
     for i in range(10):
         test_db.add(

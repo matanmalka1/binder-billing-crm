@@ -5,7 +5,7 @@ from datetime import date, datetime
 from sqlalchemy import asc, desc, extract, func, nullslast, or_, select
 from sqlalchemy.orm import Session
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
 from app.clients.models.client_record import ClientRecord
 from app.clients.models.legal_entity import LegalEntity
 from app.clients.repositories.active_client_scope import scope_to_active_clients_stmt
@@ -21,12 +21,13 @@ class BinderListRow:
     client_name: str
     client_id_number: str
     binder_number: str
-    status: BinderStatus
+    location_status: BinderLocationStatus
+    capacity_status: BinderCapacityStatus
     period_start: date | None
     period_end: date | None
-    ready_for_pickup_at: datetime | None
-    returned_at: date | None
-    pickup_person_name: str | None
+    ready_for_handover_at: datetime | None
+    handed_over_at: date | None
+    handover_recipient_name: str | None
     notes: str | None
     created_at: datetime
 
@@ -54,8 +55,9 @@ class BinderRepository(BaseRepository[Binder]):
         stmt,
         *,
         client_record_id: int | None = None,
-        status: str | None = None,
-        include_returned: bool = True,
+        location_status: str | None = None,
+        capacity_status: str | None = None,
+        include_handed_over: bool = True,
         query: str | None = None,
         client_name_filter: str | None = None,
         binder_number: str | None = None,
@@ -69,10 +71,12 @@ class BinderRepository(BaseRepository[Binder]):
 
         if client_record_id:
             stmt = stmt.where(Binder.client_record_id == client_record_id)
-        if status:
-            stmt = stmt.where(Binder.status == status)
-        elif not include_returned:
-            stmt = stmt.where(Binder.status != BinderStatus.RETURNED)
+        if location_status:
+            stmt = stmt.where(Binder.location_status == location_status)
+        elif not include_handed_over:
+            stmt = stmt.where(Binder.location_status != BinderLocationStatus.HANDED_OVER)
+        if capacity_status:
+            stmt = stmt.where(Binder.capacity_status == capacity_status)
 
         if query:
             pattern = f"%{query.strip()}%"
@@ -111,7 +115,8 @@ class BinderRepository(BaseRepository[Binder]):
         sort_col_map = {
             "period_start": Binder.period_start,
             "days_in_office": Binder.period_start,
-            "status": Binder.status,
+            "location_status": Binder.location_status,
+            "capacity_status": Binder.capacity_status,
         }
         col = sort_col_map.get(sort_by, Binder.period_start)
         return stmt.order_by(nullslast(order_fn(col)))
@@ -130,7 +135,8 @@ class BinderRepository(BaseRepository[Binder]):
             binder_number=binder_number,
             period_start=period_start,
             created_by=created_by,
-            status=BinderStatus.IN_OFFICE,
+            location_status=BinderLocationStatus.IN_OFFICE,
+            capacity_status=BinderCapacityStatus.OPEN,
             notes=notes,
         )
         self.db.add(binder)
@@ -138,11 +144,11 @@ class BinderRepository(BaseRepository[Binder]):
         return binder
 
     def get_active_by_number(self, binder_number: str) -> Binder | None:
-        """Get active (non-returned) binder by number (excludes soft-deleted)."""
+        """Get non-handed-over binder by number (excludes soft-deleted)."""
         return self.db.scalars(
             select(Binder).where(
                 Binder.binder_number == binder_number,
-                Binder.status != BinderStatus.RETURNED,
+                Binder.location_status != BinderLocationStatus.HANDED_OVER,
                 Binder.deleted_at.is_(None),
             )
         ).first()
@@ -150,30 +156,32 @@ class BinderRepository(BaseRepository[Binder]):
     def list_active(
         self,
         client_record_id: int | None = None,
-        status: str | None = None,
+        location_status: str | None = None,
+        capacity_status: str | None = None,
         binder_number: str | None = None,
         sort_by: str = "period_start",
         sort_dir: str = "desc",
         page: int = 1,
         page_size: int = 1000,
-        include_returned: bool = False,
+        include_handed_over: bool = False,
     ) -> list[Binder]:
         """List binders with optional filters, sorting, and pagination.
 
-        By default excludes RETURNED binders. Pass include_returned=True to
-        include them (used when filtering explicitly by returned status).
+        By default excludes handed-over binders.
         """
         from sqlalchemy import asc, desc
 
         stmt = self._active_client_stmt().where(Binder.deleted_at.is_(None))
-        if not include_returned:
-            stmt = stmt.where(Binder.status != BinderStatus.RETURNED)
+        if not include_handed_over:
+            stmt = stmt.where(Binder.location_status != BinderLocationStatus.HANDED_OVER)
 
         if client_record_id:
             stmt = stmt.where(Binder.client_record_id == client_record_id)
 
-        if status:
-            stmt = stmt.where(Binder.status == status)
+        if location_status:
+            stmt = stmt.where(Binder.location_status == location_status)
+        if capacity_status:
+            stmt = stmt.where(Binder.capacity_status == capacity_status)
 
         if binder_number:
             stmt = stmt.where(Binder.binder_number.ilike(f"%{binder_number.strip()}%"))
@@ -181,7 +189,8 @@ class BinderRepository(BaseRepository[Binder]):
         sort_col_map = {
             "period_start": Binder.period_start,
             "days_in_office": Binder.period_start,  # older period_start → more days
-            "status": Binder.status,
+            "location_status": Binder.location_status,
+            "capacity_status": Binder.capacity_status,
         }
         col = sort_col_map.get(sort_by, Binder.period_start)
         effective_dir = sort_dir
@@ -199,8 +208,9 @@ class BinderRepository(BaseRepository[Binder]):
         self,
         *,
         client_record_id: int | None = None,
-        status: str | None = None,
-        include_returned: bool = True,
+        location_status: str | None = None,
+        capacity_status: str | None = None,
+        include_handed_over: bool = True,
         query: str | None = None,
         client_name_filter: str | None = None,
         binder_number: str | None = None,
@@ -213,8 +223,9 @@ class BinderRepository(BaseRepository[Binder]):
         include_legal_entity = sort_by == "client_name"
         base_kwargs = {
             "client_record_id": client_record_id,
-            "status": status,
-            "include_returned": include_returned,
+            "location_status": location_status,
+            "capacity_status": capacity_status,
+            "include_handed_over": include_handed_over,
             "query": query,
             "client_name_filter": client_name_filter,
             "binder_number": binder_number,
@@ -238,8 +249,9 @@ class BinderRepository(BaseRepository[Binder]):
         self,
         *,
         client_record_id: int | None = None,
-        status: str | None = None,
-        include_returned: bool = True,
+        location_status: str | None = None,
+        capacity_status: str | None = None,
+        include_handed_over: bool = True,
         query: str | None = None,
         client_name_filter: str | None = None,
         binder_number: str | None = None,
@@ -254,8 +266,9 @@ class BinderRepository(BaseRepository[Binder]):
         needs_join_for_filter = sort_by == "client_name" or bool(query or client_name_filter)
         filter_kwargs = dict(
             client_record_id=client_record_id,
-            status=status,
-            include_returned=include_returned,
+            location_status=location_status,
+            capacity_status=capacity_status,
+            include_handed_over=include_handed_over,
             query=query,
             client_name_filter=client_name_filter,
             binder_number=binder_number,
@@ -276,12 +289,13 @@ class BinderRepository(BaseRepository[Binder]):
                 LegalEntity.official_name.label("client_name"),
                 LegalEntity.id_number.label("client_id_number"),
                 Binder.binder_number,
-                Binder.status,
+                Binder.location_status,
+                Binder.capacity_status,
                 Binder.period_start,
                 Binder.period_end,
-                Binder.ready_for_pickup_at,
-                Binder.returned_at,
-                Binder.pickup_person_name,
+                Binder.ready_for_handover_at,
+                Binder.handed_over_at,
+                Binder.handover_recipient_name,
                 Binder.notes,
                 Binder.created_at,
             ),
@@ -299,12 +313,13 @@ class BinderRepository(BaseRepository[Binder]):
                 client_name=row.client_name,
                 client_id_number=row.client_id_number,
                 binder_number=row.binder_number,
-                status=row.status,
+                location_status=row.location_status,
+                capacity_status=row.capacity_status,
                 period_start=row.period_start,
                 period_end=row.period_end,
-                ready_for_pickup_at=row.ready_for_pickup_at,
-                returned_at=row.returned_at,
-                pickup_person_name=row.pickup_person_name,
+                ready_for_handover_at=row.ready_for_handover_at,
+                handed_over_at=row.handed_over_at,
+                handover_recipient_name=row.handover_recipient_name,
                 notes=row.notes,
                 created_at=row.created_at,
             )
@@ -312,7 +327,7 @@ class BinderRepository(BaseRepository[Binder]):
         ]
         return rows, int(self.db.scalar(count_stmt) or 0)
 
-    def count_by_status_filtered(
+    def count_by_lifecycle_filtered(
         self,
         *,
         client_record_id: int | None = None,
@@ -322,37 +337,56 @@ class BinderRepository(BaseRepository[Binder]):
         year: int | None = None,
     ) -> dict[str, int]:
         stmt = self._filtered_active_stmt(
-            select(Binder.status, func.count(Binder.id)),
+            select(Binder.location_status, Binder.capacity_status, func.count(Binder.id)),
             client_record_id=client_record_id,
             query=query,
             client_name_filter=client_name_filter,
             binder_number=binder_number,
             year=year,
-        ).group_by(Binder.status)
-        counts = {status.value: 0 for status in BinderStatus}
+        ).group_by(Binder.location_status, Binder.capacity_status)
+        counts = {
+            "location_in_office": 0,
+            "location_ready_for_handover": 0,
+            "location_handed_over": 0,
+            "capacity_open": 0,
+            "capacity_full": 0,
+        }
         total = 0
-        for status, count in self.db.execute(stmt).all():
-            value = status.value if isinstance(status, BinderStatus) else str(status)
-            counts[value] = int(count)
+        for location_status, capacity_status, count in self.db.execute(stmt).all():
+            location_value = (
+                location_status.value
+                if isinstance(location_status, BinderLocationStatus)
+                else str(location_status)
+            )
+            capacity_value = (
+                capacity_status.value
+                if isinstance(capacity_status, BinderCapacityStatus)
+                else str(capacity_status)
+            )
+            counts[f"location_{location_value}"] += int(count)
+            counts[f"capacity_{capacity_value}"] += int(count)
             total += int(count)
         return {"total": total, **counts}
 
     def count_active(
         self,
         client_record_id: int | None = None,
-        status: str | None = None,
+        location_status: str | None = None,
+        capacity_status: str | None = None,
     ) -> int:
         """Count active binders with optional filters."""
         stmt = scope_to_active_clients_stmt(select(func.count(Binder.id)), Binder).where(
-            Binder.status != BinderStatus.RETURNED,
+            Binder.location_status != BinderLocationStatus.HANDED_OVER,
             Binder.deleted_at.is_(None),
         )
 
         if client_record_id:
             stmt = stmt.where(Binder.client_record_id == client_record_id)
 
-        if status:
-            stmt = stmt.where(Binder.status == status)
+        if location_status:
+            stmt = stmt.where(Binder.location_status == location_status)
+        if capacity_status:
+            stmt = stmt.where(Binder.capacity_status == capacity_status)
 
         return self.db.scalar(stmt)
 
@@ -361,9 +395,9 @@ class BinderRepository(BaseRepository[Binder]):
         page: int = 1,
         page_size: int = 20,
     ) -> list[Binder]:
-        """List open binders (status != RETURNED, not soft-deleted) with pagination."""
+        """List non-handed-over binders with pagination."""
         stmt = self._active_client_stmt().where(
-            Binder.status != BinderStatus.RETURNED,
+            Binder.location_status != BinderLocationStatus.HANDED_OVER,
             Binder.deleted_at.is_(None),
         )
         stmt = self._order_by_period_start(stmt, descending=True)
@@ -371,28 +405,10 @@ class BinderRepository(BaseRepository[Binder]):
         return self.db.scalars(stmt).all()
 
     def count_open_binders(self) -> int:
-        """Count open binders (not soft-deleted)."""
+        """Count non-handed-over binders."""
         stmt = scope_to_active_clients_stmt(select(func.count(Binder.id)), Binder).where(
-            Binder.status != BinderStatus.RETURNED,
+            Binder.location_status != BinderLocationStatus.HANDED_OVER,
             Binder.deleted_at.is_(None),
-        )
-        return self.db.scalar(stmt)
-
-    def update_status(
-        self,
-        binder_id: int,
-        new_status: BinderStatus,
-        binder: Binder | None = None,
-        **additional_fields,
-    ) -> Binder | None:
-        """Update binder status and optional fields."""
-        binder = binder or self.get_by_id(binder_id)
-        return self._update_status(binder, new_status, **additional_fields)
-
-    def count_by_status(self, status: BinderStatus) -> int:
-        """Count binders by status."""
-        stmt = scope_to_active_clients_stmt(select(func.count(Binder.id)), Binder).where(
-            Binder.status == status, Binder.deleted_at.is_(None)
         )
         return self.db.scalar(stmt)
 
@@ -440,12 +456,13 @@ class BinderRepository(BaseRepository[Binder]):
         )
 
     def get_active_by_client_record(self, client_record_id: int) -> Binder | None:
-        """Return the single open (IN_OFFICE) non-deleted binder for a client_record."""
+        """Return the intake-eligible binder for a client_record."""
         stmt = self._active_client_stmt().where(
             Binder.client_record_id == client_record_id,
-            Binder.status == BinderStatus.IN_OFFICE,
+            Binder.location_status == BinderLocationStatus.IN_OFFICE,
+            Binder.capacity_status == BinderCapacityStatus.OPEN,
             Binder.deleted_at.is_(None),
-        )
+        ).order_by(nullslast(Binder.period_start.desc()), Binder.id.desc())
         return self.db.scalars(stmt).first()
 
     def list_by_client_paginated(
@@ -478,57 +495,44 @@ class BinderRepository(BaseRepository[Binder]):
         )
 
     def map_active_by_clients(self, client_record_ids: list[int]) -> dict[int, "Binder"]:
-        """Return {client_record_id: binder} for the open (IN_OFFICE) binder of each client."""
+        """Return {client_record_id: binder} for each client's intake-eligible binder."""
         if not client_record_ids:
             return {}
         stmt = self._active_client_stmt().where(
             Binder.client_record_id.in_(client_record_ids),
-            Binder.status == BinderStatus.IN_OFFICE,
+            Binder.location_status == BinderLocationStatus.IN_OFFICE,
+            Binder.capacity_status == BinderCapacityStatus.OPEN,
             Binder.deleted_at.is_(None),
-        )
+        ).order_by(Binder.client_record_id.asc(), nullslast(Binder.period_start.desc()), Binder.id.desc())
         rows = self.db.scalars(stmt).all()
         for row in rows:
             row.client_record_id = row.client_record_id
-        return {b.client_record_id: b for b in rows}
+        result: dict[int, Binder] = {}
+        for binder in rows:
+            result.setdefault(binder.client_record_id, binder)
+        return result
 
-    def close_in_office_by_client_record(self, client_record_id: int) -> int:
-        rows = self.db.scalars(
-            select(Binder).where(
-                Binder.client_record_id == client_record_id,
-                Binder.deleted_at.is_(None),
-                Binder.status == BinderStatus.IN_OFFICE,
-            )
-        ).all()
-        for row in rows:
-            row.status = BinderStatus.CLOSED_IN_OFFICE
-        if rows:
-            self.db.flush()
-        return len(rows)
-
-    def list_overdue_pickup(self, overdue_days: int = 30, limit: int = 50) -> list[Binder]:
-        """Return READY_FOR_PICKUP binders where ready_for_pickup_at is older than overdue_days."""
+    def list_overdue_handover(self, overdue_days: int = 30, limit: int = 50) -> list[Binder]:
+        """Return ready-for-handover binders older than overdue_days."""
         cutoff = utcnow() - _dt.timedelta(days=overdue_days)
         stmt = (
             self._active_client_stmt()
             .where(
-                Binder.status == BinderStatus.READY_FOR_PICKUP,
-                Binder.ready_for_pickup_at.isnot(None),
-                Binder.ready_for_pickup_at <= cutoff,
+                Binder.location_status == BinderLocationStatus.READY_FOR_HANDOVER,
+                Binder.ready_for_handover_at.isnot(None),
+                Binder.ready_for_handover_at <= cutoff,
                 Binder.deleted_at.is_(None),
             )
-            .order_by(Binder.ready_for_pickup_at.asc())
+            .order_by(Binder.ready_for_handover_at.asc())
             .limit(limit)
         )
         return self.db.scalars(stmt).all()
 
     def soft_delete(self, binder_id: int, deleted_by: int | None = None) -> bool:
-        """Soft-delete a binder: marks RETURNED, sets returned_at if unset, records deleted_at/deleted_by."""
+        """Soft-delete a binder."""
         binder = self.db.scalars(select(Binder).where(Binder.id == binder_id)).first()
         if not binder:
             return False
-        binder.status = BinderStatus.RETURNED
-        if binder.returned_at is None:
-            binder.returned_at = date.today()
         binder.deleted_at = utcnow()
         binder.deleted_by = deleted_by
         self.db.flush()

@@ -18,7 +18,7 @@ import app.binders.models.binder_handover  # noqa: F401
 import app.binders.models.binder_intake  # noqa: F401
 import app.binders.models.binder_intake_edit_log  # noqa: F401
 import app.binders.models.binder_intake_material  # noqa: F401
-import app.binders.models.binder_status_log  # noqa: F401
+import app.binders.models.binder_lifecycle_log  # noqa: F401
 import app.businesses.models.business  # noqa: F401
 import app.charge.models.charge  # noqa: F401
 import app.clients.models.client_record  # noqa: F401

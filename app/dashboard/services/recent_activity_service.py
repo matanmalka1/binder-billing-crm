@@ -17,12 +17,10 @@ from app.audit.constants import (
 )
 from app.audit.models.entity_audit_log import EntityAuditLog
 from app.audit.repositories.entity_audit_log_repository import EntityAuditLogRepository
-from app.binders.models.binder import BinderStatus
-from app.binders.models.binder_status_log import BinderStatusLog
+from app.binders.models.binder import BinderLocationStatus
+from app.binders.models.binder_lifecycle_log import BinderLifecycleLog
 from app.binders.repositories.binder_repository import BinderRepository
-from app.binders.repositories.binder_status_log_repository import (
-    BinderStatusLogRepository,
-)
+from app.binders.repositories.binder_lifecycle_log_repository import BinderLifecycleLogRepository
 from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_read_repository import get_full_records_bulk
 
@@ -71,11 +69,11 @@ class RecentActivityService:
         self.charge_repo = ChargeRepository(db)
         self.report_repo = AnnualReportRepository(db)
         self.binder_repo = BinderRepository(db)
-        self.binder_status_log_repo = BinderStatusLogRepository(db)
+        self.binder_lifecycle_log_repo = BinderLifecycleLogRepository(db)
 
     def build(self) -> list[dict]:
         audit_rows = self.repo.list_recent(_ACTIVITY_FETCH_LIMIT)
-        binder_rows = self.binder_status_log_repo.list_recent(_ACTIVITY_FETCH_LIMIT)
+        binder_rows = self.binder_lifecycle_log_repo.list_recent(_ACTIVITY_FETCH_LIMIT)
         client_names = self._client_names(audit_rows, binder_rows)
 
         items = [
@@ -108,7 +106,7 @@ class RecentActivityService:
         }
 
     def _client_names(
-        self, audit_rows: list[EntityAuditLog], binder_rows: list[BinderStatusLog]
+        self, audit_rows: list[EntityAuditLog], binder_rows: list[BinderLifecycleLog]
     ) -> dict[int | str, str]:
         charge_ids = {row.entity_id for row in audit_rows if row.entity_type == ENTITY_CHARGE}
         report_ids = {
@@ -146,7 +144,7 @@ class RecentActivityService:
             if client_id in records
         }
 
-    def _serialize_binder(self, row: BinderStatusLog, client_name: str) -> dict:
+    def _serialize_binder(self, row: BinderLifecycleLog, client_name: str) -> dict:
         return {
             "id": -row.id,
             "date": self._format_date(row),
@@ -155,18 +153,19 @@ class RecentActivityService:
             "client_name": client_name,
             "href": f"/binders?binder_id={row.binder_id}",
             "activity_type": "done"
-            if row.new_status == BinderStatus.READY_FOR_PICKUP.value
+            if row.new_value == BinderLocationStatus.READY_FOR_HANDOVER.value
             else "updated",
         }
 
-    def _binder_label(self, row: BinderStatusLog) -> str:
-        if row.new_status == BinderStatus.READY_FOR_PICKUP.value:
-            return "קלסר מוכן לאיסוף"
-        if row.new_status == BinderStatus.RETURNED.value:
-            return "קלסר הוחזר ללקוח"
-        if row.new_status == BinderStatus.IN_OFFICE.value:
-            return "קלסר הוחזר לעבודה במשרד"
-        return "עודכן סטטוס קלסר"
+    def _binder_label(self, row: BinderLifecycleLog) -> str:
+        if row.field_name == "location_status":
+            if row.new_value == BinderLocationStatus.READY_FOR_HANDOVER.value:
+                return "קלסר מוכן למסירה"
+            if row.new_value == BinderLocationStatus.HANDED_OVER.value:
+                return "קלסר נמסר ללקוח"
+            if row.new_value == BinderLocationStatus.IN_OFFICE.value:
+                return "קלסר חזר לעבודה במשרד"
+        return "עודכן מחזור חיי קלסר"
 
     def _label(self, row: EntityAuditLog) -> str:
         if row.note and not row.note.startswith("{"):
@@ -188,14 +187,14 @@ class RecentActivityService:
             return f"/clients/{row.entity_id}"
         return "/"
 
-    def _timestamp(self, row: EntityAuditLog | BinderStatusLog):
+    def _timestamp(self, row: EntityAuditLog | BinderLifecycleLog):
         timestamp = getattr(row, "performed_at", None) or row.changed_at
         if timestamp.tzinfo is None:
             timestamp = timestamp.replace(tzinfo=UTC)
         return timestamp.astimezone()
 
-    def _format_date(self, row: EntityAuditLog | BinderStatusLog) -> str:
+    def _format_date(self, row: EntityAuditLog | BinderLifecycleLog) -> str:
         return self._timestamp(row).strftime("%d.%m.%Y")
 
-    def _format_time(self, row: EntityAuditLog | BinderStatusLog) -> str:
+    def _format_time(self, row: EntityAuditLog | BinderLifecycleLog) -> str:
         return self._timestamp(row).strftime("%H:%M")

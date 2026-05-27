@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
 
 
 def _make_binder(db, client_record_id: int, binder_number: str, user_id: int) -> Binder:
@@ -9,7 +9,8 @@ def _make_binder(db, client_record_id: int, binder_number: str, user_id: int) ->
         binder_number=binder_number,
         period_start=date.today(),
         created_by=user_id,
-        status=BinderStatus.IN_OFFICE,
+        location_status=BinderLocationStatus.IN_OFFICE,
+        capacity_status=BinderCapacityStatus.OPEN,
     )
     db.add(b)
     db.commit()

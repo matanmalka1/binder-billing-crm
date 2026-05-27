@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from app.binders.models.binder import BinderStatus
+from app.binders.models.binder import BinderLocationStatus
 from app.binders.repositories.binder_repository import BinderRepository
 from app.binders.services.binder_operations_service import BinderOperationsService
 from tests.helpers.identity import SeededClient, seed_client_identity
@@ -20,7 +20,7 @@ def _create_binder(
     user_id: int,
     number: str,
     period_start: date,
-    status: BinderStatus,
+    location_status: BinderLocationStatus,
 ):
     repo = BinderRepository(db)
     binder = repo.create(
@@ -29,14 +29,14 @@ def _create_binder(
         period_start=period_start,
         created_by=user_id,
     )
-    if status != BinderStatus.IN_OFFICE:
-        binder.status = status
+    if location_status != BinderLocationStatus.IN_OFFICE:
+        binder.location_status = location_status
         db.commit()
         db.refresh(binder)
     return binder
 
 
-def test_get_open_binders_filters_returned_and_orders(test_db, test_user):
+def test_get_open_binders_filters_handed_over_and_orders(test_db, test_user):
     client = _create_client(test_db, "Client A", "C-001")
     newer = _create_binder(
         test_db,
@@ -44,7 +44,7 @@ def test_get_open_binders_filters_returned_and_orders(test_db, test_user):
         test_user.id,
         "B-NEW",
         date(2024, 2, 1),
-        BinderStatus.IN_OFFICE,
+        BinderLocationStatus.IN_OFFICE,
     )
     older = _create_binder(
         test_db,
@@ -52,15 +52,15 @@ def test_get_open_binders_filters_returned_and_orders(test_db, test_user):
         test_user.id,
         "B-OLD",
         date(2024, 1, 1),
-        BinderStatus.IN_OFFICE,
+        BinderLocationStatus.IN_OFFICE,
     )
     _create_binder(
         test_db,
         client.id,
         test_user.id,
-        "B-RET",
+        "B-HAND",
         date(2024, 1, 15),
-        BinderStatus.RETURNED,
+        BinderLocationStatus.HANDED_OVER,
     )
 
     service = BinderOperationsService(test_db)
@@ -79,7 +79,7 @@ def test_get_client_binders_scopes_to_client(test_db, test_user):
         test_user.id,
         "B-CLI-A",
         date(2024, 1, 5),
-        BinderStatus.IN_OFFICE,
+        BinderLocationStatus.IN_OFFICE,
     )
     _create_binder(
         test_db,
@@ -87,7 +87,7 @@ def test_get_client_binders_scopes_to_client(test_db, test_user):
         test_user.id,
         "B-CLI-B",
         date(2024, 1, 6),
-        BinderStatus.IN_OFFICE,
+        BinderLocationStatus.IN_OFFICE,
     )
 
     service = BinderOperationsService(test_db)
@@ -105,7 +105,7 @@ def test_enrich_binder_returns_expected_fields(test_db, test_user):
         test_user.id,
         "B-IDLE",
         date.today() - timedelta(days=30),
-        BinderStatus.IN_OFFICE,
+        BinderLocationStatus.IN_OFFICE,
     )
 
     service = BinderOperationsService(test_db)

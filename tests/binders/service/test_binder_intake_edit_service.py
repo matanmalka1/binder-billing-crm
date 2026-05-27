@@ -7,7 +7,7 @@ from app.annual_reports.models.annual_report_enums import (
     PrimaryAnnualReportForm,
 )
 from app.annual_reports.models.annual_report_model import AnnualReport
-from app.binders.models.binder import Binder, BinderStatus
+from app.binders.models.binder import Binder, BinderCapacityStatus, BinderLocationStatus
 from app.binders.models.binder_intake import BinderIntake
 from app.binders.models.binder_intake_material import BinderIntakeMaterial, MaterialType
 from app.binders.repositories.binder_intake_edit_log_repository import (
@@ -87,14 +87,15 @@ def _binder(
     client_id: int,
     number: str,
     created_by: int,
-    status: BinderStatus = BinderStatus.IN_OFFICE,
+    location_status: BinderLocationStatus = BinderLocationStatus.IN_OFFICE,
 ) -> Binder:
     binder = Binder(
         client_record_id=client_id,
         binder_number=number,
         period_start=date(2026, 1, 1),
         created_by=created_by,
-        status=status,
+        location_status=location_status,
+        capacity_status=BinderCapacityStatus.OPEN,
     )
     db.add(binder)
     db.commit()

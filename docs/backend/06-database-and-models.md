@@ -70,14 +70,14 @@ Python enums used as column types:
 from enum import Enum as PyEnum
 from app.utils.enum_utils import pg_enum
 
-class BinderStatus(str, PyEnum):
+class BinderLocationStatus(str, PyEnum):
     IN_OFFICE = "in_office"
-    READY_FOR_PICKUP = "ready_for_pickup"
-    RETURNED = "returned"
+    READY_FOR_HANDOVER = "ready_for_handover"
+    HANDED_OVER = "handed_over"
 
-status: Mapped[BinderStatus] = mapped_column(
-    pg_enum(BinderStatus),
-    default=BinderStatus.IN_OFFICE,
+location_status: Mapped[BinderLocationStatus] = mapped_column(
+    pg_enum(BinderLocationStatus),
+    default=BinderLocationStatus.IN_OFFICE,
     nullable=False,
 )
 ```
@@ -107,4 +107,4 @@ Standard response schemas use `ApiDateTime` and `ApiDecimal` from `app/core/api_
 - `ApiDateTime`: normalizes naive datetimes to UTC, serializes as `"2026-01-02T03:04:05Z"`.
 - `ApiDecimal`: serializes as a string with 2 decimal places (`"123.45"`), avoids float precision issues.
 
-New response fields such as `created_at`, `updated_at`, `returned_at` etc. should use `ApiDateTime`; a few legacy schemas still expose raw `datetime`/`Decimal` and should be migrated when touched.
+New response fields such as `created_at`, `updated_at`, `handed_over_at` etc. should use `ApiDateTime`; a few legacy schemas still expose raw `datetime`/`Decimal` and should be migrated when touched.

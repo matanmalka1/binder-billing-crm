@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from random import Random
 
-from app.binders.models.binder import BinderStatus
+from app.binders.models.binder import BinderLocationStatus
 from app.notification.models.notification import (
     Notification,
     NotificationChannel,
@@ -52,8 +52,8 @@ def create_notifications(
         if not recipient:
             recipient = demo_email("client", client.id)
 
-        if binder.status == BinderStatus.READY_FOR_PICKUP:
-            trigger = NotificationTrigger.BINDER_READY_FOR_PICKUP
+        if binder.location_status == BinderLocationStatus.READY_FOR_HANDOVER:
+            trigger = NotificationTrigger.BINDER_READY_FOR_HANDOVER
         else:
             trigger = rng.choice(
                 [
