@@ -39,7 +39,7 @@ services:
         value: "15"
 
       - key: AUTH_REFRESH_TOKEN_EXPIRE_DAYS
-        value: "30"
+        value: "7"
 
       - key: REFRESH_COOKIE_NAME
         value: refresh_token

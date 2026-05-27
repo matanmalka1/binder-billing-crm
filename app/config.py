@@ -63,11 +63,11 @@ class Settings(BaseSettings):
     JWT_SECRET: str = ""
     JWT_ALGORITHM: str = "HS256"
     AUTH_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
-    AUTH_REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    AUTH_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     REFRESH_COOKIE_NAME: str = "refresh_token"
     REFRESH_COOKIE_PATH: str = "/api/v1/auth"
     REFRESH_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
-    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 5
     PASSWORD_RESET_DEV_LOG: bool = False
     FRONTEND_PASSWORD_RESET_URL: str = "http://localhost:5173/reset-password"
 
