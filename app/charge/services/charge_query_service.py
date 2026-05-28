@@ -1,3 +1,5 @@
+from datetime import date
+
 from sqlalchemy.orm import Session
 
 from app.actions.charge_actions import get_charge_actions
@@ -40,6 +42,9 @@ class ChargeQueryService:
         client_record_id: int | None = None,
         status: str | None = None,
         charge_type: str | None = None,
+        period: str | None = None,
+        issued_after: date | None = None,
+        issued_before: date | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> tuple[
@@ -60,6 +65,9 @@ class ChargeQueryService:
                 business_id=business_id,
                 status=status,
                 charge_type=charge_type,
+                period=period,
+                issued_after=issued_after,
+                issued_before=issued_before,
                 page=page,
                 page_size=page_size,
             )
@@ -68,6 +76,9 @@ class ChargeQueryService:
                 business_id=business_id,
                 status=status,
                 charge_type=charge_type,
+                period=period,
+                issued_after=issued_after,
+                issued_before=issued_before,
             )
         else:
             items = self.charge_repo.list_charges(
@@ -75,6 +86,9 @@ class ChargeQueryService:
                 business_id=business_id,
                 status=status,
                 charge_type=charge_type,
+                period=period,
+                issued_after=issued_after,
+                issued_before=issued_before,
                 page=page,
                 page_size=page_size,
             )
@@ -83,6 +97,9 @@ class ChargeQueryService:
                 business_id=business_id,
                 status=status,
                 charge_type=charge_type,
+                period=period,
+                issued_after=issued_after,
+                issued_before=issued_before,
             )
 
         business_ids = list({c.business_id for c in items if c.business_id is not None})
@@ -121,6 +138,9 @@ class ChargeQueryService:
         client_record_id: int | None = None,
         status: str | None = None,
         charge_type: str | None = None,
+        period: str | None = None,
+        issued_after: date | None = None,
+        issued_before: date | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> ChargeListResponse:
@@ -130,6 +150,9 @@ class ChargeQueryService:
                 client_record_id=client_record_id,
                 status=status,
                 charge_type=charge_type,
+                period=period,
+                issued_after=issued_after,
+                issued_before=issued_before,
                 page=page,
                 page_size=page_size,
             )

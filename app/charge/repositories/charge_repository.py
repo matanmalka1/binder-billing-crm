@@ -49,6 +49,9 @@ class ChargeRepository(BaseRepository[Charge]):
         business_ids: list[int] | None = None,
         status: str | None = None,
         charge_type: str | None = None,
+        period: str | None = None,
+        issued_after: date | None = None,
+        issued_before: date | None = None,
     ) -> object | None:
         """
         Shared filter builder for list and count queries.
@@ -81,6 +84,12 @@ class ChargeRepository(BaseRepository[Charge]):
             stmt = stmt.where(Charge.status == status)
         if charge_type:
             stmt = stmt.where(Charge.charge_type == charge_type)
+        if period:
+            stmt = stmt.where(Charge.period == period)
+        if issued_after is not None:
+            stmt = stmt.where(Charge.issued_at >= issued_after)
+        if issued_before is not None:
+            stmt = stmt.where(Charge.issued_at <= issued_before)
 
         return stmt
 
@@ -91,11 +100,16 @@ class ChargeRepository(BaseRepository[Charge]):
         business_ids: list[int] | None = None,
         status: str | None = None,
         charge_type: str | None = None,
+        period: str | None = None,
+        issued_after: date | None = None,
+        issued_before: date | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Charge]:
-        """List charges with optional filters and pagination."""
-        stmt = self._base_stmt(client_record_id, business_id, business_ids, status, charge_type)
+        stmt = self._base_stmt(
+            client_record_id, business_id, business_ids, status, charge_type,
+            period, issued_after, issued_before,
+        )
         if stmt is None:
             return []
         stmt = stmt.order_by(Charge.created_at.desc())
@@ -108,6 +122,9 @@ class ChargeRepository(BaseRepository[Charge]):
         business_id: int | None = None,
         status: str | None = None,
         charge_type: str | None = None,
+        period: str | None = None,
+        issued_after: date | None = None,
+        issued_before: date | None = None,
         page: int = 1,
         page_size: int = 20,
     ) -> list[Charge]:
@@ -116,6 +133,9 @@ class ChargeRepository(BaseRepository[Charge]):
             business_id=business_id,
             status=status,
             charge_type=charge_type,
+            period=period,
+            issued_after=issued_after,
+            issued_before=issued_before,
             page=page,
             page_size=page_size,
         )
@@ -127,28 +147,17 @@ class ChargeRepository(BaseRepository[Charge]):
         business_ids: list[int] | None = None,
         status: str | None = None,
         charge_type: str | None = None,
+        period: str | None = None,
+        issued_after: date | None = None,
+        issued_before: date | None = None,
     ) -> int:
-        """Count charges with optional filters."""
-        # Build a count-specific stmt reusing same filter logic
-        count_stmt = scope_to_active_clients_stmt(select(func.count(Charge.id)), Charge).where(
-            Charge.deleted_at.is_(None)
+        base = self._base_stmt(
+            client_record_id, business_id, business_ids, status, charge_type,
+            period, issued_after, issued_before,
         )
-
-        if client_record_id is not None:
-            count_stmt = count_stmt.where(Charge.client_record_id == client_record_id)
-
-        if business_id is not None:
-            count_stmt = count_stmt.where(Charge.business_id == business_id)
-        elif business_ids is not None:
-            if not business_ids:
-                return 0
-            count_stmt = count_stmt.where(Charge.business_id.in_(business_ids))
-
-        if status:
-            count_stmt = count_stmt.where(Charge.status == status)
-        if charge_type:
-            count_stmt = count_stmt.where(Charge.charge_type == charge_type)
-
+        if base is None:
+            return 0
+        count_stmt = base.with_only_columns(func.count(Charge.id))
         return self.db.scalar(count_stmt)
 
     def count_charges_by_client_record(
@@ -157,12 +166,18 @@ class ChargeRepository(BaseRepository[Charge]):
         business_id: int | None = None,
         status: str | None = None,
         charge_type: str | None = None,
+        period: str | None = None,
+        issued_after: date | None = None,
+        issued_before: date | None = None,
     ) -> int:
         return self.count_charges(
             client_record_id=client_record_id,
             business_id=business_id,
             status=status,
             charge_type=charge_type,
+            period=period,
+            issued_after=issued_after,
+            issued_before=issued_before,
         )
 
     def sum_open_charges_amount(self) -> Decimal | None:

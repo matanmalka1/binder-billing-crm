@@ -1,3 +1,5 @@
+import datetime
+
 from fastapi import APIRouter, Body, Depends, Query, Response, status
 
 from app.charge.schemas.charge import (
@@ -91,6 +93,9 @@ def list_charges(
     client_record_id: int | None = None,
     status_filter: str | None = Query(None, alias="status"),
     charge_type: str | None = None,
+    period: str | None = None,
+    issued_after: datetime.date | None = None,
+    issued_before: datetime.date | None = None,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
@@ -99,6 +104,9 @@ def list_charges(
         client_record_id=client_record_id,
         status=status_filter,
         charge_type=charge_type,
+        period=period,
+        issued_after=issued_after,
+        issued_before=issued_before,
         page=page,
         page_size=page_size,
     )
