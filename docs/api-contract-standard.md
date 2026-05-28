@@ -105,8 +105,8 @@ sort_dir
 order_by
 ```
 
-If a legacy endpoint already uses one of these names, keep compatibility only until the endpoint is migrated.
 New endpoint contracts must use `page`, `page_size`, `sort_by`, `order`.
+Existing endpoints that use one of these names must be migrated by updating their callers and removing the old names. Compatibility aliases may be added only when explicitly requested by the owner, and only with a documented scope and removal plan.
 
 ## Filtering
 
@@ -305,6 +305,6 @@ For primary table pages, the frontend should:
 
 ## Migration Rule
 
-Existing endpoints may deviate from this standard. When touching a list endpoint for feature work, prefer migrating it toward this contract rather than adding another variation.
+Existing endpoints may deviate from this standard. When touching a list endpoint for feature work, migrate it toward this contract by updating its callers and removing the old names rather than adding another variation.
 
-If migration would break existing consumers, add compatibility handling temporarily, but document the target public parameters in the endpoint and frontend API client.
+Do not add compatibility handling to preserve old names by default. Compatibility aliases may be added only when explicitly requested by the owner; when requested, document the reason, scope, and removal plan, and document the target public parameters in the endpoint and frontend API client.

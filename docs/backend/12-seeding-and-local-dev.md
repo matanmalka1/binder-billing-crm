@@ -29,7 +29,7 @@ See `app/config.py` `Settings` class for the full list.
 Run seed (requires the DB schema to be up to date via Alembic):
 
 ```bash
-APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --reset
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/seed_fake_data.py --reset
 ```
 
 Seed behavior is controlled by `SeedConfig` from `app/seed/config.py`. Common options:
@@ -85,10 +85,10 @@ Migrations live in `alembic/versions/NNNN_<description>.py`. After running, upda
 
 ```bash
 # Domain-scoped (fast — preferred)
-JWT_SECRET=test-secret pytest -q tests/binders/
+JWT_SECRET=test-secret ./.venv/bin/python -m pytest -q tests/binders/
 
 # Full suite
-JWT_SECRET=test-secret pytest -q
+JWT_SECRET=test-secret ./.venv/bin/python -m pytest -q
 ```
 
 Tests use SQLite in-memory. No Postgres required for tests.

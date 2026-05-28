@@ -4,10 +4,10 @@
 
 ```bash
 # Run tests for a specific domain (preferred — only run what you changed)
-JWT_SECRET=test-secret pytest -q tests/binders/
+JWT_SECRET=test-secret ./.venv/bin/python -m pytest -q tests/binders/
 
 # Run the full suite
-JWT_SECRET=test-secret pytest -q
+JWT_SECRET=test-secret ./.venv/bin/python -m pytest -q
 ```
 
 The `JWT_SECRET` env var is required because `config.py` validates it at import time. Tests set `APP_ENV=test` and `JWT_SECRET=test-secret` at the top of `tests/conftest.py`.
