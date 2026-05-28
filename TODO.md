@@ -21,6 +21,18 @@ Last verified from code, migrations, and tests: 2026-05-17.
   - Current state: `Reminder` has no explicit `client_record_id` / `business_id`, and there is no `cancel_scheduled_by_client` service path.
   - Relevant code: `app/reminders/models/reminder.py`, `app/reminders/repositories/reminder_repository.py`
 
+## Cross-Domain: Sorting & Search
+
+- [ ] Add sort_by / sort_order to all data tables (cross-domain).
+  - Current state: most domains sort by a hardcoded column (usually `created_at DESC`). Only `clients` has sort params today.
+  - Plan: establish a single convention (query params `sort_by` + `sort_order=asc|desc`) and apply uniformly across all list endpoints + DataTable column headers in the frontend.
+  - Domains to cover: charges (`amount`, `issued_at`, `status`, `created_at`), vat_reports, annual_reports, binders, reminders, notifications, signature_requests, and any other paginated list.
+  - Scope: every affected repo, router, frontend hook, and `DataTable` column header — requires a design pass before implementation.
+
+- [ ] Add free-text search to charges list (low priority).
+  - Current state: no search param in repo or router.
+  - Scope: ILIKE on joined client name + charge description; `app/charge/repositories/charge_repository.py`, `app/charge/api/charge.py`, frontend filter field.
+
 ## High
 
 - [ ] Complete invoice provider integration.

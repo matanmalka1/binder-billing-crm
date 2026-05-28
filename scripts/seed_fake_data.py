@@ -1,23 +1,7 @@
 #!/usr/bin/env python3
 """Populate the local database with fake but coherent demo data.
 
-Local quick start:
-1) Run migrations:
-   APP_ENV=development ENV_FILE=.env.development alembic upgrade head
-2) Reset local DB and rerun from scratch when needed:
-   - If you deleted tables manually, also reset the Alembic state in the same database.
-   - Recommended full reset in development on PostgreSQL:
-     DB_URL=$(grep '^DATABASE_URL=' .env.development | cut -d= -f2- | sed 's/^postgresql+psycopg2:/postgresql:/')
-     psql "$DB_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-   - Then run:
-     APP_ENV=development ENV_FILE=.env.development alembic upgrade head
-   - After the schema is back, rerun the relevant seed command below.
-3) Run seed:
-   APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --reset
-   APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --users-only --reset
-   APP_ENV=development ENV_FILE=.env.development python scripts/seed_fake_data.py --onboarding-only --reset
-4) Run backend:
-   APP_ENV=development ENV_FILE=.env.development python -m app.main
+For a full DB reset (drop schema + squash migrations + seed), use reset_dev_db.py instead.
 """
 
 from __future__ import annotations
