@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Reference terminology and domain definitions for Israeli VAT reporting.
+
+This file must not contain:
+- Current implemented behavior.
+- Product decisions.
+- Backend architecture rules.
+
+Source of truth: reference
+
 # VAT_DEFINITIONS.md
 
 ## Purpose

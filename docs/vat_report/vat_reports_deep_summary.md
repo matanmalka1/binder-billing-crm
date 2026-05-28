@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Historical context for a previous VAT domain specification.
+
+This file must not contain:
+- Current implemented behavior.
+- New product requirements.
+- Canonical architecture rules.
+
+Source of truth: historical
+
 # דומיין דוחות מע"מ — סיכום ממוקד
 
 ## 1. ישות הדיווח

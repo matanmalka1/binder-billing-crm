@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Historical context for a completed binder lifecycle refactor/task spec.
+
+This file must not contain:
+- Current implemented behavior.
+- New product requirements.
+- Canonical architecture rules.
+
+Source of truth: historical
+
 # Binder Lifecycle Refactor — Task Spec
 
 ## Goal

@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- External source links for the VAT domain.
+
+This file must not contain:
+- Current implemented behavior.
+- Product decisions.
+- Backend architecture rules.
+
+Source of truth: reference
+
 https://www.kolzchut.org.il/he/%D7%9E%D7%A1_%D7%AA%D7%A9%D7%95%D7%9E%D7%95%D7%AA
 
 https://www.kolzchut.org.il/he/%D7%A2%D7%95%D7%A1%D7%A7_%D7%A4%D7%98%D7%95%D7%A8

@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Binder domain modeling notes whose relationship to current implementation is not yet confirmed.
+
+This file must not contain:
+- Current implemented behavior unless verified against code.
+- Product decisions.
+- Migration instructions.
+
+Source of truth: unclear
+
 # Binder Domain Definitions
 
 ## Domain Purpose

@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Historical context for a previous advance payments specification.
+
+This file must not contain:
+- Current implemented behavior.
+- New product requirements.
+- Canonical architecture rules.
+
+Source of truth: historical
+
 # מקדמות מס הכנסה — אפיון מלא
 
 > החלטות שהתקבלו בשיחת אפיון. מקור אמת לפני פיתוח.

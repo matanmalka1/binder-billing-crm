@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Implemented binder lifecycle behavior currently documented for this domain.
+- Current model, lifecycle, and API ownership boundaries for binders.
+
+This file must not contain:
+- Historical implementation plans.
+- Future product behavior that is not implemented.
+- Cross-domain architecture rules.
+
+Source of truth: mandatory
+
 # Binders Domain
 
 Manages physical binder intake, office lifecycle, handover, history, and list views.

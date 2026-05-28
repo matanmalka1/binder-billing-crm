@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Implemented backend behavior for the VAT reports (VAT work-item) domain.
+- Current service, repository, model, and API ownership boundaries for this domain.
+
+This file must not contain:
+- Historical implementation plans.
+- Future product behavior that is not implemented.
+- Cross-domain architecture rules.
+
+Source of truth: mandatory
+
 # VAT Reports Module
 
 > Last audited: 2026-04-11
