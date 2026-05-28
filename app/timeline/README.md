@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Implemented backend behavior for the timeline domain.
+- Current timeline service, schema, and API ownership boundaries.
+
+This file must not contain:
+- Audit trail product rules.
+- Historical screen specs.
+- Cross-project architecture rules.
+
+Source of truth: mandatory
+
 # Timeline Module
 
 > Last audited: 2026-05-08 (operational feed cleanup).

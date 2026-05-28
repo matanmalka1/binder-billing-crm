@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Draft screen specifications whose relationship to the current frontend implementation is not yet verified.
+
+This file must not contain:
+- Canonical frontend behavior.
+- Canonical domain behavior.
+- Backend architecture rules.
+
+Source of truth: unclear
+
 # איפיון מסכים — Frontend CRM
 
 ## מטרה

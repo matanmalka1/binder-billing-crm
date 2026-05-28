@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Review findings and known documentation or implementation gaps at the time of the review.
+
+This file must not contain:
+- Canonical domain behavior.
+- New product requirements.
+- Migration instructions.
+
+Source of truth: reference
+
 # Domain Model Review Summary
 
 Last verified from code and migrations: 2026-05-17.

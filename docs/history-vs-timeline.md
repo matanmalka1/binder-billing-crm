@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Reference explanation of the conceptual distinction between timeline and audit trail.
+
+This file must not contain:
+- Current implemented behavior unless verified against the owning domain README.
+- New product requirements.
+- Canonical architecture rules.
+
+Source of truth: reference
+
 # History vs Timeline
 
 ## Timeline

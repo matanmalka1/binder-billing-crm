@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Implemented Work Queue construction, scoping, urgency, and response-shape behavior.
+- Current Work Queue source types and aggregation rules.
+
+This file must not contain:
+- Product rules for the source domains that feed the queue.
+- Frontend UI behavior.
+- Cross-project architecture rules.
+
+Source of truth: mandatory
+
 # Work Queue Domain
 
 ## What It Is

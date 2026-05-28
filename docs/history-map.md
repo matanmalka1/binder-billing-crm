@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Reference map of history, timeline, and audit surfaces across the frontend.
+
+This file must not contain:
+- Canonical product behavior.
+- Current implemented behavior unless verified against the owning domain README.
+- Canonical architecture rules.
+
+Source of truth: reference
+
 # Frontend History, Timeline, and Audit Map
 
 Purpose: map current frontend usages before expanding generic audit UI. This is documentation only; no shared component work is included here.

@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Index and overview for the domain-model decision documents.
+
+This file must not contain:
+- Canonical domain behavior.
+- New product requirements.
+- Canonical architecture rules.
+
+Source of truth: reference
+
 # Domain Model Decisions
 
 This directory contains the current domain-model review and the derived decision artifacts.
