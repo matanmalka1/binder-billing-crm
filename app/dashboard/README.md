@@ -8,7 +8,7 @@ Manages dashboard widgets and operational summaries (overview metrics, attention
 ## Scope
 
 This module provides:
-- Management overview metrics + quick actions
+- Management overview metrics
 - Attention items embedded in the overview
 - Tax submission widget for annual reports
 - Role-based API access per widget
@@ -21,14 +21,13 @@ It composes data from other domains and returns derived response models:
 - `DashboardOverviewResponse`
 - `AttentionResponse`
 - `AttentionItem`
-- `DashboardQuickAction`
 - `TaxSubmissionWidgetResponse`
 
 Implementation references:
 - APIs: `app/dashboard/api/dashboard_overview.py`, `app/dashboard/api/dashboard_tax.py`
 - Schemas: `app/dashboard/schemas/dashboard_extended.py`, `app/dashboard/schemas/dashboard_tax.py`
 - Services: `app/dashboard/services/dashboard_overview_service.py`, `app/dashboard/services/dashboard_extended_service.py`, `app/dashboard/services/dashboard_tax_service.py`
-- Dashboard-specific helpers/builders: `app/dashboard/services/dashboard_extended_builders.py`, `app/dashboard/services/dashboard_quick_actions_builder.py`
+- Dashboard-specific helpers/builders: `app/dashboard/services/dashboard_extended_builders.py`
 
 ## API
 
@@ -58,8 +57,8 @@ Router prefix is `/api/v1/dashboard` (mounted through `app/router_registry.py`).
 
 ## Behavior Notes
 
-- Overview combines repository metrics with cross-domain quick actions and attention items.
-- Quick actions are advisor-only operational shortcuts for overdue binders, VAT work items, and stuck annual reports. Financial state mutations are intentionally kept out of quick actions.
+- Overview combines repository metrics with attention items.
+- `quick_actions` remains in the response contract for frontend compatibility, but Phase 2 notification cleanup removed the populated reminder actions and the backend currently returns an empty list.
 - Dashboard stat card links deep-link to their matching filtered list views:
   - binders in office: `/binders?status=in_office`
   - monthly/bimonthly VAT: `/tax/vat?period=YYYY-MM&period_type=...`
@@ -85,12 +84,11 @@ Domain errors use stable codes such as:
 ## Cross-Domain Integration
 
 Dashboard aggregates across:
-- `binders` (status counts, active binders, binder actions)
-- `clients` (counts, names, client actions)
+- `binders` (status counts, active binders)
+- `clients` (counts, names)
 - `charge` (issued/unpaid charge attention items)
 - `annual_reports` (tax-submission widget metrics and financial sums)
-- `vat_reports` (VAT due counters and quick actions)
-- `actions` (`app/actions/action_helpers.py` for dashboard quick action metadata)
+- `vat_reports` (VAT due counters)
 
 ## Tests
 
@@ -101,7 +99,6 @@ Dashboard test suites:
 - `tests/dashboard/service/test_dashboard_overview_service.py`
 - `tests/dashboard/service/test_dashboard_tax_service.py`
 - `tests/dashboard/service/test_dashboard_extended_builders.py`
-- `tests/dashboard/service/test_dashboard_quick_actions_builder_additional.py`
 
 Run only this domain:
 

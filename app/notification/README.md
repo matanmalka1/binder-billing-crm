@@ -1,17 +1,18 @@
 # Notification Module
 
-> Last audited: 2026-05-16 (delivery-log refactor).
+> Last audited: 2026-05-27 (notification schema v2 / Phase 2).
 
-Manages notification records and delivery orchestration (email/WhatsApp) for binder lifecycle updates and manual reminders.
+Manages notification audit records, manual preview/send, and the limited automatic binder handover send path.
 
 ## Scope
 
 This module provides:
 - Notification persistence in `notifications`
-- Delivery-status summary endpoint (bell badge source)
-- Advisor-only manual send endpoint
-- Channel orchestration (WhatsApp first when requested/configured, email fallback)
-- `business_name` enrichment when notifications are scoped to a business
+- Notification list and summary endpoints
+- Advisor-only manual preview and send flow
+- Email-only delivery for current Phase 1/2 implementation
+- Policy checks before delivery
+- `business_name`, `client_name`, trigger label, and domain label enrichment for list responses
 
 ## Domain Model
 
@@ -20,58 +21,55 @@ This module provides:
 - `client_record_id` (FK -> `client_records.id`, required primary anchor)
 - `business_id` (FK -> `businesses.id`, optional context)
 - `binder_id` (FK -> `binders.id`, optional)
+- `annual_report_id` (FK -> `annual_reports.id`, optional)
+- `signature_request_id` (FK -> `signature_requests.id`, optional)
+- `entity_type`, `entity_id` (generic domain anchor)
 - `trigger` (enum, required)
 - `channel` (enum, required)
-- `status` (enum, default `pending`)
-- `severity` (enum, default `info`)
-- `recipient` (required)
-- `content_snapshot` (required)
-- `sent_at`, `failed_at`, `error_message`
-- `retry_count`
+- `recipient` (nullable; skipped records use `null`)
+- `content_snapshot`, `subject_snapshot`
+- `status` (`pending`, `sent`, `failed`, `skipped`)
+- `sent_at`, `failed_at`, `error_message`, `retry_count`
+- `idempotency_key`, `request_hash`
+- `triggered_by` (FK -> `users.id`, nullable; `null` means system-triggered)
 - `created_at`
-- `triggered_by` (FK -> `users.id`, optional)
-
-Channel enum values:
-- `whatsapp`
-- `email`
-
-Status enum values:
-- `pending`
-- `sent`
-- `failed`
 
 Trigger enum values:
-- `binder_received`
 - `binder_ready_for_handover`
-- `handover_reminder`
+- `binder_missing_documents`
+- `binder_general_reminder`
+- `invoice_issued`
+- `payment_reminder`
+- `vat_documents_reminder`
+- `annual_report_documents_request`
 - `annual_report_client_reminder`
-- `manual_payment_reminder`
-
-Severity enum values:
-- `info`
-- `warning`
-- `urgent`
-- `critical`
+- `signature_request_sent`
+- `signature_request_reminder`
+- `client_missing_information`
+- `client_documents_request`
+- `client_general_message`
 
 Implementation references:
 - Model: `app/notification/models/notification.py`
 - Repository: `app/notification/repositories/notification_repository.py`
-- Template renderer: `app/notification/services/notification_template_renderer.py`
-- Delivery service: `app/notification/services/notification_delivery_service.py`
-- Service (facade): `app/notification/services/notification_service.py`
+- Facade: `app/notification/services/notification_service.py`
+- Manual path: `app/notification/services/notification_send_service.py`
+- Automatic path: `app/notification/services/notification_auto_send_service.py`
+- Policy checks: `app/notification/services/notification_policy_service.py`
+- Context resolution: `app/notification/services/notification_context_resolver.py`
+- Template rendering: `app/notification/services/notification_template_renderer.py`
+- Email delivery: `app/notification/services/notification_delivery_service.py`
 - API: `app/notification/api/notifications.py`
 
 ## Service Architecture
 
-The service layer is split into three classes:
-
 | Class | File | Responsibility |
 |---|---|---|
-| `NotificationService` | `notification_service.py` | Public facade — validation, orchestration, list, summary |
-| `NotificationTemplateRenderer` | `notification_template_renderer.py` | Template lookup + format; raises `AppError` on failure |
-| `NotificationDeliveryService` | `notification_delivery_service.py` | Channel selection, WhatsApp→email fallback, persistence |
-
-All domain callers (`BinderPickupReminderService`, `AnnualReportClientReminderService`, etc.) import and instantiate `NotificationService` only.
+| `NotificationService` | `notification_service.py` | Public facade for preview, send, list, and summary |
+| `NotificationSendService` | `notification_send_service.py` | Manual preview/send, validation, policy, contact resolution, record creation |
+| `NotificationAutoSendService` | `notification_auto_send_service.py` | Internal auto-send path; only `binder_ready_for_handover` is allowed |
+| `NotificationPolicyService` | `notification_policy_service.py` | Trigger-specific allow/block rules |
+| `NotificationDeliveryService` | `notification_delivery_service.py` | Sends already-resolved email content; does not persist records |
 
 ## API
 
@@ -83,69 +81,74 @@ Router prefix is `/api/v1/notifications` (mounted through `app/router_registry.p
 - Query params:
   - `client_record_id` (optional)
   - `business_id` (optional)
-  - `status` (optional; `pending` | `sent` | `failed`)
+  - `status` (optional; `pending` | `sent` | `failed` | `skipped`)
   - `trigger` (optional)
-  - `channel` (optional; `email` | `whatsapp`)
+  - `channel` (optional)
+  - `triggered_by` (optional)
+  - `date_from`, `date_to` (optional)
   - `page` (default `1`)
-  - `page_size` (default `20`, min `1`, max `100`)
-- Response items include `business_name` (enriched from `BusinessRepository`).
+  - `page_size` (allowed values: `25`, `50`)
 
-### Delivery status summary
+### Summary
 - `GET /api/v1/notifications/summary`
 - Roles: `ADVISOR`, `SECRETARY`
 - Query params:
   - `client_record_id` (optional)
   - `business_id` (optional)
-- Response: `{ pending, sent, failed, total }` — absent statuses always `0`.
-- Frontend bell badge sources from `pending + failed`.
+- Response includes `pending`, `sent`, `failed`, `skipped`, and `total`.
 
-### Send manual notification
-- `POST /api/v1/notifications/send`
-- Role: `ADVISOR` only
+### Preview manual notification
+- `POST /api/v1/notifications/preview`
+- Role: `ADVISOR`
 - Body:
 
 ```json
 {
   "client_record_id": 1,
-  "business_id": 123,
-  "preferred_channel": "email",
-  "message": "Reminder message"
+  "trigger": "client_general_message",
+  "entity_id": null,
+  "business_id": null,
+  "confirm_recent_duplicate": false
 }
 ```
 
-Notes:
-- `preferred_channel` defaults to `email`.
-- Manual sends use trigger `manual_payment_reminder` internally.
-- Client ownership of the business is validated before sending.
+### Send manual notification
+- `POST /api/v1/notifications/send`
+- Role: `ADVISOR`
+- Body:
+
+```json
+{
+  "client_record_id": 1,
+  "trigger": "client_general_message",
+  "subject": "נושא ההודעה",
+  "body": "גוף ההודעה",
+  "entity_id": null,
+  "business_id": null,
+  "idempotency_key": "optional-key",
+  "confirm_recent_duplicate": false
+}
+```
 
 ## Behavior Notes
 
-- `NotificationTemplateRenderer.render()` raises `AppError` (code `NOTIFICATION.TEMPLATE_ERROR`) if template is missing or a key is absent — no partial state is persisted.
-- If WhatsApp fails, the failure record is persisted (`status=failed`) and the service falls through to email.
-- Delivery outcome is tracked for **both** channels:
-  - Initial record: `pending`
-  - On success: `sent` + `sent_at`
-  - On failure: `failed` + `failed_at` + `error_message`
-- `business_name` enrichment in list responses is attached only when `business_id` is present.
+- Manual send validates trimmed subject/body before policy, contact resolution, delivery, or DB writes.
+- Blocked policy returns `status="blocked"` and creates no notification record.
+- Missing client email creates a `skipped` notification with `recipient=null`.
+- Successful email delivery marks the record `sent`; failed email delivery marks it `failed`.
+- `NotificationDeliveryService` does not create or update notification records.
+- Annual report manual triggers require `entity_id` and save it as `annual_report_id`.
+- `annual_report_client_reminder` requires `PENDING_CLIENT` and has a 2-day cooldown based on the last `sent` notification.
+- `annual_report_documents_request` requires one of the allowed annual-report statuses.
+- Annual report ownership is checked against `client_record_id`.
+- Timeline includes only sent and failed notification events.
 
-## Error Codes
+## Automatic Sends
 
-- `NOTIFICATION.TEMPLATE_ERROR` — template missing or required key absent in `template_data`.
-- `NOTIFICATION.BUSINESS_NOT_FOUND` — `business_id` does not exist.
-- `NOTIFICATION.BUSINESS_MISMATCH` — business belongs to a different client.
-- `CLIENT.NOT_FOUND` — `client_record_id` does not exist.
-
-## Cross-Domain Integration
-
-- `binders` integration:
-  - `BinderPickupReminderService` → `notify_client(trigger=BINDER_READY_FOR_PICKUP)`.
-- `annual_reports` integration:
-  - `AnnualReportClientReminderService` → `notify_client(trigger=...)`.
-- `businesses` + `clients` integration:
-  - Business ownership validated before delivery when `business_id` is provided.
-  - `business_name` enriched in `NotificationService` via `BusinessRepository.list_by_ids`.
-- `infrastructure` integration:
-  - Uses `EmailChannel` and `WhatsAppChannel` from `app/infrastructure/notifications.py`.
+- `NotificationAutoSendService` is an internal service, not an HTTP API.
+- The only allowed automatic trigger is `binder_ready_for_handover`.
+- `BinderLifecycleService.mark_ready_for_handover()` returns `(binder, notification)`.
+- Binder ready-for-handover API responses include both the binder and notification result.
 
 ## Tests
 

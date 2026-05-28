@@ -53,7 +53,7 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "body": (
             "שלום {client_name},\n\n"
             "תזכורת: יש להעביר את מסמכי מע״מ לתקופה {period} בהקדם.\n"
-            "מועד הגשה: {deadline}\n\n"
+            "מועד הגשה: {deadline}{deadline_note}\n\n"
             "בברכה,\n{sender_name}\n{office_name}"
         ),
     },
@@ -127,7 +127,7 @@ REQUIRED_CONTEXT_VARS: dict[str, set[str]] = {
     "binder_general_reminder": {"message"},
     "invoice_issued": {"charge_amount", "charge_description", "issued_at"},
     "payment_reminder": {"charge_amount", "charge_description"},
-    "vat_documents_reminder": {"period", "deadline"},
+    "vat_documents_reminder": {"period", "deadline", "deadline_note"},
     "annual_report_documents_request": {"tax_year"},
     "annual_report_client_reminder": {"tax_year"},
     "signature_request_sent": {"document_title", "signature_link", "expires_at"},

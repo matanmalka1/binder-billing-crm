@@ -35,8 +35,12 @@ Stack: React 19, TypeScript, Vite, Tailwind CSS v4
 
 ## Run
 
+Use the repo virtualenv. Do not use global `python` / `python3`.
+
 ```bash
-APP_ENV=development ENV_FILE=.env.development python -m app.main
+
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python -m app.main
+
 # Docs: http://localhost:8000/docs
 ```
 

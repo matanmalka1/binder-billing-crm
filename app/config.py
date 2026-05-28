@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     REFRESH_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = "lax"
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 5
     PASSWORD_RESET_DEV_LOG: bool = False
+    FRONTEND_BASE_URL: str = "http://localhost:5173"
     FRONTEND_PASSWORD_RESET_URL: str = "http://localhost:5173/reset-password"
 
     # Raw comma-separated string; read list via .CORS_ALLOWED_ORIGINS property.

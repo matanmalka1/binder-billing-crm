@@ -210,7 +210,6 @@ class NotificationAutoSendService:
         )
 
         ok, err = self._delivery.send(
-            channel=NotificationChannel.EMAIL,
             recipient=recipient,
             subject=subject,
             body=body,

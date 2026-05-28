@@ -1,8 +1,8 @@
 """
 Resolves template context variables from DB entities given a trigger + entity_id.
 
-Phase 1: handles binder manual triggers (binder_number) and client-level triggers (message).
-Phase 2+: will add annual_report, charge, vat_work_item, signature_request resolvers.
+Resolves binder, annual report, charge, VAT, signature, and client-level
+template context.
 """
 
 from __future__ import annotations
@@ -34,6 +34,16 @@ _BINDER_TRIGGERS = {
 _ANNUAL_REPORT_TRIGGERS = {
     NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
     NotificationTrigger.ANNUAL_REPORT_DOCUMENTS_REQUEST,
+}
+
+_CHARGE_TRIGGERS = {
+    NotificationTrigger.INVOICE_ISSUED,
+    NotificationTrigger.PAYMENT_REMINDER,
+}
+
+_SIGNATURE_TRIGGERS = {
+    NotificationTrigger.SIGNATURE_REQUEST_SENT,
+    NotificationTrigger.SIGNATURE_REQUEST_REMINDER,
 }
 
 
@@ -71,6 +81,18 @@ class NotificationContextResolver:
         if trigger in _ANNUAL_REPORT_TRIGGERS:
             if entity_id is not None:
                 ctx["tax_year"] = self._resolve_annual_report_tax_year(entity_id, client_record_id)
+
+        if trigger in _CHARGE_TRIGGERS:
+            if entity_id is not None:
+                ctx.update(self._resolve_charge_context(entity_id, client_record_id))
+
+        if trigger == NotificationTrigger.VAT_DOCUMENTS_REMINDER:
+            if entity_id is not None:
+                ctx.update(self._resolve_vat_context(entity_id, client_record_id))
+
+        if trigger in _SIGNATURE_TRIGGERS:
+            if entity_id is not None:
+                ctx.update(self._resolve_signature_context(entity_id, client_record_id))
 
         # Client-level triggers that take a free-text message.
         # Default empty string so preview renders without blocking on missing var.
@@ -143,3 +165,54 @@ class NotificationContextResolver:
         if report is None or report.client_record_id != client_record_id:
             raise NotFoundError("הדוח השנתי לא נמצא", "ANNUAL_REPORT.NOT_FOUND")
         return report.tax_year
+
+    def _resolve_charge_context(self, charge_id: int, client_record_id: int) -> dict:
+        from app.charge.models.charge import Charge
+
+        charge = self.db.get(Charge, charge_id)
+        if charge is None or charge.client_record_id != client_record_id:
+            raise NotFoundError("החיוב לא נמצא", "CHARGE.NOT_FOUND")
+        amount = int(charge.amount) if charge.amount == int(charge.amount) else float(charge.amount)
+        return {
+            "charge_amount": str(amount),
+            "charge_description": charge.description or "",
+            "issued_at": charge.issued_at.strftime("%d/%m/%Y") if charge.issued_at else "",
+        }
+
+    def _resolve_vat_context(self, vat_work_item_id: int, client_record_id: int) -> dict:
+        import datetime as _dt
+
+        from app.vat_reports.models.vat_work_item import VatWorkItem
+
+        item = self.db.get(VatWorkItem, vat_work_item_id)
+        if item is None or item.client_record_id != client_record_id:
+            raise NotFoundError('פריט מע"מ לא נמצא', "VAT.NOT_FOUND")
+        deadline = item.due_date_effective
+        today = _dt.date.today()
+        days_until = (deadline - today).days if deadline else None
+        deadline_note = " — היום הוא המועד האחרון!" if days_until == 0 else ""
+        return {
+            "period": item.period,
+            "deadline": deadline.strftime("%d/%m/%Y") if deadline else "",
+            "days_until_deadline": str(days_until) if days_until is not None else "",
+            "deadline_note": deadline_note,
+        }
+
+    def _resolve_signature_context(
+        self, signature_request_id: int, client_record_id: int
+    ) -> dict:
+        from app.signature_requests.models.signature_request import SignatureRequest
+
+        sig = self.db.get(SignatureRequest, signature_request_id)
+        if sig is None or sig.client_record_id != client_record_id:
+            raise NotFoundError("בקשת חתימה לא נמצאה", "SIGNATURE_REQUEST.NOT_FOUND")
+        signature_link = (
+            f"{settings.FRONTEND_BASE_URL}/sign/{sig.signing_token}"
+            if sig.signing_token
+            else ""
+        )
+        return {
+            "document_title": sig.title,
+            "signature_link": signature_link,
+            "expires_at": sig.expires_at.strftime("%d/%m/%Y") if sig.expires_at else "",
+        }

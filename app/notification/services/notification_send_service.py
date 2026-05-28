@@ -25,6 +25,22 @@ _ANNUAL_TRIGGERS = {
     NotificationTrigger.ANNUAL_REPORT_CLIENT_REMINDER,
     NotificationTrigger.ANNUAL_REPORT_DOCUMENTS_REQUEST,
 }
+
+_CHARGE_TRIGGERS = {
+    NotificationTrigger.INVOICE_ISSUED,
+    NotificationTrigger.PAYMENT_REMINDER,
+}
+
+_SIGNATURE_TRIGGERS = {
+    NotificationTrigger.SIGNATURE_REQUEST_SENT,
+    NotificationTrigger.SIGNATURE_REQUEST_REMINDER,
+}
+
+_GENERIC_ENTITY_TRIGGERS = (
+    _CHARGE_TRIGGERS
+    | {NotificationTrigger.VAT_DOCUMENTS_REMINDER}
+    | _SIGNATURE_TRIGGERS
+)
 from app.notification.repositories.notification_repository import NotificationRepository
 from app.notification.schemas.notification_schemas import (
     NotificationPreviewRequest,
@@ -102,6 +118,8 @@ class NotificationSendService:
             raise AppError("הודעה זו נשלחת אוטומטית ואינה זמינה לשליחה ידנית", "NOTIFICATION.AUTO_ONLY_TRIGGER")
         if request.trigger in _ANNUAL_TRIGGERS and not request.entity_id:
             raise AppError("חובה לספק מזהה דוח שנתי לסוג הודעה זה", "NOTIFICATION.MISSING_ENTITY_ID")
+        if request.trigger in _GENERIC_ENTITY_TRIGGERS and not request.entity_id:
+            raise AppError("חובה לספק מזהה ישות לסוג הודעה זה", "NOTIFICATION.MISSING_ENTITY_ID")
 
         client_record = self.db.get(ClientRecord, request.client_record_id)
         if client_record is None:
@@ -122,6 +140,7 @@ class NotificationSendService:
             db=self.db,
             entity_id=request.entity_id,
             annual_report_id=annual_report_id,
+            confirm_recent_duplicate=request.confirm_recent_duplicate,
         )
         if policy.blocked:
             return NotificationPreviewResponse(
@@ -131,9 +150,12 @@ class NotificationSendService:
                 warnings=policy.warnings,
             )
 
-        person = self.resolver.resolve_person(request.client_record_id)
+        if request.trigger in _SIGNATURE_TRIGGERS:
+            recipient = self._resolve_signer_email(request.entity_id)
+        else:
+            person = self.resolver.resolve_person(request.client_record_id)
+            recipient = person.email if person else None
         person_name = self.resolver.resolve_client_name(request.client_record_id)
-        recipient = person.email if person else None
 
         ctx = self.resolver.resolve(
             trigger=request.trigger,
@@ -174,6 +196,8 @@ class NotificationSendService:
             raise AppError("הודעה זו נשלחת אוטומטית ואינה זמינה לשליחה ידנית", "NOTIFICATION.AUTO_ONLY_TRIGGER")
         if request.trigger in _ANNUAL_TRIGGERS and not request.entity_id:
             raise AppError("חובה לספק מזהה דוח שנתי לסוג הודעה זה", "NOTIFICATION.MISSING_ENTITY_ID")
+        if request.trigger in _GENERIC_ENTITY_TRIGGERS and not request.entity_id:
+            raise AppError("חובה לספק מזהה ישות לסוג הודעה זה", "NOTIFICATION.MISSING_ENTITY_ID")
 
         # Idempotency check
         if request.idempotency_key:
@@ -204,27 +228,6 @@ class NotificationSendService:
                         reason="כבר נשלח (idempotency)",
                     )
 
-        # Validate subject/body (trim and check before any DB writes or policy checks)
-        subject = request.subject.strip()
-        body = request.body.strip()
-        if not subject:
-            raise AppError("נושא ההודעה לא יכול להיות ריק", "NOTIFICATION.EMPTY_SUBJECT")
-        if not body:
-            raise AppError("גוף ההודעה לא יכול להיות ריק", "NOTIFICATION.EMPTY_BODY")
-        if len(subject) > SUBJECT_MAX_LENGTH:
-            raise AppError(
-                f"הנושא ארוך מדי (מקסימום {SUBJECT_MAX_LENGTH} תווים)",
-                "NOTIFICATION.SUBJECT_TOO_LONG",
-            )
-        if len(body) > BODY_MAX_LENGTH:
-            raise AppError(
-                f"גוף ההודעה ארוך מדי (מקסימום {BODY_MAX_LENGTH} תווים)",
-                "NOTIFICATION.BODY_TOO_LONG",
-            )
-        _placeholder_re = re.compile(r"\{[a-z_]+\}")
-        if _placeholder_re.search(subject) or _placeholder_re.search(body):
-            raise AppError("ההודעה מכילה שדות שלא מולאו", "NOTIFICATION.VISIBLE_PLACEHOLDER")
-
         client_record = self.db.get(ClientRecord, request.client_record_id)
         if client_record is None:
             raise NotFoundError("הלקוח לא נמצא", "CLIENT.NOT_FOUND")
@@ -245,6 +248,7 @@ class NotificationSendService:
             db=self.db,
             entity_id=request.entity_id,
             annual_report_id=annual_report_id_for_policy,
+            confirm_recent_duplicate=request.confirm_recent_duplicate,
         )
         if policy.blocked:
             return NotificationResult(
@@ -253,9 +257,33 @@ class NotificationSendService:
                 warnings=policy.warnings,
             )
 
+        # Validate subject/body after policy — blocked clients don't raise 422
+        subject = request.subject.strip()
+        body = request.body.strip()
+        _placeholder_re = re.compile(r"\{[a-z_]+\}")
+        if not subject:
+            raise AppError("נושא ההודעה לא יכול להיות ריק", "NOTIFICATION.EMPTY_SUBJECT")
+        if not body:
+            raise AppError("גוף ההודעה לא יכול להיות ריק", "NOTIFICATION.EMPTY_BODY")
+        if len(subject) > SUBJECT_MAX_LENGTH:
+            raise AppError(
+                f"הנושא ארוך מדי (מקסימום {SUBJECT_MAX_LENGTH} תווים)",
+                "NOTIFICATION.SUBJECT_TOO_LONG",
+            )
+        if len(body) > BODY_MAX_LENGTH:
+            raise AppError(
+                f"גוף ההודעה ארוך מדי (מקסימום {BODY_MAX_LENGTH} תווים)",
+                "NOTIFICATION.BODY_TOO_LONG",
+            )
+        if _placeholder_re.search(subject) or _placeholder_re.search(body):
+            raise AppError("ההודעה מכילה שדות שלא מולאו", "NOTIFICATION.VISIBLE_PLACEHOLDER")
+
         # Contact resolution — skipped = record saved with recipient=null
-        person = self.resolver.resolve_person(request.client_record_id)
-        recipient = person.email if person else None
+        if request.trigger in _SIGNATURE_TRIGGERS:
+            recipient = self._resolve_signer_email(request.entity_id)
+        else:
+            person = self.resolver.resolve_person(request.client_record_id)
+            recipient = person.email if person else None
 
         req_hash = _hash_request(
             request.trigger.value, subject, body, request.client_record_id,
@@ -264,10 +292,19 @@ class NotificationSendService:
 
         # Derive entity anchors from trigger so domain-level fields (e.g. annual_report_id)
         # are populated and cooldown / history queries work correctly.
-        annual_report_id = (
-            request.entity_id if request.trigger in _ANNUAL_TRIGGERS else None
+        annual_report_id = request.entity_id if request.trigger in _ANNUAL_TRIGGERS else None
+        entity_type_for_annual = "annual_report" if request.trigger in _ANNUAL_TRIGGERS else None
+        signature_request_id = request.entity_id if request.trigger in _SIGNATURE_TRIGGERS else None
+        entity_type = (
+            entity_type_for_annual
+            or ("signature_request" if request.trigger in _SIGNATURE_TRIGGERS else None)
+            or ("charge" if request.trigger in _CHARGE_TRIGGERS else None)
+            or (
+                "vat_work_item"
+                if request.trigger == NotificationTrigger.VAT_DOCUMENTS_REMINDER
+                else None
+            )
         )
-        entity_type = "annual_report" if request.trigger in _ANNUAL_TRIGGERS else None
 
         if not recipient:
             n = self.repo.create(
@@ -279,6 +316,7 @@ class NotificationSendService:
                 subject_snapshot=subject,
                 business_id=request.business_id,
                 annual_report_id=annual_report_id,
+                signature_request_id=signature_request_id,
                 entity_type=entity_type,
                 entity_id=request.entity_id,
                 triggered_by=triggered_by,
@@ -311,6 +349,7 @@ class NotificationSendService:
             subject_snapshot=subject,
             business_id=request.business_id,
             annual_report_id=annual_report_id,
+            signature_request_id=signature_request_id,
             entity_type=entity_type,
             entity_id=request.entity_id,
             triggered_by=triggered_by,
@@ -320,7 +359,6 @@ class NotificationSendService:
         )
 
         ok, err = self._delivery.send(
-            channel=channel,
             recipient=delivery_recipient,
             subject=subject,
             body=body,
@@ -342,3 +380,10 @@ class NotificationSendService:
             reason=err,
             warnings=policy.warnings,
         )
+
+    def _resolve_signer_email(self, signature_request_id: int | None) -> str | None:
+        if signature_request_id is None:
+            return None
+        from app.signature_requests.models.signature_request import SignatureRequest
+        sig = self.db.get(SignatureRequest, signature_request_id)
+        return sig.signer_email if sig else None

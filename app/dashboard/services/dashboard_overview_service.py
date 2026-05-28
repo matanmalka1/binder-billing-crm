@@ -12,7 +12,6 @@ from app.charge.repositories.charge_repository import ChargeRepository
 from app.clients.repositories.client_record_repository import ClientRecordRepository
 from app.dashboard.services.advisor_today_service import AdvisorTodayService
 from app.dashboard.services.dashboard_attention_service import DashboardAttentionService
-from app.dashboard.services.dashboard_quick_actions_builder import build_quick_actions
 from app.dashboard.services.recent_activity_service import RecentActivityService
 from app.dashboard.services.tax_status_stats_service import TaxStatusStatsService
 from app.notification.repositories.notification_repository import NotificationRepository
@@ -97,10 +96,4 @@ class DashboardOverviewService:
         return count, amount_ils
 
     def _build_quick_actions(self, today) -> list[dict]:
-        return build_quick_actions(
-            binder_repo=self.binder_repo,
-            business_repo=self.business_repo,
-            annual_report_repo=self.annual_report_repo,
-            notification_repo=self.notification_repo,
-            today=today,
-        )
+        return []

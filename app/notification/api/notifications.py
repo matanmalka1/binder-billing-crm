@@ -49,6 +49,7 @@ def list_notifications(
         raise AppError(
             f"page_size חייב להיות אחד מהערכים: {sorted(_ALLOWED_PAGE_SIZES)}",
             "NOTIFICATION.INVALID_PAGE_SIZE",
+            status_code=422,
         )
     svc = NotificationService(db)
     items, total = svc.list_paginated(

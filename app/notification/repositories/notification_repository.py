@@ -191,6 +191,28 @@ class NotificationRepository(BaseRepository[Notification]):
             .order_by(Notification.created_at.desc())
         ).first()
 
+    def get_last_for_entity_trigger(
+        self, entity_id: int, trigger: NotificationTrigger
+    ) -> Notification | None:
+        """Last notification for a generic entity_id + trigger."""
+        return self.db.scalars(
+            select(Notification)
+            .where(Notification.entity_id == entity_id, Notification.trigger == trigger)
+            .order_by(Notification.created_at.desc())
+        ).first()
+
+    def get_last_for_signature_trigger(
+        self, signature_request_id: int, trigger: NotificationTrigger
+    ) -> Notification | None:
+        return self.db.scalars(
+            select(Notification)
+            .where(
+                Notification.signature_request_id == signature_request_id,
+                Notification.trigger == trigger,
+            )
+            .order_by(Notification.created_at.desc())
+        ).first()
+
     def latest_by_binder_ids(
         self, binder_ids: list[int], trigger: NotificationTrigger
     ) -> dict[int, Notification]:

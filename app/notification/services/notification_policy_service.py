@@ -3,11 +3,18 @@ from __future__ import annotations
 import datetime as _dt
 from dataclasses import dataclass, field
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.clients.enums import ClientStatus
 from app.clients.models.client_record import ClientRecord
+from app.common.enums import EntityType
 from app.notification.models.notification import NotificationStatus, NotificationTrigger
+from app.notification.services.constants import (
+    ANNUAL_REMINDER_COOLDOWN_DAYS,
+    PAYMENT_REMINDER_WARNING_DAYS,
+    VAT_REMINDER_WINDOW_DAYS,
+)
 
 # Triggers allowed even for FROZEN/CLOSED clients
 _FROZEN_CLOSED_ALLOWED = {
@@ -22,8 +29,6 @@ _ANNUAL_REPORT_DOCUMENTS_REQUEST_ALLOWED_STATUSES = frozenset({
     _ARS.COLLECTING_DOCS,
     _ARS.IN_PREPARATION,
 })
-
-ANNUAL_REMINDER_COOLDOWN_DAYS = 2
 
 
 @dataclass
@@ -51,6 +56,7 @@ class NotificationPolicyService:
         db: Session | None = None,
         entity_id: int | None = None,
         annual_report_id: int | None = None,
+        confirm_recent_duplicate: bool = False,
     ) -> PolicyResult:
         status = client_record.status
 
@@ -85,6 +91,48 @@ class NotificationPolicyService:
                 return PolicyResult(blocked=True, reason="חסר מזהה דוח שנתי לאימות")
             result = self._check_annual_report_documents_request(
                 db, annual_report_id, client_record_id=client_record_id
+            )
+            if result is not None:
+                return result
+
+        if trigger == NotificationTrigger.VAT_DOCUMENTS_REMINDER:
+            if db is None or entity_id is None:
+                return PolicyResult(blocked=True, reason="חסר מזהה פריט מע״מ לאימות")
+            result = self._check_vat_documents_reminder(
+                db, entity_id, client_record_id=client_record_id
+            )
+            if result is not None:
+                return result
+
+        if trigger == NotificationTrigger.PAYMENT_REMINDER:
+            if db is None or entity_id is None:
+                return PolicyResult(blocked=True, reason="חסר מזהה חיוב לאימות")
+            result = self._check_payment_reminder(
+                db,
+                entity_id,
+                client_record_id=client_record_id,
+                confirm_recent_duplicate=confirm_recent_duplicate,
+            )
+            if result is not None:
+                return result
+
+        if trigger == NotificationTrigger.INVOICE_ISSUED:
+            if db is None or entity_id is None:
+                return PolicyResult(blocked=True, reason="חסר מזהה חיוב לאימות")
+            result = self._check_invoice_issued(
+                db, entity_id, client_record_id=client_record_id
+            )
+            if result is not None:
+                return result
+
+        if trigger in (
+            NotificationTrigger.SIGNATURE_REQUEST_SENT,
+            NotificationTrigger.SIGNATURE_REQUEST_REMINDER,
+        ):
+            if db is None or entity_id is None:
+                return PolicyResult(blocked=True, reason="חסר מזהה בקשת חתימה לאימות")
+            result = self._check_signature_request(
+                db, entity_id, client_record_id=client_record_id
             )
             if result is not None:
                 return result
@@ -153,4 +201,106 @@ class NotificationPolicyService:
                 blocked=True,
                 reason="הדוח אינו במצב המאפשר שליחת בקשת מסמכים",
             )
+        return None
+
+    def _check_vat_documents_reminder(
+        self, db: Session, vat_work_item_id: int, client_record_id: int
+    ) -> PolicyResult | None:
+        from app.clients.models.legal_entity import LegalEntity
+        from app.vat_reports.models.vat_enums import VatWorkItemStatus
+        from app.vat_reports.models.vat_work_item import VatWorkItem
+
+        item = db.get(VatWorkItem, vat_work_item_id)
+        if item is None or item.client_record_id != client_record_id:
+            return PolicyResult(blocked=True, reason='פריט מע"מ לא נמצא')
+
+        entity_type = db.scalar(
+            select(LegalEntity.entity_type)
+            .join(ClientRecord, ClientRecord.legal_entity_id == LegalEntity.id)
+            .where(ClientRecord.id == client_record_id)
+        )
+        if entity_type == EntityType.OSEK_PATUR:
+            return PolicyResult(blocked=True, reason='לקוח עוסק פטור אינו חייב בדיווח מע"מ')
+
+        if item.status in (VatWorkItemStatus.FILED, VatWorkItemStatus.CANCELED):
+            return PolicyResult(blocked=True, reason='פריט מע"מ כבר הוגש או בוטל')
+
+        if item.due_date_effective is None:
+            return PolicyResult(blocked=True, reason='חסר מועד הגשה לפריט מע"מ')
+
+        days_until = (item.due_date_effective - _dt.date.today()).days
+        if days_until < 0:
+            return PolicyResult(blocked=True, reason='מועד הגשת מע"מ כבר חלף')
+        if days_until > VAT_REMINDER_WINDOW_DAYS:
+            return PolicyResult(
+                blocked=True,
+                reason=f'ניתן לשלוח תזכורת מע"מ רק עד {VAT_REMINDER_WINDOW_DAYS} ימים לפני המועד',
+            )
+        return None
+
+    def _check_payment_reminder(
+        self,
+        db: Session,
+        charge_id: int,
+        client_record_id: int,
+        confirm_recent_duplicate: bool,
+    ) -> PolicyResult | None:
+        from app.charge.models.charge import Charge, ChargeStatus
+        from app.notification.repositories.notification_repository import NotificationRepository
+
+        charge = db.get(Charge, charge_id)
+        if charge is None or charge.client_record_id != client_record_id:
+            return PolicyResult(blocked=True, reason="החיוב לא נמצא")
+        if charge.status != ChargeStatus.ISSUED:
+            return PolicyResult(blocked=True, reason="ניתן לשלוח תזכורת רק לחיוב שהונפק וטרם שולם")
+
+        if confirm_recent_duplicate:
+            return None
+
+        last = NotificationRepository(db).get_last_for_entity_trigger(
+            charge_id, NotificationTrigger.PAYMENT_REMINDER
+        )
+        if last and last.status == NotificationStatus.SENT:
+            days_since = (_dt.datetime.now(_dt.UTC) - last.created_at.replace(tzinfo=_dt.UTC)).days
+            if days_since < PAYMENT_REMINDER_WARNING_DAYS:
+                return PolicyResult(
+                    blocked=False,
+                    warnings=[
+                        (
+                            f"תזכורת לתשלום נשלחה לפני {days_since} ימים. "
+                            "ניתן לשלוח שוב לאחר אישור."
+                        )
+                    ],
+                )
+        return None
+
+    def _check_invoice_issued(
+        self, db: Session, charge_id: int, client_record_id: int
+    ) -> PolicyResult | None:
+        from app.charge.models.charge import Charge, ChargeStatus
+
+        charge = db.get(Charge, charge_id)
+        if charge is None or charge.client_record_id != client_record_id:
+            return PolicyResult(blocked=True, reason="החיוב לא נמצא")
+        if charge.status not in (ChargeStatus.ISSUED, ChargeStatus.PAID):
+            return PolicyResult(blocked=True, reason="ניתן לשלוח הודעת חשבונית רק לחיוב שהונפק")
+        return None
+
+    def _check_signature_request(
+        self, db: Session, signature_request_id: int, client_record_id: int
+    ) -> PolicyResult | None:
+        from app.signature_requests.models.signature_request import (
+            SignatureRequest,
+            SignatureRequestStatus,
+        )
+
+        sig = db.get(SignatureRequest, signature_request_id)
+        if sig is None or sig.client_record_id != client_record_id:
+            return PolicyResult(blocked=True, reason="בקשת החתימה לא נמצאה")
+        if sig.status != SignatureRequestStatus.PENDING_SIGNATURE:
+            return PolicyResult(blocked=True, reason="בקשת החתימה אינה ממתינה לחתימה")
+        if sig.expires_at and _dt.datetime.now(_dt.UTC) > sig.expires_at.replace(tzinfo=_dt.UTC):
+            return PolicyResult(blocked=True, reason="בקשת החתימה פגה תוקף")
+        if not sig.signing_token:
+            return PolicyResult(blocked=True, reason="חסר קישור חתימה פעיל")
         return None
