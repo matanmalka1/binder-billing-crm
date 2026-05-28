@@ -14,11 +14,11 @@ Canonical project-wide rules:
 - `../../../docs/docs/architecture/backend.md`
 - `../../../docs/docs/workflow/verification.md`
 
-# Architecture
+# Backend Architecture (Reference)
 
 ## Overview
 
-Binder & Billing CRM is a FastAPI backend for an internal staff CRM covering clients, binders, billing, tax, VAT reports, and notifications. The UI is Hebrew-only. Two roles: `ADVISOR` (full access), `SECRETARY` (operational, limited write).
+YM Tax CRM is a FastAPI backend for an internal staff CRM covering clients, binders, billing, tax, VAT reports, and notifications. The UI is Hebrew-only. Two roles: `ADVISOR` (full access), `SECRETARY` (operational, limited write).
 
 ## Stack
 
@@ -72,6 +72,8 @@ Cross-domain writes are orchestrated in services. Cross-domain read joins are al
 | `app/actions/` | UI action metadata registry |
 
 ## Key Invariants
+
+Canonical backend rules live in `../../../docs/docs/architecture/backend.md`. The list below records backend-local invariants and their concrete exceptions.
 
 - No raw SQL in application query code — ORM/select constructs only. Exceptions: Alembic migrations, Alembic environment setup, and seed reset/schema checks.
 - No `Base.metadata.create_all()` outside isolated test databases.

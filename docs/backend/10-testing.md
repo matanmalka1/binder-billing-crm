@@ -121,6 +121,8 @@ def test_get_binder_returns_404(client, advisor_headers, test_db, test_user):
 
 ## What Not to Mock
 
+Canonical testing rules: see `../../../docs/docs/workflow/testing.md`. The note below is backend-local implementation detail.
+
 The DB is not mocked — tests hit SQLite. This ensures repository query correctness and ORM relationship behavior are tested. Do not mock `Session` or repository methods in service tests.
 
 ## File Layout

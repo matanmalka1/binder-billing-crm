@@ -110,16 +110,7 @@ Parameter rules:
 | `sort_by` | allowlisted field name only |
 | `order` | only `asc` or `desc` |
 
-Do not introduce new public variants such as:
-
-```txt
-limit/offset
-skip/limit
-page/per_page
-sort_order
-sort_dir
-order_by
-```
+Do not introduce alias parameter names for paging/sorting. The canonical list-parameter rules and the prohibited aliases (`limit`/`offset`, `per_page`, `sort_dir`, `order_by`, etc.) are defined in `../../docs/docs/architecture/api-contracts.md`.
 
 New endpoint contracts must use `page`, `page_size`, `sort_by`, `order`.
 Existing endpoints that use one of these names must be migrated by updating their callers and removing the old names. Compatibility aliases may be added only when explicitly requested by the owner, and only with a documented scope and removal plan.

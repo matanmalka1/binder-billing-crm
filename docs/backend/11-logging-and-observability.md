@@ -15,6 +15,8 @@ Canonical project-wide rules:
 
 # Logging and Observability
 
+Canonical observability rules: see `../../../docs/docs/architecture/observability.md`. This file documents backend-local logging implementation detail only.
+
 ## Log Format
 
 Two formats controlled by `LOG_FORMAT` in `Settings`:

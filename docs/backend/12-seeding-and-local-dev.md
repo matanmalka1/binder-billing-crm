@@ -70,6 +70,8 @@ The seed orchestrator:
 
 ## Migrations
 
+Canonical workflow rules: see `../../../docs/docs/workflow/commands.md` and `../../../docs/docs/workflow/local-env.md`. The commands below are backend-local detail.
+
 ```bash
 # Generate migration after model change
 APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python -m alembic revision --autogenerate -m "<description>"

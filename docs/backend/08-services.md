@@ -138,6 +138,8 @@ In practice, many fine-grained restrictions are expressed at the router level wi
 
 ## What Services Must Not Do
 
+Canonical service responsibilities: see `../../../docs/docs/architecture/backend.md`. The list below is the backend-local restatement.
+
 - No SQL queries — call repositories instead
 - No `db.query(...)` — use repositories
 - No `raise HTTPException` — raise `AppError` subclasses

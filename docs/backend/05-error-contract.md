@@ -18,6 +18,8 @@ Canonical project-wide rules:
 
 ## Response Envelope
 
+Canonical error-envelope contract: see `../../../docs/docs/architecture/api-contracts.md`. The shape below documents the backend-local implementation.
+
 Errors handled by the central exception handlers return the same JSON shape:
 
 ```json

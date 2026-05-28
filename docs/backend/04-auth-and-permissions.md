@@ -121,6 +121,8 @@ These are the standard injections in route signatures. Using them directly means
 
 ## IDOR Prevention
 
+Canonical authorization and IDOR rules: see `../../../docs/docs/architecture/security.md`. The notes below are backend-local implementation detail.
+
 All endpoints that return sensitive data scope queries by `business_id` or `client_record_id` and perform fetch-then-check ownership in the service layer. No endpoint exposes items across business boundaries. This is enforced by convention — new endpoints must follow it.
 
 ## Audit Logging

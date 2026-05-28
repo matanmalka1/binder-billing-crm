@@ -58,6 +58,8 @@ router = APIRouter(
 
 ## Thin Router Rule
 
+Canonical layering rules: see `../../../docs/docs/architecture/backend.md`. The notes below are backend-local implementation detail.
+
 Routers must not contain business logic. A router endpoint usually does:
 
 1. Parse and validate request parameters (FastAPI does this automatically via Pydantic)
@@ -100,7 +102,7 @@ Standard paginated list endpoints accept `page: int = Query(1, ge=1)` and `page_
 
 ## Sorting Convention
 
-List endpoints that support sorting should accept `sort_by` and `order`. Services validate sort columns against an allowlist where dynamic sorting is supported. Some existing endpoints still use `sort_dir` or `sort_order`; treat those as legacy compatibility names when touching the endpoint.
+List endpoints that support sorting should accept `sort_by` and `order`. Services validate sort columns against an allowlist where dynamic sorting is supported. Some existing endpoints still use `sort_dir` or `sort_order`; migrate these by updating their callers to `order` and removing the old names rather than preserving them (see `../../../docs/docs/adr/0001-no-legacy-compatibility.md`).
 
 ## Filtering Convention
 

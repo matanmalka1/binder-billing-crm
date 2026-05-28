@@ -51,6 +51,8 @@ Services that coordinate external I/O (file uploads, notification sends) call `d
 
 ## Router → Service → Repository Flow
 
+Canonical layering rules: see `../../../docs/docs/architecture/backend.md`. The flow below is backend-local implementation detail.
+
 ```
 HTTP request
   → Middleware (request ID, rate limit, CORS)

@@ -102,6 +102,8 @@ location_status: Mapped[BinderLocationStatus] = mapped_column(
 
 ## Migrations
 
+Canonical database and migration rules: see `../../../docs/docs/architecture/database.md` and `../../../docs/docs/architecture/migrations.md`. The commands below are backend-local detail.
+
 All schema changes go through Alembic. Never modify the DB schema manually.
 
 ```bash

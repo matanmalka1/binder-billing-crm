@@ -117,6 +117,8 @@ Binders and other client-scoped entities use `scope_to_active_clients_stmt()` fr
 
 ## What Repositories Must Not Do
 
+Canonical repository responsibilities: see `../../../docs/docs/architecture/backend.md`. The list below is the backend-local restatement.
+
 - No business logic (no status transition rules, no side effects beyond DB writes)
 - No cross-domain service calls
 - No `db.commit()`

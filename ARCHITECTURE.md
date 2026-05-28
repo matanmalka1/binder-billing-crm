@@ -14,10 +14,11 @@ Canonical project-wide rules:
 - `../docs/docs/architecture/backend.md`
 - `../docs/docs/workflow/verification.md`
 
-# Backend Architecture Standard
+# Backend Architecture Reference
 
-This document defines the domain pattern for all new backend work and for
-incremental refactors of existing domains.
+This document records backend-local implementation patterns for new backend work
+and incremental refactors. It is subordinate to the canonical backend architecture
+rules in `../docs/docs/architecture/backend.md`.
 
 ## Layer Contract
 
@@ -35,14 +36,9 @@ Service -> Pydantic schema / DTO
 API router -> Pydantic schema only
 ```
 
-Routers parse request inputs, enforce endpoint-level roles, call one service
-method, and return the service result. Routers do not branch business workflows.
-
-Services own orchestration, validation, authorization beyond coarse endpoint
-roles, transaction boundaries, and response transformation.
-
-Repositories own data access only. They do not commit, rollback, emit user-facing
-messages, call other domains, or return API schemas.
+Canonical layer responsibilities (router / service / repository) live in
+`../docs/docs/architecture/backend.md`. The return-shape conventions above are
+backend-local detail.
 
 ## BaseRepository
 
