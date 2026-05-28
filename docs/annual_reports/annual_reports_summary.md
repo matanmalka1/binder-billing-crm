@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Historical annual reports domain summary context.
+
+This file must not contain:
+- Current implemented annual reports behavior.
+- New product requirements.
+- Canonical tax-law decisions.
+
+Source of truth: historical
+
 # דוחות שנתיים — סיכום קצר וברור
 
 ## 1) ממה נקבעת חובת ההגשה

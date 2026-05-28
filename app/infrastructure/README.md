@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Implemented backend infrastructure adapter behavior.
+- Current storage, outbound notification, and infrastructure service boundaries.
+
+This file must not contain:
+- Product notification rules.
+- Deployment secrets inventory.
+- Cross-project architecture rules.
+
+Source of truth: mandatory
+
 # Infrastructure Module
 
 > Last audited: 2026-03-17 (domain-by-domain backend sync).

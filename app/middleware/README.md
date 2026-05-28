@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Implemented backend HTTP middleware behavior.
+- Current request middleware ownership boundaries.
+
+This file must not contain:
+- Product/domain behavior.
+- Route-specific business rules.
+- Cross-project architecture rules.
+
+Source of truth: mandatory
+
 # Middleware Module
 
 > Last audited: 2026-03-17 (domain-by-domain backend sync).

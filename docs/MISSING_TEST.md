@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Test coverage gap findings at the time of the report.
+
+This file must not contain:
+- Canonical testing rules.
+- Product/domain behavior.
+- Architecture decisions.
+
+Source of truth: reference
+
 # Missing Tests Report
 
 Updated on March 18, 2026.

@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Local mobile testing workflow notes.
+
+This file must not contain:
+- Canonical testing rules.
+- Backend architecture rules.
+- Product/domain behavior.
+
+Source of truth: reference
+
 # Local Mobile Testing
 
 Use this when testing the Vite frontend from a phone on the same Wi-Fi as the laptop.

@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Backend test layout and local test-suite reference notes.
+
+This file must not contain:
+- Canonical project-wide testing rules.
+- Product/domain behavior.
+- Architecture decisions.
+
+Source of truth: reference
+
 # Tests Layout
 
 > Last audited: 2026-03-17 (domain-by-domain backend sync).

@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Implemented backend behavior for health and readiness endpoints.
+- Current health-check response and ownership boundaries.
+
+This file must not contain:
+- Deployment runbooks.
+- Cross-project architecture rules.
+- Product/domain behavior.
+
+Source of truth: mandatory
+
 # Health Module
 
 > Last audited: 2026-03-17 (domain-by-domain backend sync).

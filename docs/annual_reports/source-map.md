@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- External source links for the annual reports domain.
+
+This file must not contain:
+- Current implemented behavior.
+- Product decisions.
+- Backend architecture rules.
+
+Source of truth: reference
+
 # Source Map With Titles And Notes
 
 - **דיווח ותשלום - דוח מס שנתי 2024 ליחידים ובעלי עסקים שאינם חברה (טופס 1301)**  

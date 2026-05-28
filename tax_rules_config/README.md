@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Implemented tax rules configuration package behavior.
+- Current source-of-truth structure for tax obligations, deadlines, financial constants, and VAT deduction rules inside `tax_rules_config`.
+
+This file must not contain:
+- Application-layer backend architecture rules.
+- UI behavior.
+- Unverified tax-law decisions outside the configured package.
+
+Source of truth: mandatory
+
 # Tax Rules Config — Israel 2026
 
 מטרת החבילה: מקור אמת אחד לחובות דיווח/תשלום מס עבור מערכת CRM למשרד רו״ח/יועץ מס.
