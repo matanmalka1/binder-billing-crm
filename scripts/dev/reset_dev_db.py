@@ -29,7 +29,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parents[1]
+ROOT_DIR = Path(__file__).resolve().parents[2]
 VERSIONS_DIR = ROOT_DIR / "alembic" / "versions"
 VENV_PYTHON = ROOT_DIR / ".venv" / "bin" / "python"
 VENV_ALEMBIC = ROOT_DIR / ".venv" / "bin" / "alembic"
@@ -154,7 +154,7 @@ def _upgrade_and_check() -> None:
 
 def _seed(*, preserve_users: bool, clients: int) -> None:
     print("[6/6] Seeding fake data...")
-    cmd = [str(VENV_PYTHON), "scripts/seed_fake_data.py", "--reset", "--clients", str(clients)]
+    cmd = [str(VENV_PYTHON), "scripts/dev/seed_fake_data.py", "--reset", "--clients", str(clients)]
     if preserve_users:
         cmd.append("--preserve-users")
     _run(cmd)
