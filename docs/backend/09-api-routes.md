@@ -1,5 +1,8 @@
 # API Routes
 
+The target public API contract is defined in [`docs/api-contract-standard.md`](../api-contract-standard.md).
+This file describes current backend routing patterns and known conventions; when adding or changing list endpoints, prefer the standard contract unless there is a documented reason not to.
+
 ## URL Structure
 
 | Type | Pattern | Example |
@@ -77,11 +80,11 @@ def list_binders(
 
 ## Pagination Convention
 
-Standard paginated list endpoints accept `page: int = Query(1, ge=1)` and `page_size: int = Query(20, ge=1, le=100)`. Response schemas include `items`, `page`, `page_size`, `total`. Some domains extend this with `counters` (e.g. counts by status). Computed feeds such as `work_queue` use `limit`/`offset`.
+Standard paginated list endpoints accept `page: int = Query(1, ge=1)` and `page_size: int = Query(20, ge=1, le=100)`. Response schemas include `items`, `page`, `page_size`, `total`. Some domains extend this with `counters` (e.g. counts by status). New public list contracts should not introduce alternative pagination names.
 
 ## Sorting Convention
 
-List endpoints that support sorting generally accept `sort_by: str | None` and `sort_dir`. Services validate sort columns against an allowlist where dynamic sorting is supported. Some endpoints normalize invalid `sort_dir` values to `"desc"`; others use `Literal["asc", "desc"]` and let FastAPI return a 422 validation error.
+List endpoints that support sorting should accept `sort_by` and `order`. Services validate sort columns against an allowlist where dynamic sorting is supported. Some existing endpoints still use `sort_dir` or `sort_order`; treat those as legacy compatibility names when touching the endpoint.
 
 ## Filtering Convention
 
