@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Implemented backend behavior for the users domain.
+- Current service, repository, model, and API ownership boundaries for this domain.
+
+This file must not contain:
+- Historical implementation plans.
+- Future product behavior that is not implemented.
+- Cross-domain architecture rules.
+
+Source of truth: mandatory
+
 # Users Module
 
 > Last audited: 2026-05-26

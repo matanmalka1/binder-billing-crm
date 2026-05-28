@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Implemented backend behavior for the actions metadata and execution registry.
+- Current service, repository, model, and API ownership boundaries for this domain.
+
+This file must not contain:
+- Historical implementation plans.
+- Future product behavior that is not implemented.
+- Cross-domain architecture rules.
+
+Source of truth: mandatory
+
 # Actions Module
 
 > Last audited: 2026-04-23
