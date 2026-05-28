@@ -63,8 +63,13 @@ class NotificationService:
         self,
         request: NotificationSendRequest,
         triggered_by: int,
+        idempotency_key: str,
     ) -> NotificationResult:
-        return self._send_svc.send(request, triggered_by=triggered_by)
+        return self._send_svc.send(
+            request,
+            triggered_by=triggered_by,
+            idempotency_key=idempotency_key,
+        )
 
     # ── Read / list ───────────────────────────────────────────────────────────
 

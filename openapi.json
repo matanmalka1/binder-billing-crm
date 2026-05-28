@@ -3237,46 +3237,6 @@
         }
       }
     },
-    "/api/v1/annual-reports/{report_id}/client-reminder": {
-      "post": {
-        "tags": [
-          "annual-reports-reminders"
-        ],
-        "summary": "Send Client Reminder",
-        "operationId": "send_client_reminder_api_v1_annual_reports__report_id__client_reminder_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "report_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Report Id"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/tax-calendar/groups": {
       "get": {
         "tags": [
@@ -5337,46 +5297,6 @@
         }
       }
     },
-    "/api/v1/binders/{binder_id}/handover-reminder": {
-      "post": {
-        "tags": [
-          "binders-reminders"
-        ],
-        "summary": "Send Handover Reminder",
-        "operationId": "send_handover_reminder_api_v1_binders__binder_id__handover_reminder_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "binder_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Binder Id"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/binders/receive": {
       "post": {
         "tags": [
@@ -5447,7 +5367,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/BinderResponse"
+                    "$ref": "#/components/schemas/BinderReadyForHandoverResponse"
                   },
                   "type": "array",
                   "title": "Response Mark Ready For Handover Bulk Api V1 Binders Mark Ready For Handover Bulk Post"
@@ -5689,7 +5609,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BinderResponse"
+                  "$ref": "#/components/schemas/BinderReadyForHandoverResponse"
                 }
               }
             }
@@ -8042,6 +7962,56 @@
             }
           },
           {
+            "name": "triggered_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Triggered By"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date From"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Date To"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "required": false,
@@ -8058,9 +8028,9 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 100,
+              "maximum": 50,
               "minimum": 1,
-              "default": 20,
+              "default": 25,
               "title": "Page Size"
             }
           }
@@ -8159,18 +8129,18 @@
         }
       }
     },
-    "/api/v1/notifications/send": {
+    "/api/v1/notifications/preview": {
       "post": {
         "tags": [
           "notifications"
         ],
-        "summary": "Send Manual Notification",
-        "operationId": "send_manual_notification_api_v1_notifications_send_post",
+        "summary": "Preview Notification",
+        "operationId": "preview_notification_api_v1_notifications_preview_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ManualSendRequest"
+                "$ref": "#/components/schemas/NotificationPreviewRequest"
               }
             }
           },
@@ -8182,7 +8152,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ManualSendResponse"
+                  "$ref": "#/components/schemas/NotificationPreviewResponse"
                 }
               }
             }
@@ -8201,6 +8171,64 @@
         "security": [
           {
             "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/notifications/send": {
+      "post": {
+        "tags": [
+          "notifications"
+        ],
+        "summary": "Send Notification",
+        "operationId": "send_notification_api_v1_notifications_send_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationSendRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "X-Idempotency-Key"
+            }
           }
         ]
       }
@@ -16172,6 +16200,22 @@
         ],
         "title": "BinderMarkReadyForHandoverBulkRequest"
       },
+      "BinderReadyForHandoverResponse": {
+        "properties": {
+          "binder": {
+            "$ref": "#/components/schemas/BinderResponse"
+          },
+          "notification": {
+            "$ref": "#/components/schemas/NotificationResult"
+          }
+        },
+        "type": "object",
+        "required": [
+          "binder",
+          "notification"
+        ],
+        "title": "BinderReadyForHandoverResponse"
+      },
       "BinderReceiveRequest": {
         "properties": {
           "client_record_id": {
@@ -20560,56 +20604,6 @@
         ],
         "title": "LoginRequest"
       },
-      "ManualSendRequest": {
-        "properties": {
-          "client_record_id": {
-            "type": "integer",
-            "exclusiveMinimum": 0.0,
-            "title": "Client Record Id"
-          },
-          "business_id": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "exclusiveMinimum": 0.0
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Business Id"
-          },
-          "preferred_channel": {
-            "$ref": "#/components/schemas/NotificationChannel",
-            "default": "email"
-          },
-          "message": {
-            "type": "string",
-            "maxLength": 1000,
-            "minLength": 1,
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "client_record_id",
-          "message"
-        ],
-        "title": "ManualSendRequest"
-      },
-      "ManualSendResponse": {
-        "properties": {
-          "ok": {
-            "type": "boolean",
-            "title": "Ok"
-          }
-        },
-        "type": "object",
-        "required": [
-          "ok"
-        ],
-        "title": "ManualSendResponse"
-      },
       "MaterialType": {
         "type": "string",
         "enum": [
@@ -20802,6 +20796,126 @@
         ],
         "title": "NotificationListResponse"
       },
+      "NotificationPreviewRequest": {
+        "properties": {
+          "client_record_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Client Record Id"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/NotificationTrigger"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "business_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Id"
+          },
+          "confirm_recent_duplicate": {
+            "type": "boolean",
+            "title": "Confirm Recent Duplicate",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "client_record_id",
+          "trigger"
+        ],
+        "title": "NotificationPreviewRequest"
+      },
+      "NotificationPreviewResponse": {
+        "properties": {
+          "can_send": {
+            "type": "boolean",
+            "title": "Can Send"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "blocked"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "recipient": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "required": [
+          "can_send",
+          "status"
+        ],
+        "title": "NotificationPreviewResponse"
+      },
       "NotificationResponse": {
         "properties": {
           "id": {
@@ -20856,22 +20970,91 @@
             ],
             "title": "Binder Id"
           },
+          "annual_report_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Annual Report Id"
+          },
+          "signature_request_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signature Request Id"
+          },
+          "entity_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Type"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
           "trigger": {
             "$ref": "#/components/schemas/NotificationTrigger"
+          },
+          "trigger_label": {
+            "type": "string",
+            "title": "Trigger Label",
+            "default": ""
+          },
+          "domain_label": {
+            "type": "string",
+            "title": "Domain Label",
+            "default": ""
           },
           "channel": {
             "$ref": "#/components/schemas/NotificationChannel"
           },
-          "severity": {
-            "$ref": "#/components/schemas/NotificationSeverity"
-          },
           "recipient": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Recipient"
           },
           "content_snapshot": {
             "type": "string",
             "title": "Content Snapshot"
+          },
+          "subject_snapshot": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Snapshot"
           },
           "status": {
             "$ref": "#/components/schemas/NotificationStatus"
@@ -20947,8 +21130,6 @@
           "client_record_id",
           "trigger",
           "channel",
-          "severity",
-          "recipient",
           "content_snapshot",
           "status",
           "retry_count",
@@ -20956,22 +21137,160 @@
         ],
         "title": "NotificationResponse"
       },
-      "NotificationSeverity": {
-        "type": "string",
-        "enum": [
-          "info",
-          "warning",
-          "urgent",
-          "critical"
+      "NotificationResult": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "sent",
+              "failed",
+              "skipped",
+              "blocked"
+            ],
+            "title": "Status"
+          },
+          "notification_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notification Id"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
         ],
-        "title": "NotificationSeverity"
+        "title": "NotificationResult"
+      },
+      "NotificationSendOverrides": {
+        "properties": {
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "NotificationSendOverrides"
+      },
+      "NotificationSendRequest": {
+        "properties": {
+          "client_record_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Client Record Id"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/NotificationTrigger"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "business_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Business Id"
+          },
+          "channel": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Channel"
+          },
+          "overrides": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NotificationSendOverrides"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "confirm_recent_duplicate": {
+            "type": "boolean",
+            "title": "Confirm Recent Duplicate",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "client_record_id",
+          "trigger"
+        ],
+        "title": "NotificationSendRequest"
       },
       "NotificationStatus": {
         "type": "string",
         "enum": [
           "pending",
           "sent",
-          "failed"
+          "failed",
+          "skipped"
         ],
         "title": "NotificationStatus"
       },
@@ -20979,38 +21298,49 @@
         "properties": {
           "pending": {
             "type": "integer",
-            "title": "Pending"
+            "title": "Pending",
+            "default": 0
           },
           "sent": {
             "type": "integer",
-            "title": "Sent"
+            "title": "Sent",
+            "default": 0
           },
           "failed": {
             "type": "integer",
-            "title": "Failed"
+            "title": "Failed",
+            "default": 0
+          },
+          "skipped": {
+            "type": "integer",
+            "title": "Skipped",
+            "default": 0
           },
           "total": {
             "type": "integer",
-            "title": "Total"
+            "title": "Total",
+            "default": 0
           }
         },
         "type": "object",
-        "required": [
-          "pending",
-          "sent",
-          "failed",
-          "total"
-        ],
         "title": "NotificationSummaryResponse"
       },
       "NotificationTrigger": {
         "type": "string",
         "enum": [
-          "binder_received",
           "binder_ready_for_handover",
-          "handover_reminder",
+          "binder_missing_documents",
+          "binder_general_reminder",
+          "invoice_issued",
+          "payment_reminder",
+          "vat_documents_reminder",
+          "annual_report_documents_request",
           "annual_report_client_reminder",
-          "manual_payment_reminder"
+          "signature_request_sent",
+          "signature_request_reminder",
+          "client_missing_information",
+          "client_documents_request",
+          "client_general_message"
         ],
         "title": "NotificationTrigger"
       },

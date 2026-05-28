@@ -70,6 +70,7 @@ logger = get_logger(__name__)
 
 def _hash_request(
     trigger: str,
+    channel: str,
     subject: str,
     body: str,
     client_record_id: int,
@@ -79,6 +80,7 @@ def _hash_request(
     payload = json.dumps(
         {
             "trigger": trigger,
+            "channel": channel,
             "subject": subject,
             "body": body,
             "cr": client_record_id,
@@ -191,6 +193,7 @@ class NotificationSendService:
         self,
         request: NotificationSendRequest,
         triggered_by: int,
+        idempotency_key: str,
     ) -> NotificationResult:
         if request.trigger in _AUTO_ONLY_TRIGGERS:
             raise AppError("הודעה זו נשלחת אוטומטית ואינה זמינה לשליחה ידנית", "NOTIFICATION.AUTO_ONLY_TRIGGER")
@@ -198,35 +201,6 @@ class NotificationSendService:
             raise AppError("חובה לספק מזהה דוח שנתי לסוג הודעה זה", "NOTIFICATION.MISSING_ENTITY_ID")
         if request.trigger in _GENERIC_ENTITY_TRIGGERS and not request.entity_id:
             raise AppError("חובה לספק מזהה ישות לסוג הודעה זה", "NOTIFICATION.MISSING_ENTITY_ID")
-
-        # Idempotency check
-        if request.idempotency_key:
-            existing = self.repo.find_by_idempotency_key(
-                request.idempotency_key,
-                ttl_hours=NOTIFICATION_IDEMPOTENCY_TTL_HOURS,
-            )
-            if existing is not None:
-                req_hash = _hash_request(
-                    request.trigger.value,
-                    request.subject.strip(),
-                    request.body.strip(),
-                    request.client_record_id,
-                    request.entity_id,
-                    request.business_id,
-                )
-                if existing.request_hash != req_hash:
-                    logger.warning(
-                        "idempotency key reused with different payload key=%s",
-                        request.idempotency_key,
-                    )
-                # A PENDING row means a prior attempt crashed mid-flight.
-                # Fall through and let this request proceed normally.
-                if existing.status != NotificationStatus.PENDING:
-                    return NotificationResult(
-                        status=existing.status.value,  # type: ignore[arg-type]
-                        notification_id=existing.id,
-                        reason="כבר נשלח (idempotency)",
-                    )
 
         client_record = self.db.get(ClientRecord, request.client_record_id)
         if client_record is None:
@@ -257,9 +231,44 @@ class NotificationSendService:
                 warnings=policy.warnings,
             )
 
-        # Validate subject/body after policy — blocked clients don't raise 422
-        subject = request.subject.strip()
-        body = request.body.strip()
+        overrides = request.overrides
+        needs_default_subject = overrides is None or overrides.subject is None
+        needs_default_body = overrides is None or overrides.body is None
+        default_subject = ""
+        default_body = ""
+        if needs_default_subject or needs_default_body:
+            person_name = self.resolver.resolve_client_name(request.client_record_id)
+            ctx = self.resolver.resolve(
+                trigger=request.trigger,
+                client_record_id=request.client_record_id,
+                entity_id=request.entity_id,
+                business_id=request.business_id,
+                triggered_by_user_id=triggered_by,
+            )
+            default_body, default_subject, error_reason = self.renderer.build_preview(
+                request.trigger, ctx, person_name
+            )
+            if error_reason:
+                return NotificationResult(
+                    status="blocked",
+                    reason=error_reason,
+                    warnings=policy.warnings,
+                )
+
+        subject_value = (
+            overrides.subject
+            if overrides is not None and overrides.subject is not None
+            else default_subject
+        )
+        body_value = (
+            overrides.body
+            if overrides is not None and overrides.body is not None
+            else default_body
+        )
+
+        # Validate subject/body after policy — blocked clients don't raise validation errors
+        subject = subject_value.strip()
+        body = body_value.strip()
         _placeholder_re = re.compile(r"\{[a-z_]+\}")
         if not subject:
             raise AppError("נושא ההודעה לא יכול להיות ריק", "NOTIFICATION.EMPTY_SUBJECT")
@@ -278,17 +287,42 @@ class NotificationSendService:
         if _placeholder_re.search(subject) or _placeholder_re.search(body):
             raise AppError("ההודעה מכילה שדות שלא מולאו", "NOTIFICATION.VISIBLE_PLACEHOLDER")
 
+        channel = NotificationChannel(request.channel or NotificationChannel.EMAIL.value)
+        req_hash = _hash_request(
+            request.trigger.value,
+            channel.value,
+            subject,
+            body,
+            request.client_record_id,
+            request.entity_id,
+            request.business_id,
+        )
+
+        existing = self.repo.find_by_idempotency_key(
+            idempotency_key,
+            ttl_hours=NOTIFICATION_IDEMPOTENCY_TTL_HOURS,
+        )
+        if existing is not None:
+            if existing.request_hash != req_hash:
+                logger.warning(
+                    "idempotency key reused with different payload key=%s",
+                    idempotency_key,
+                )
+            # A PENDING row means a prior attempt crashed mid-flight.
+            # Fall through and let this request proceed normally.
+            if existing.status != NotificationStatus.PENDING:
+                return NotificationResult(
+                    status=existing.status.value,  # type: ignore[arg-type]
+                    notification_id=existing.id,
+                    reason="כבר נשלח (idempotency)",
+                )
+
         # Contact resolution — skipped = record saved with recipient=null
         if request.trigger in _SIGNATURE_TRIGGERS:
             recipient = self._resolve_signer_email(request.entity_id)
         else:
             person = self.resolver.resolve_person(request.client_record_id)
             recipient = person.email if person else None
-
-        req_hash = _hash_request(
-            request.trigger.value, subject, body, request.client_record_id,
-            request.entity_id, request.business_id,
-        )
 
         # Derive entity anchors from trigger so domain-level fields (e.g. annual_report_id)
         # are populated and cooldown / history queries work correctly.
@@ -310,7 +344,7 @@ class NotificationSendService:
             n = self.repo.create(
                 client_record_id=request.client_record_id,
                 trigger=request.trigger,
-                channel=NotificationChannel.EMAIL,
+                channel=channel,
                 recipient=None,
                 content_snapshot=body,
                 subject_snapshot=subject,
@@ -320,7 +354,7 @@ class NotificationSendService:
                 entity_type=entity_type,
                 entity_id=request.entity_id,
                 triggered_by=triggered_by,
-                idempotency_key=request.idempotency_key,
+                idempotency_key=idempotency_key,
                 request_hash=req_hash,
                 status=NotificationStatus.SKIPPED,
             )
@@ -337,7 +371,6 @@ class NotificationSendService:
                 warnings=policy.warnings,
             )
 
-        channel = NotificationChannel.EMAIL
         delivery_recipient = recipient
 
         n = self.repo.create(
@@ -353,7 +386,7 @@ class NotificationSendService:
             entity_type=entity_type,
             entity_id=request.entity_id,
             triggered_by=triggered_by,
-            idempotency_key=request.idempotency_key,
+            idempotency_key=idempotency_key,
             request_hash=req_hash,
             status=NotificationStatus.PENDING,
         )

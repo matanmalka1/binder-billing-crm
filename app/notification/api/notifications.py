@@ -1,8 +1,9 @@
 """Notification center HTTP endpoints."""
 
 import datetime
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.notification.models.notification import (
     NotificationChannel,
@@ -92,11 +93,45 @@ def preview_notification(
     return svc.preview(body, triggered_by=user.id)
 
 
-@router.post("/send", response_model=NotificationResult)
+@router.post(
+    "/send",
+    response_model=NotificationResult,
+    openapi_extra={
+        "parameters": [
+            {
+                "name": "X-Idempotency-Key",
+                "in": "header",
+                "required": True,
+                "schema": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "X-Idempotency-Key",
+                },
+            }
+        ]
+    },
+)
 def send_notification(
     body: NotificationSendRequest,
     db: DBSession,
     user: CurrentUser,
+    request: Request,
 ):
+    x_idempotency_key = request.headers.get("X-Idempotency-Key")
+    idempotency_key = x_idempotency_key.strip() if x_idempotency_key else ""
+    if not idempotency_key:
+        raise AppError(
+            "נדרש X-Idempotency-Key לשליחת הודעה",
+            "NOTIFICATION.MISSING_IDEMPOTENCY_KEY",
+            status_code=400,
+        )
+    try:
+        UUID(idempotency_key)
+    except ValueError as exc:
+        raise AppError(
+            "X-Idempotency-Key חייב להיות UUID תקין",
+            "NOTIFICATION.INVALID_IDEMPOTENCY_KEY",
+            status_code=400,
+        ) from exc
     svc = NotificationService(db)
-    return svc.send(body, triggered_by=user.id)
+    return svc.send(body, triggered_by=user.id, idempotency_key=idempotency_key)

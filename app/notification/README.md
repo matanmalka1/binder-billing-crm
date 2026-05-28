@@ -250,17 +250,20 @@ Router prefix is `/api/v1/notifications` (mounted through `app/router_registry.p
 ### Send manual notification
 - `POST /api/v1/notifications/send`
 - Role: `ADVISOR`
+- Required header: `X-Idempotency-Key: <uuid>`
 - Body:
 
 ```json
 {
   "client_record_id": 1,
   "trigger": "client_general_message",
-  "subject": "נושא ההודעה",
-  "body": "גוף ההודעה",
   "entity_id": null,
   "business_id": null,
-  "idempotency_key": "optional-key",
+  "channel": "email",
+  "overrides": {
+    "subject": "נושא ההודעה",
+    "body": "גוף ההודעה"
+  },
   "confirm_recent_duplicate": false
 }
 ```

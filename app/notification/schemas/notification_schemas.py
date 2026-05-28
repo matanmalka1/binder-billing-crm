@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.api_types import ApiDateTime
 from app.notification.models.notification import (
@@ -22,14 +22,22 @@ class NotificationPreviewRequest(BaseModel):
     confirm_recent_duplicate: bool = False
 
 
+class NotificationSendOverrides(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    subject: str | None = None
+    body: str | None = None
+
+
 class NotificationSendRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     client_record_id: int = Field(gt=0)
     trigger: NotificationTrigger
-    subject: str = Field(min_length=1)
-    body: str = Field(min_length=1)
     entity_id: int | None = Field(None, gt=0)
     business_id: int | None = Field(None, gt=0)
-    idempotency_key: str | None = Field(None, max_length=128)
+    channel: Literal["email"] | None = None
+    overrides: NotificationSendOverrides | None = None
     confirm_recent_duplicate: bool = False
 
 

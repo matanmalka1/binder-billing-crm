@@ -102,11 +102,11 @@ def test_signature_request_sent_send_saves_signature_request_id(test_db, test_us
         NotificationSendRequest(
             client_record_id=client.id,
             trigger="signature_request_sent",  # type: ignore[arg-type]
-            subject="בקשה לחתימה",
-            body="נא לחתום",
+            overrides={"subject": "בקשה לחתימה", "body": "נא לחתום"},
             entity_id=sig.id,
         ),
         triggered_by=test_user.id,
+        idempotency_key="00000000-0000-4000-8000-000000000301",
     )
 
     assert result.status in ("sent", "failed")
@@ -126,11 +126,11 @@ def test_signature_request_sent_skipped_when_no_signer_email(test_db, test_user)
         NotificationSendRequest(
             client_record_id=client.id,
             trigger="signature_request_sent",  # type: ignore[arg-type]
-            subject="בקשה לחתימה",
-            body="נא לחתום",
+            overrides={"subject": "בקשה לחתימה", "body": "נא לחתום"},
             entity_id=sig.id,
         ),
         triggered_by=test_user.id,
+        idempotency_key="00000000-0000-4000-8000-000000000302",
     )
 
     assert result.status == "skipped"
@@ -152,11 +152,11 @@ def test_signature_request_sent_uses_signer_email_not_client_email(test_db, test
         NotificationSendRequest(
             client_record_id=client.id,
             trigger="signature_request_sent",  # type: ignore[arg-type]
-            subject="בקשה לחתימה",
-            body="נא לחתום",
+            overrides={"subject": "בקשה לחתימה", "body": "נא לחתום"},
             entity_id=sig.id,
         ),
         triggered_by=test_user.id,
+        idempotency_key="00000000-0000-4000-8000-000000000303",
     )
 
     assert result.status in ("sent", "failed")

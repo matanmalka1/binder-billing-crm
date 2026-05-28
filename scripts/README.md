@@ -12,6 +12,9 @@ one-time operational migrations.
 | `bootstrap_user_production.py` | Create a login user directly in the database |
 | `migrate_official_name.py` | One-time migration: `Client.full_name` -> `LegalEntity.official_name` |
 | `json_examples.py` | Generate sample JSON payloads and API contract docs for manual API testing |
+| `export_openapi.py` | Export the current FastAPI OpenAPI schema to `openapi.json` |
+| `check_contract_sync.py` | Verify `openapi.json` matches the current FastAPI app schema |
+| `list_routes.py` | Print registered FastAPI routes, optionally filtered by text |
 
 ## General Notes
 
@@ -152,3 +155,47 @@ Notes:
 - Imports `app.main:app`, so it reflects the current OpenAPI schema.
 - Uses manual success overrides for binary/export endpoints and selected public/report endpoints.
 - Generated examples are documentation/testing helpers, not source-of-truth business rules.
+
+## Export OpenAPI
+
+Writes the current FastAPI OpenAPI schema to `openapi.json`.
+
+Command:
+
+```bash
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/export_openapi.py
+```
+
+Optional output path:
+
+```bash
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/export_openapi.py --output /tmp/openapi.json
+```
+
+## Check Contract Sync
+
+Fails when `openapi.json` does not match the current FastAPI app schema.
+
+Command:
+
+```bash
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/check_contract_sync.py
+```
+
+Optional path:
+
+```bash
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/check_contract_sync.py --path /tmp/openapi.json
+```
+
+## List Routes
+
+Prints registered FastAPI routes. The optional argument filters by path, route name, or tag.
+
+Commands:
+
+```bash
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/list_routes.py
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/list_routes.py notifications
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/list_routes.py audit
+```

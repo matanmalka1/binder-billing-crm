@@ -98,10 +98,13 @@ def test_send_creates_skipped_record_when_no_email(test_db):
     req = NotificationSendRequest(
         client_record_id=cr_id,
         trigger=NotificationTrigger.CLIENT_GENERAL_MESSAGE,
-        subject="נושא",
-        body="גוף",
+        overrides={"subject": "נושא", "body": "גוף"},
     )
-    result = svc.send(req, triggered_by=1)
+    result = svc.send(
+        req,
+        triggered_by=1,
+        idempotency_key="00000000-0000-4000-8000-000000000201",
+    )
 
     assert result.status == "skipped"
     assert result.notification_id is not None
@@ -119,10 +122,13 @@ def test_send_blocked_for_frozen_client_no_record(test_db):
     req = NotificationSendRequest(
         client_record_id=cr_id,
         trigger=NotificationTrigger.CLIENT_GENERAL_MESSAGE,
-        subject="נושא",
-        body="גוף",
+        overrides={"subject": "נושא", "body": "גוף"},
     )
-    result = svc.send(req, triggered_by=1)
+    result = svc.send(
+        req,
+        triggered_by=1,
+        idempotency_key="00000000-0000-4000-8000-000000000202",
+    )
 
     assert result.status == "blocked"
     assert result.notification_id is None
@@ -140,10 +146,13 @@ def test_send_allowed_for_frozen_client_with_exempt_trigger(test_db):
     req = NotificationSendRequest(
         client_record_id=cr_id,
         trigger=NotificationTrigger.CLIENT_MISSING_INFORMATION,
-        subject="נושא",
-        body="גוף",
+        overrides={"subject": "נושא", "body": "גוף"},
     )
-    result = svc.send(req, triggered_by=1)
+    result = svc.send(
+        req,
+        triggered_by=1,
+        idempotency_key="00000000-0000-4000-8000-000000000203",
+    )
 
     # Should proceed (skipped due to stub delivery, not blocked)
     assert result.status in ("sent", "skipped", "failed")
@@ -157,13 +166,16 @@ def test_send_validates_empty_subject(test_db):
     req = NotificationSendRequest(
         client_record_id=cr_id,
         trigger=NotificationTrigger.CLIENT_GENERAL_MESSAGE,
-        subject="   ",
-        body="גוף",
+        overrides={"subject": "   ", "body": "גוף"},
     )
     from app.core.exceptions import AppError
 
     with pytest.raises(AppError) as exc:
-        svc.send(req, triggered_by=1)
+        svc.send(
+            req,
+            triggered_by=1,
+            idempotency_key="00000000-0000-4000-8000-000000000204",
+        )
     assert "נושא" in exc.value.message
 
 
@@ -174,13 +186,16 @@ def test_send_validates_visible_placeholder(test_db):
     req = NotificationSendRequest(
         client_record_id=cr_id,
         trigger=NotificationTrigger.CLIENT_GENERAL_MESSAGE,
-        subject="שלום",
-        body="הי {client_name} צריך לבדוק",
+        overrides={"subject": "שלום", "body": "הי {client_name} צריך לבדוק"},
     )
     from app.core.exceptions import AppError
 
     with pytest.raises(AppError) as exc:
-        svc.send(req, triggered_by=1)
+        svc.send(
+            req,
+            triggered_by=1,
+            idempotency_key="00000000-0000-4000-8000-000000000205",
+        )
     assert "שדות" in exc.value.message
 
 
@@ -221,12 +236,18 @@ def test_idempotency_returns_cached_result(test_db):
     req = NotificationSendRequest(
         client_record_id=cr_id,
         trigger=NotificationTrigger.CLIENT_GENERAL_MESSAGE,
-        subject="נושא",
-        body="גוף",
-        idempotency_key="unique-key-123",
+        overrides={"subject": "נושא", "body": "גוף"},
     )
 
-    first = svc.send(req, triggered_by=1)
-    second = svc.send(req, triggered_by=1)
+    first = svc.send(
+        req,
+        triggered_by=1,
+        idempotency_key="00000000-0000-4000-8000-000000000206",
+    )
+    second = svc.send(
+        req,
+        triggered_by=1,
+        idempotency_key="00000000-0000-4000-8000-000000000206",
+    )
 
     assert first.notification_id == second.notification_id

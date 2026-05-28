@@ -31,8 +31,7 @@ def _make_send_request(trigger: str, entity_id: int | None = None, business_id: 
     return NotificationSendRequest(
         client_record_id=1,
         trigger=trigger,  # type: ignore[arg-type]
-        subject="נושא",
-        body="גוף ההודעה",
+        overrides={"subject": "נושא", "body": "גוף ההודעה"},
         entity_id=entity_id,
         business_id=business_id,
     )
@@ -106,37 +105,47 @@ class TestSendTriggerValidation:
         svc = _svc(monkeypatch)
         req = _make_send_request("binder_ready_for_handover")
         with pytest.raises(AppError) as exc:
-            svc.send(req, triggered_by=1)
+            svc.send(req, triggered_by=1, idempotency_key="00000000-0000-4000-8000-000000000001")
         assert exc.value.code == "NOTIFICATION.AUTO_ONLY_TRIGGER"
 
     def test_send_rejects_annual_client_reminder_without_entity_id(self, monkeypatch):
         svc = _svc(monkeypatch)
         req = _make_send_request("annual_report_client_reminder", entity_id=None)
         with pytest.raises(AppError) as exc:
-            svc.send(req, triggered_by=1)
+            svc.send(req, triggered_by=1, idempotency_key="00000000-0000-4000-8000-000000000002")
         assert exc.value.code == "NOTIFICATION.MISSING_ENTITY_ID"
 
     def test_send_rejects_annual_documents_request_without_entity_id(self, monkeypatch):
         svc = _svc(monkeypatch)
         req = _make_send_request("annual_report_documents_request", entity_id=None)
         with pytest.raises(AppError) as exc:
-            svc.send(req, triggered_by=1)
+            svc.send(req, triggered_by=1, idempotency_key="00000000-0000-4000-8000-000000000003")
         assert exc.value.code == "NOTIFICATION.MISSING_ENTITY_ID"
 
 
 class TestAnnualReportSendIntegration:
     """Integration tests: annual send path saves annual_report_id and cooldown works."""
 
-    def _send(self, db, client_id: int, report_id: int, user_id: int) -> object:
+    def _send(
+        self,
+        db,
+        client_id: int,
+        report_id: int,
+        user_id: int,
+        idempotency_key: str = "00000000-0000-4000-8000-000000000100",
+    ) -> object:
         svc = NotificationSendService(db)
         req = NotificationSendRequest(
             client_record_id=client_id,
             trigger="annual_report_client_reminder",  # type: ignore[arg-type]
-            subject="תזכורת לאישור הדוח השנתי",
-            body="אנא אשר את הדוח השנתי",
+            overrides={"subject": "תזכורת לאישור הדוח השנתי", "body": "אנא אשר את הדוח השנתי"},
             entity_id=report_id,
         )
-        return svc.send(req, triggered_by=user_id)
+        return svc.send(
+            req,
+            triggered_by=user_id,
+            idempotency_key=idempotency_key,
+        )
 
     def test_annual_send_saves_annual_report_id_on_record(self, test_db, test_user):
         client = seed_client_identity(
@@ -173,7 +182,13 @@ class TestAnnualReportSendIntegration:
         )
         svc.repo.update(report.id, status=AnnualReportStatus.PENDING_CLIENT)
 
-        r1 = self._send(test_db, client.id, report.id, test_user.id)
+        r1 = self._send(
+            test_db,
+            client.id,
+            report.id,
+            test_user.id,
+            idempotency_key="00000000-0000-4000-8000-000000000101",
+        )
         assert r1.status in ("sent", "skipped")
 
         # Ensure first notification is marked SENT so cooldown applies
@@ -182,6 +197,12 @@ class TestAnnualReportSendIntegration:
             repo.mark_sent(r1.notification_id)
             test_db.commit()
 
-        r2 = self._send(test_db, client.id, report.id, test_user.id)
+        r2 = self._send(
+            test_db,
+            client.id,
+            report.id,
+            test_user.id,
+            idempotency_key="00000000-0000-4000-8000-000000000102",
+        )
         assert r2.status == "blocked"
         assert r2.notification_id is None

@@ -215,14 +215,63 @@ def test_secretary_can_send(client, test_db, secretary_headers):
         json={
             "client_record_id": cr.id,
             "trigger": "client_general_message",
-            "subject": "נושא",
-            "body": "גוף ההודעה",
+            "overrides": {
+                "subject": "נושא",
+                "body": "גוף ההודעה",
+            },
         },
-        headers=secretary_headers,
+        headers={
+            **secretary_headers,
+            "X-Idempotency-Key": "00000000-0000-4000-8000-000000000401",
+        },
     )
     # 200 or skipped/sent — just not 403/422
     assert resp.status_code in (200, 201)
     assert resp.json()["status"] in ("sent", "skipped", "failed")
+
+
+def test_send_requires_idempotency_header(client, test_db, advisor_headers):
+    b1 = _business(test_db, "idem-required")
+    cr = test_db.scalars(
+        select(ClientRecord).filter(ClientRecord.legal_entity_id == b1.legal_entity_id)
+    ).first()
+    resp = client.post(
+        "/api/v1/notifications/send",
+        json={
+            "client_record_id": cr.id,
+            "trigger": "client_general_message",
+            "overrides": {
+                "subject": "נושא",
+                "body": "גוף ההודעה",
+            },
+        },
+        headers=advisor_headers,
+    )
+
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "NOTIFICATION.MISSING_IDEMPOTENCY_KEY"
+
+
+def test_send_rejects_legacy_subject_body_shape(client, test_db, advisor_headers):
+    b1 = _business(test_db, "legacy-shape")
+    cr = test_db.scalars(
+        select(ClientRecord).filter(ClientRecord.legal_entity_id == b1.legal_entity_id)
+    ).first()
+    resp = client.post(
+        "/api/v1/notifications/send",
+        json={
+            "client_record_id": cr.id,
+            "trigger": "client_general_message",
+            "subject": "נושא",
+            "body": "גוף ההודעה",
+        },
+        headers={
+            **advisor_headers,
+            "X-Idempotency-Key": "00000000-0000-4000-8000-000000000402",
+        },
+    )
+
+    assert resp.status_code == 422
 
 
 def test_preview_returns_ready_for_active_client(client, test_db, advisor_headers):
