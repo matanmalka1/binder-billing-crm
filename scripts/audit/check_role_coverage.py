@@ -6,9 +6,9 @@ Reports routes that have neither require_role nor get_current_user,
 unless they are listed in PUBLIC_ROUTES or AUTH_ONLY_ROUTES in route_audit_config.py.
 
 Usage:
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_role_coverage.py
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_role_coverage.py --json
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_role_coverage.py --fail-on-findings
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_role_coverage.py
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_role_coverage.py --json
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_role_coverage.py --fail-on-findings
 """
 
 from __future__ import annotations

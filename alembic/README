@@ -44,7 +44,7 @@ APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m 
 4. Seed demo data:
 
 ```bash
-APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 scripts/seed_fake_data.py --reset
+APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret ./.venv/bin/python scripts/dev/seed_fake_data.py --reset
 ```
 
 Default local connection:

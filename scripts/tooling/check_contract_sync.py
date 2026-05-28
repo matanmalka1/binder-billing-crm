@@ -47,7 +47,7 @@ def main() -> int:
 
     if normalized_json(expected) != normalized_json(actual):
         print(
-            f"{openapi_path} is out of sync. Run scripts/export_openapi.py and review the diff.",
+            f"{openapi_path} is out of sync. Run scripts/tooling/export_openapi.py and review the diff.",
             file=sys.stderr,
         )
         return 1

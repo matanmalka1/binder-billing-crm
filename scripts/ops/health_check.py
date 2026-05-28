@@ -8,10 +8,10 @@ Checks:
   GET  /api/v1/auth/me     (only if login succeeds)
 
 Usage:
-    python scripts/health_check.py
-    python scripts/health_check.py --url http://localhost:8000
-    python scripts/health_check.py --email admin@example.com --password secret
-    HEALTH_EMAIL=admin@example.com HEALTH_PASSWORD=secret python scripts/health_check.py
+    ./.venv/bin/python scripts/ops/health_check.py
+    ./.venv/bin/python scripts/ops/health_check.py --url http://localhost:8000
+    ./.venv/bin/python scripts/ops/health_check.py --email admin@example.com --password secret
+    HEALTH_EMAIL=admin@example.com HEALTH_PASSWORD=secret ./.venv/bin/python scripts/ops/health_check.py
 """
 
 from __future__ import annotations

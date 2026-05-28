@@ -14,10 +14,10 @@ Steps:
     you MUST also reset the production database manually before deploying.
 
 Usage:
-    APP_ENV=development ENV_FILE=.env.development python scripts/reset_dev_db.py
-    APP_ENV=development ENV_FILE=.env.development python scripts/reset_dev_db.py --yes
-    APP_ENV=development ENV_FILE=.env.development python scripts/reset_dev_db.py --yes --preserve-users
-    APP_ENV=development ENV_FILE=.env.development python scripts/reset_dev_db.py --yes --clients 20
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/dev/reset_dev_db.py
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/dev/reset_dev_db.py --yes
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/dev/reset_dev_db.py --yes --preserve-users
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/dev/reset_dev_db.py --yes --clients 20
 """
 
 from __future__ import annotations

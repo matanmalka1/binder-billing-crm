@@ -52,9 +52,7 @@ tooling
   routes         List all registered routes
   openapi        Export OpenAPI schema to openapi.json
   contract       Verify openapi.json matches current app
-
-one-time
-  official-name  Migrate Client.full_name to LegalEntity.official_name
+  examples       Generate JSON_EXAMPLES.md from OpenAPI
 ```
 
 The CLI always runs child scripts through `./.venv/bin/python` and fails fast if
@@ -88,8 +86,6 @@ scripts/
 │   ├── check_contract_sync.py
 │   ├── list_routes.py
 │   └── json_examples.py
-└── one-time/
-    └── migrate_official_name.py
 ```
 
 ---
@@ -148,7 +144,7 @@ Dumps actual DB schema (tables, columns, indexes, FKs, constraints) via SQLAlche
 
 ```bash
 APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/dump_schema.py
-APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/dump_schema.py --table clients
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/dump_schema.py --table client_records
 APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/dump_schema.py --json
 ```
 
@@ -205,6 +201,7 @@ HEALTH_EMAIL=admin@example.com HEALTH_PASSWORD=secret ./.venv/bin/python scripts
 APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/tooling/export_openapi.py
 APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/tooling/check_contract_sync.py
 APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/tooling/list_routes.py [filter]
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/tooling/json_examples.py
 ```
 
 ---

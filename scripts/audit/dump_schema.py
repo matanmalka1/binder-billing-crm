@@ -5,9 +5,9 @@ Shows tables, columns (type, nullable), indexes (unique, partial), foreign keys,
 and check constraints — all from the live DB, not the ORM models.
 
 Usage:
-    APP_ENV=development ENV_FILE=.env.development python scripts/dump_schema.py
-    APP_ENV=development ENV_FILE=.env.development python scripts/dump_schema.py --table clients
-    APP_ENV=development ENV_FILE=.env.development python scripts/dump_schema.py --json
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/dump_schema.py
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/dump_schema.py --table client_records
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/dump_schema.py --json
 """
 
 from __future__ import annotations

@@ -4400,8 +4400,8 @@
             "required": false,
             "schema": {
               "type": "string",
-              "pattern": "^(official_name|full_name|created_at|status|entity_type)$",
-              "default": "official_name",
+              "pattern": "^(full_name|created_at|status|entity_type)$",
+              "default": "full_name",
               "title": "Sort By"
             }
           },
@@ -6198,7 +6198,6 @@
           "charges"
         ],
         "summary": "Create Charge",
-        "description": "Create new charge (ADVISOR only).",
         "operationId": "create_charge_api_v1_charges_post",
         "security": [
           {
@@ -6243,7 +6242,6 @@
           "charges"
         ],
         "summary": "List Charges",
-        "description": "List charges with role-based data filtering.",
         "operationId": "list_charges_api_v1_charges_get",
         "security": [
           {
@@ -6316,6 +6314,56 @@
             }
           },
           {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Period"
+            }
+          },
+          {
+            "name": "issued_after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Issued After"
+            }
+          },
+          {
+            "name": "issued_before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Issued Before"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "required": false,
@@ -6369,7 +6417,6 @@
           "charges"
         ],
         "summary": "Issue Charge",
-        "description": "Issue a draft charge (ADVISOR only).",
         "operationId": "issue_charge_api_v1_charges__charge_id__issue_post",
         "security": [
           {
@@ -6417,7 +6464,6 @@
           "charges"
         ],
         "summary": "Mark Charge Paid",
-        "description": "Mark issued charge as paid (ADVISOR only).",
         "operationId": "mark_charge_paid_api_v1_charges__charge_id__mark_paid_post",
         "security": [
           {
@@ -6465,7 +6511,6 @@
           "charges"
         ],
         "summary": "Cancel Charge",
-        "description": "Cancel a charge (ADVISOR only).",
         "operationId": "cancel_charge_api_v1_charges__charge_id__cancel_post",
         "security": [
           {
@@ -6522,7 +6567,6 @@
           "charges"
         ],
         "summary": "Get Charge",
-        "description": "Get charge by ID (authenticated users).",
         "operationId": "get_charge_api_v1_charges__charge_id__get",
         "security": [
           {
@@ -6546,15 +6590,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/ChargeResponse"
-                    },
-                    {
-                      "$ref": "#/components/schemas/ChargeResponseSecretary"
-                    }
-                  ],
-                  "title": "Response Get Charge Api V1 Charges  Charge Id  Get"
+                  "$ref": "#/components/schemas/ChargeResponse"
                 }
               }
             }
@@ -6576,7 +6612,6 @@
           "charges"
         ],
         "summary": "Delete Charge",
-        "description": "Soft-delete a draft charge (ADVISOR only).",
         "operationId": "delete_charge_api_v1_charges__charge_id__delete",
         "security": [
           {
@@ -6617,7 +6652,6 @@
           "charges"
         ],
         "summary": "Bulk Charge Action",
-        "description": "Apply action to multiple charges in bulk (ADVISOR only).",
         "operationId": "bulk_charge_action_api_v1_charges_bulk_action_post",
         "security": [
           {
@@ -16960,14 +16994,7 @@
         "properties": {
           "items": {
             "items": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/ChargeResponse"
-                },
-                {
-                  "$ref": "#/components/schemas/ChargeResponseSecretary"
-                }
-              ]
+              "$ref": "#/components/schemas/ChargeResponse"
             },
             "type": "array",
             "title": "Items"
@@ -17264,150 +17291,6 @@
           "created_at"
         ],
         "title": "ChargeResponse"
-      },
-      "ChargeResponseSecretary": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "client_record_id": {
-            "type": "integer",
-            "title": "Client Record Id"
-          },
-          "client_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Client Name"
-          },
-          "office_client_number": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Office Client Number"
-          },
-          "business_id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Business Id"
-          },
-          "business_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Business Name"
-          },
-          "charge_type": {
-            "$ref": "#/components/schemas/ChargeType"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ChargeStatus"
-          },
-          "period": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Period"
-          },
-          "months_covered": {
-            "type": "integer",
-            "title": "Months Covered"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "examples": [
-              "2026-01-02T03:04:05Z"
-            ]
-          },
-          "issued_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time",
-                "examples": [
-                  "2026-01-02T03:04:05Z"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Issued At"
-          },
-          "paid_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time",
-                "examples": [
-                  "2026-01-02T03:04:05Z"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Paid At"
-          },
-          "available_actions": {
-            "items": {
-              "$ref": "#/components/schemas/ActionDescriptor"
-            },
-            "type": "array",
-            "title": "Available Actions"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "client_record_id",
-          "charge_type",
-          "status",
-          "months_covered",
-          "created_at"
-        ],
-        "title": "ChargeResponseSecretary",
-        "description": "תגובה מצומצמת לסקרטרית — ללא נתונים פיננסיים."
       },
       "ChargeStatus": {
         "type": "string",

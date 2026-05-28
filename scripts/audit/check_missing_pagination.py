@@ -8,9 +8,9 @@ parameter inspection.
 Exceptions are configured in route_audit_config.py.
 
 Usage:
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_missing_pagination.py
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_missing_pagination.py --json
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_missing_pagination.py --fail-on-findings
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_missing_pagination.py
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_missing_pagination.py --json
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_missing_pagination.py --fail-on-findings
 """
 
 from __future__ import annotations

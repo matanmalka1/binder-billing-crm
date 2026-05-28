@@ -246,16 +246,11 @@ REGISTRY: Registry = {
                     _option("Check custom OpenAPI path", ["__openapi_path__"]),
                 ],
             ),
-        },
-    },
-    "one-time": {
-        "label": "Explicit one-off maintenance scripts",
-        "scripts": {
-            "official-name": _script(
-                "Migrate Client.full_name to LegalEntity.official_name",
-                "one-time/migrate_official_name.py",
+            "examples": _script(
+                "Generate JSON_EXAMPLES.md from the current OpenAPI schema",
+                "tooling/json_examples.py",
                 [
-                    _option("Run migration", dangerous=True),
+                    _option("Generate JSON_EXAMPLES.md"),
                 ],
             ),
         },

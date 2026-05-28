@@ -3,7 +3,7 @@
 
 Usage example (production):
 APP_ENV=production ENV_FILE=.env.production JWT_SECRET=... \
-python scripts/bootstrap_user_production.py \
+./.venv/bin/python scripts/dev/bootstrap_user_production.py \
   --full-name "Admin" \
   --email Matan1391@gmail.com \
   --password 'Aa100100!!' \

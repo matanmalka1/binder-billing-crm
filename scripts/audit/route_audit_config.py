@@ -154,6 +154,7 @@ KNOWN_EXTERNAL_OR_MANUAL_ROUTES: set[tuple[str, str]] = {
     ("POST", "/sign/{signing_token}/decline"),
     # Health / infra (called by Render, uptime monitors)
     ("GET", "/health"),
+    ("GET", "/ready"),
     ("GET", "/info"),
     ("GET", "/"),
     # OpenAPI

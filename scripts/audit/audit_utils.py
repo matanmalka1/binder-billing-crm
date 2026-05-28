@@ -89,12 +89,17 @@ def extract_frontend_paths() -> list[str]:
     Searches:
       - src/api/core-endpoints.ts
       - src/features/**/api/endpoints.ts
+      - src/features/**/api.ts
+      - src/features/**/api/**/*.ts
     """
     files: list[Path] = []
     core = FRONTEND_SRC / "api" / "core-endpoints.ts"
     if core.exists():
         files.append(core)
     files.extend(sorted(FRONTEND_SRC.glob("features/**/api/endpoints.ts")))
+    files.extend(sorted(FRONTEND_SRC.glob("features/**/api.ts")))
+    files.extend(sorted(FRONTEND_SRC.glob("features/**/api/**/*.ts")))
+    files = sorted(set(files))
 
     paths: set[str] = set()
     for f in files:
@@ -113,7 +118,11 @@ def extract_frontend_paths() -> list[str]:
     # Prepend /api/v1 to paths that don't already have it and aren't public
     normalized: list[str] = []
     for p in paths:
-        if p.startswith("/api/") or p.startswith("/health") or p.startswith("/info") or p.startswith("/sign"):
+        if (
+            p.startswith("/api/")
+            or p in {"/", "/health", "/info"}
+            or p.startswith("/sign/")
+        ):
             normalized.append(p)
         else:
             normalized.append("/api/v1" + p)

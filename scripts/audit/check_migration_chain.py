@@ -9,9 +9,9 @@ Checks:
   - No merge points (down_revision is a tuple/list)
 
 Usage:
-    python scripts/check_migration_chain.py
-    python scripts/check_migration_chain.py --json
-    python scripts/check_migration_chain.py --fail-on-findings
+    ./.venv/bin/python scripts/audit/check_migration_chain.py
+    ./.venv/bin/python scripts/audit/check_migration_chain.py --json
+    ./.venv/bin/python scripts/audit/check_migration_chain.py --fail-on-findings
 """
 
 from __future__ import annotations

@@ -12,10 +12,10 @@ Strategy:
   7. Report unmatched routes as unused candidates.
 
 Usage:
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_unused_routes.py
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_unused_routes.py --json
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_unused_routes.py --backend-only
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_unused_routes.py --fail-on-findings
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_unused_routes.py
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_unused_routes.py --json
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_unused_routes.py --backend-only
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_unused_routes.py --fail-on-findings
 """
 
 from __future__ import annotations

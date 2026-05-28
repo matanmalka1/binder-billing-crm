@@ -8,10 +8,10 @@ For each mapped enum, extracts values from the Python class and the TS
 Also reports Python enums not covered by the map (as informational warnings).
 
 Usage:
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_enum_sync.py
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_enum_sync.py --json
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_enum_sync.py --fail-on-findings
-    APP_ENV=development ENV_FILE=.env.development python scripts/check_enum_sync.py --enum VatType
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_enum_sync.py
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_enum_sync.py --json
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_enum_sync.py --fail-on-findings
+    APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python scripts/audit/check_enum_sync.py --enum VatType
 """
 
 from __future__ import annotations
