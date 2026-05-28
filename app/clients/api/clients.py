@@ -89,8 +89,8 @@ def list_clients(
     accountant_id: int | None = Query(None, ge=1),
     tax_year: int | None = Query(None, ge=2000, le=2100),
     sort_by: str = Query(
-        "official_name",
-        pattern="^(official_name|full_name|created_at|status|entity_type)$",
+        "full_name",
+        pattern="^(full_name|created_at|status|entity_type)$",
     ),
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),

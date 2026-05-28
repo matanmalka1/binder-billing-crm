@@ -86,7 +86,7 @@ class ClientQueryService:
         accountant_id: int | None = None,
         entity_type: EntityType | None = None,
         tax_year: int | None = None,
-        sort_by: str = "official_name",
+        sort_by: str = "full_name",
         sort_order: str = "asc",
         page: int = 1,
         page_size: int = 20,
