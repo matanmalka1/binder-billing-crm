@@ -8,7 +8,6 @@ from app.charge.schemas.charge import (
     ChargeListResponse,
     ChargeListStats,
     ChargeResponse,
-    ChargeResponseSecretary,
     ChargeStatusStat,
 )
 from app.clients.repositories.client_record_read_repository import (
@@ -16,7 +15,6 @@ from app.clients.repositories.client_record_read_repository import (
     get_full_records_bulk,
 )
 from app.clients.repositories.client_record_repository import ClientRecordRepository
-from app.users.models.user import UserRole
 
 
 class ChargeQueryService:
@@ -117,9 +115,8 @@ class ChargeQueryService:
             office_client_number_map,
         )
 
-    def list_charges_for_role(
+    def list_charges_paginated(
         self,
-        user_role: UserRole,
         business_id: int | None = None,
         client_record_id: int | None = None,
         status: str | None = None,
@@ -137,15 +134,14 @@ class ChargeQueryService:
                 page_size=page_size,
             )
         )
-        schema = ChargeResponseSecretary if user_role == UserRole.SECRETARY else ChargeResponse
 
-        def _enrich(charge: Charge) -> ChargeResponse | ChargeResponseSecretary:
-            data = schema.model_validate(charge).model_dump()
+        def _enrich(charge: Charge) -> ChargeResponse:
+            data = ChargeResponse.model_validate(charge).model_dump()
             data["client_name"] = client_name_map.get(charge.id)
             data["business_name"] = business_name_map.get(charge.id)
             data["office_client_number"] = office_client_number_map.get(charge.id)
-            data["available_actions"] = get_charge_actions(charge, user_role=user_role)
-            return schema(**data)
+            data["available_actions"] = get_charge_actions(charge)
+            return ChargeResponse(**data)
 
         client_record = (
             ClientRecordRepository(self.db).get_by_id(client_record_id)

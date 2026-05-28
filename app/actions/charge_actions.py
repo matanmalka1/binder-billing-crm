@@ -3,7 +3,6 @@ from __future__ import annotations
 from app.charge.models.charge import Charge, ChargeStatus
 from app.core.action_builders import mutation_action
 from app.core.action_schemas import ActionDescriptor
-from app.users.models.user import UserRole
 
 
 def _cancel_charge_action(charge_id: int) -> ActionDescriptor:
@@ -17,15 +16,7 @@ def _cancel_charge_action(charge_id: int) -> ActionDescriptor:
     )
 
 
-def get_charge_actions(
-    charge: Charge,
-    *,
-    user_role: UserRole | str | None = None,
-) -> list[ActionDescriptor]:
-    """Return executable actions for a charge."""
-    if user_role not in (None, UserRole.ADVISOR, UserRole.ADVISOR.value):
-        return []
-
+def get_charge_actions(charge: Charge) -> list[ActionDescriptor]:
     status = charge.status
     actions: list[ActionDescriptor] = []
 

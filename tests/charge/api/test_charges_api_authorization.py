@@ -37,11 +37,12 @@ def test_advisor_can_create_charge(client, advisor_headers, test_db):
     assert data["paid_at"] is None
 
 
-def test_secretary_cannot_mutate_charges(client, secretary_headers, advisor_headers, test_db):
+def test_secretary_can_mutate_charges(client, secretary_headers, test_db):
     business = _create_business(test_db)
+
     create_res = client.post(
         "/api/v1/charges",
-        headers=advisor_headers,
+        headers=secretary_headers,
         json={
             "client_record_id": business.client_id,
             "business_id": business.id,
@@ -49,33 +50,12 @@ def test_secretary_cannot_mutate_charges(client, secretary_headers, advisor_head
             "charge_type": "monthly_retainer",
         },
     )
+    assert create_res.status_code == 201
     charge_id = create_res.json()["id"]
+    assert create_res.json()["amount"] == "50.00"
 
-    assert (
-        client.post(
-            "/api/v1/charges",
-            headers=secretary_headers,
-            json={
-                "client_record_id": business.client_id,
-                "business_id": business.id,
-                "amount": 1,
-                "charge_type": "other",
-            },
-        ).status_code
-        == 403
-    )
-    assert (
-        client.post(f"/api/v1/charges/{charge_id}/issue", headers=secretary_headers).status_code
-        == 403
-    )
-    assert (
-        client.post(f"/api/v1/charges/{charge_id}/mark-paid", headers=secretary_headers).status_code
-        == 403
-    )
-    assert (
-        client.post(f"/api/v1/charges/{charge_id}/cancel", headers=secretary_headers).status_code
-        == 403
-    )
+    assert client.post(f"/api/v1/charges/{charge_id}/issue", headers=secretary_headers).status_code == 200
+    assert client.post(f"/api/v1/charges/{charge_id}/cancel", headers=secretary_headers).status_code == 200
 
 
 def test_secretary_can_read_charges(client, secretary_headers, advisor_headers, test_db):

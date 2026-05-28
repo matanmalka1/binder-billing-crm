@@ -54,28 +54,6 @@ class ChargeResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ChargeResponseSecretary(BaseModel):
-    """תגובה מצומצמת לסקרטרית — ללא נתונים פיננסיים."""
-
-    id: int
-    client_record_id: int
-    client_name: str | None = None
-    office_client_number: int | None = None
-    business_id: int | None = None
-    business_name: str | None = None
-    charge_type: ChargeType
-    status: ChargeStatus
-    period: str | None = None
-    months_covered: int
-    description: str | None = None
-    created_at: ApiDateTime
-    issued_at: ApiDateTime | None = None
-    paid_at: ApiDateTime | None = None
-    available_actions: list[ActionDescriptor] = Field(default_factory=list)
-
-    model_config = {"from_attributes": True}
-
-
 class ChargeCancelRequest(BaseModel):
     reason: str | None = None
 
@@ -93,7 +71,7 @@ class ChargeListStats(BaseModel):
 
 
 class ChargeListResponse(BaseModel):
-    items: list[ChargeResponse | ChargeResponseSecretary]
+    items: list[ChargeResponse]
     page: int
     page_size: int
     total: int

@@ -5,7 +5,6 @@ from app.charge.models.charge import ChargeStatus, ChargeType
 from app.charge.services.billing_service import BillingService
 from app.charge.services.charge_query_service import ChargeQueryService
 from app.core.exceptions import AppError, ConflictError, ForbiddenError, NotFoundError
-from app.users.models.user import UserRole
 from tests.helpers.identity import seed_client_with_business
 
 
@@ -93,7 +92,7 @@ def test_create_charge_blocked_for_closed_and_frozen_business(test_db):
     assert frozen_exc.value.code == "BUSINESS.FROZEN"
 
 
-def test_list_charges_for_role_secretary_hides_amount(test_db):
+def test_list_charges_exposes_amount_to_all_roles(test_db):
     business = _business(test_db)
     BillingService(test_db).create_charge(
         client_record_id=business.client_id,
@@ -103,9 +102,7 @@ def test_list_charges_for_role_secretary_hides_amount(test_db):
     )
 
     query = ChargeQueryService(test_db)
-    sec = query.list_charges_for_role(UserRole.SECRETARY, page=1, page_size=10)
-    adv = query.list_charges_for_role(UserRole.ADVISOR, page=1, page_size=10)
-    assert sec.items
-    assert adv.items
-    assert not hasattr(sec.items[0], "amount")
-    assert hasattr(adv.items[0], "amount")
+    result = query.list_charges_paginated(page=1, page_size=10)
+    assert result.items
+    assert hasattr(result.items[0], "amount")
+    assert result.items[0].amount is not None

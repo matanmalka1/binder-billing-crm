@@ -7,7 +7,6 @@ from app.charge.schemas.charge import (
     ChargeCreateRequest,
     ChargeListResponse,
     ChargeResponse,
-    ChargeResponseSecretary,
 )
 from app.charge.services.billing_service import BillingService
 from app.charge.services.bulk_billing_service import BulkBillingService
@@ -31,10 +30,9 @@ def _response_builder(db: DBSession) -> ChargeResponseBuilder:
     "",
     response_model=ChargeResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser):
-    """Create new charge (ADVISOR only)."""
     charge = BillingService(db).create_charge(
         client_record_id=request.client_record_id,
         business_id=request.business_id,
@@ -44,35 +42,33 @@ def create_charge(request: ChargeCreateRequest, db: DBSession, user: CurrentUser
         months_covered=request.months_covered,
         actor_id=user.id,
     )
-    return _response_builder(db).build(charge, UserRole.ADVISOR)
+    return _response_builder(db).build(charge)
 
 
 @router.post(
     "/{charge_id}/issue",
     response_model=ChargeResponse,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def issue_charge(charge_id: int, db: DBSession, user: CurrentUser):
-    """Issue a draft charge (ADVISOR only)."""
     charge = BillingService(db).issue_charge(charge_id, actor_id=user.id)
-    return _response_builder(db).build(charge, UserRole.ADVISOR)
+    return _response_builder(db).build(charge)
 
 
 @router.post(
     "/{charge_id}/mark-paid",
     response_model=ChargeResponse,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def mark_charge_paid(charge_id: int, db: DBSession, user: CurrentUser):
-    """Mark issued charge as paid (ADVISOR only)."""
     charge = BillingService(db).mark_charge_paid(charge_id, actor_id=user.id)
-    return _response_builder(db).build(charge, UserRole.ADVISOR)
+    return _response_builder(db).build(charge)
 
 
 @router.post(
     "/{charge_id}/cancel",
     response_model=ChargeResponse,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def cancel_charge(
     charge_id: int,
@@ -80,9 +76,8 @@ def cancel_charge(
     user: CurrentUser,
     request: ChargeCancelRequest = Body(default_factory=ChargeCancelRequest),
 ):
-    """Cancel a charge (ADVISOR only)."""
     charge = BillingService(db).cancel_charge(charge_id, actor_id=user.id, reason=request.reason)
-    return _response_builder(db).build(charge, UserRole.ADVISOR)
+    return _response_builder(db).build(charge)
 
 
 @router.get(
@@ -92,7 +87,6 @@ def cancel_charge(
 )
 def list_charges(
     db: DBSession,
-    user: CurrentUser,
     business_id: int | None = None,
     client_record_id: int | None = None,
     status_filter: str | None = Query(None, alias="status"),
@@ -100,9 +94,7 @@ def list_charges(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    """List charges with role-based data filtering."""
-    return ChargeQueryService(db).list_charges_for_role(
-        user_role=user.role,
+    return ChargeQueryService(db).list_charges_paginated(
         business_id=business_id,
         client_record_id=client_record_id,
         status=status_filter,
@@ -114,19 +106,18 @@ def list_charges(
 
 @router.get(
     "/{charge_id}",
-    response_model=ChargeResponse | ChargeResponseSecretary,
+    response_model=ChargeResponse,
     dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
-def get_charge(charge_id: int, db: DBSession, user: CurrentUser):
-    """Get charge by ID (authenticated users)."""
+def get_charge(charge_id: int, db: DBSession):
     charge = BillingService(db).get_charge(charge_id)
-    return _response_builder(db).build(charge, user.role)
+    return _response_builder(db).build(charge)
 
 
 @router.post(
     "/bulk-action",
     response_model=BulkChargeActionResponse,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def bulk_charge_action(
     request: BulkChargeActionRequest,
@@ -134,7 +125,6 @@ def bulk_charge_action(
     user: CurrentUser,
     idem: IdempotencyGuard = Depends(require_idempotency_key),
 ):
-    """Apply action to multiple charges in bulk (ADVISOR only)."""
     service = BulkBillingService(db)
 
     def _run():
@@ -152,10 +142,9 @@ def bulk_charge_action(
 @router.delete(
     "/{charge_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    dependencies=[Depends(require_role(UserRole.ADVISOR))],
+    dependencies=[Depends(require_role(UserRole.ADVISOR, UserRole.SECRETARY))],
 )
 def delete_charge(charge_id: int, db: DBSession, user: CurrentUser):
-    """Soft-delete a draft charge (ADVISOR only)."""
     service = BillingService(db)
     service.delete_charge(charge_id, actor_id=user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
