@@ -1,3 +1,15 @@
+## Scope
+This file owns only:
+- Reference context for a historical annual reports product decision discussion.
+- Decision rationale that may need promotion to a formal ADR in a later phase.
+
+This file must not contain:
+- Current implemented annual reports behavior.
+- New product requirements.
+- Canonical architecture rules.
+
+Source of truth: reference
+
 # החלטה מוצרית: נתונים פיננסיים בהיסטוריית דוחות שנתיים
 
 ## רקע

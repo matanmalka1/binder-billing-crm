@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Tracked system gaps and task notes at the time they were recorded.
+
+This file must not contain:
+- Canonical architecture rules.
+- Product/domain source-of-truth behavior.
+- Permanent workflow rules.
+
+Source of truth: reference
+
 # TODO - Verified System Gaps
 
 Last verified from code, migrations, and tests: 2026-05-17.

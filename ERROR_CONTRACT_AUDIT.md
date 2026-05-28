@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Error-contract audit findings and migration-preparation notes at the time of the audit.
+
+This file must not contain:
+- Canonical API contract rules.
+- Current implementation behavior unless verified against code.
+- Product/domain behavior.
+
+Source of truth: reference
+
 # Error Contract Migration Audit
 
 ## Understanding Confirmation

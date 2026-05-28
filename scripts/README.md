@@ -1,3 +1,14 @@
+## Scope
+This file owns only:
+- Backend script usage notes and local tooling reference.
+
+This file must not contain:
+- Canonical workflow rules.
+- Product/domain behavior.
+- Architecture decisions.
+
+Source of truth: reference
+
 # scripts/
 
 Utility scripts for local development, data seeding, auditing, and tooling.
