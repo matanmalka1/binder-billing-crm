@@ -35,7 +35,7 @@ Use this when testing the Vite frontend from a phone on the same Wi-Fi as the la
 4. Run the backend from this repo:
 
    ```bash
-   APP_ENV=development ENV_FILE=.env.development python -m app.main
+   APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python -m app.main
    ```
 
    `app.main` binds to `0.0.0.0` on port `8000` in development.

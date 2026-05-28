@@ -77,4 +77,4 @@ Cross-domain writes are orchestrated in services. Cross-domain read joins are al
 | `test` | SQLite (default) | Local filesystem | text |
 | `staging` / `production` | PostgreSQL remote | Cloudflare R2 | JSON |
 
-Run: `APP_ENV=development ENV_FILE=.env.development python -m app.main`
+Run: `APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python -m app.main`

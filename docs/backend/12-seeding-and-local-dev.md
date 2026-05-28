@@ -3,7 +3,7 @@
 ## Running the App
 
 ```bash
-APP_ENV=development ENV_FILE=.env.development python -m app.main
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python -m app.main
 ```
 
 Docs: `http://localhost:8000/docs`
@@ -55,10 +55,10 @@ The seed orchestrator:
 
 ```bash
 # Generate migration after model change
-APP_ENV=development ENV_FILE=.env.development python3 -m alembic revision --autogenerate -m "<description>"
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python -m alembic revision --autogenerate -m "<description>"
 
 # Apply
-APP_ENV=development ENV_FILE=.env.development python3 -m alembic upgrade head
+APP_ENV=development ENV_FILE=.env.development ./.venv/bin/python -m alembic upgrade head
 ```
 
 Migrations live in `alembic/versions/NNNN_<description>.py`. After running, update `alembic/README` with run notes.
