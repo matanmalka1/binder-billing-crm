@@ -1,3 +1,19 @@
+## Scope
+This file owns only:
+- Backend-local implementation details for this documentation area.
+- Concrete codebase structure, examples, and conventions subordinate to the canonical YM_Docs rules.
+
+This file must not contain:
+- Project-wide architecture rules that override YM_Docs.
+- Product/domain behavior.
+- Frontend rules.
+
+Source of truth: reference
+
+Canonical project-wide rules:
+- `../../../docs/docs/architecture/api-contracts.md`
+- `../../../docs/docs/architecture/backend.md`
+
 # API Routes
 
 The target public API contract is defined in [`docs/api-contract-standard.md`](../api-contract-standard.md).

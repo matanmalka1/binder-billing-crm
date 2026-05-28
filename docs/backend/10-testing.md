@@ -1,3 +1,19 @@
+## Scope
+This file owns only:
+- Backend-local test fixtures, layout, and implementation details.
+- Concrete pytest patterns subordinate to canonical YM_Docs testing rules.
+
+This file must not contain:
+- Project-wide testing rules that override YM_Docs.
+- Product/domain behavior.
+- Frontend testing rules.
+
+Source of truth: reference
+
+Canonical project-wide rules:
+- `../../../docs/docs/workflow/testing.md`
+- `../../../docs/docs/workflow/verification.md`
+
 # Testing
 
 ## Running Tests

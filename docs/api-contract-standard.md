@@ -1,9 +1,25 @@
+## Scope
+This file owns only:
+- Backend-local API contract details, examples, and migration notes.
+- Detailed status-code, DTO, and action-response conventions subordinate to canonical YM_Docs API contract rules.
+
+This file must not contain:
+- API rules that override `../docs/docs/architecture/api-contracts.md`.
+- Legacy compatibility policy that conflicts with ADR-0001.
+- Frontend implementation rules.
+
+Source of truth: reference
+
+Canonical project-wide rules:
+- `../../docs/docs/architecture/api-contracts.md`
+- `../../docs/docs/workflow/verification.md`
+
 # API Contract Standard
 
 This document defines the target public API contract for backend endpoints.
 Internal implementation may differ by domain, but externally visible request and response contracts must be consistent.
 
-## Scope
+## Applicability
 
 This standard applies to endpoints that expose application resources through `/api/v1/*`.
 

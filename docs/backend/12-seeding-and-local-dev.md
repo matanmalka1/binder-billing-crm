@@ -1,3 +1,20 @@
+## Scope
+This file owns only:
+- Backend-local seeding and local development implementation details.
+- Concrete seed data, local storage, and bootstrap notes subordinate to canonical YM_Docs workflow rules.
+
+This file must not contain:
+- Project-wide workflow rules that override YM_Docs.
+- Product/domain behavior.
+- Frontend setup rules.
+
+Source of truth: reference
+
+Canonical project-wide rules:
+- `../../../docs/docs/workflow/commands.md`
+- `../../../docs/docs/workflow/local-env.md`
+- `../../../docs/docs/workflow/verification.md`
+
 # Seeding and Local Dev
 
 ## Running the App

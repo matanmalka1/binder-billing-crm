@@ -1,3 +1,19 @@
+## Scope
+This file owns only:
+- Backend-local architecture implementation details.
+- Concrete repository, service, and read-side patterns subordinate to canonical YM_Docs backend architecture rules.
+
+This file must not contain:
+- Project-wide architecture rules that override YM_Docs.
+- Frontend rules.
+- Product/domain behavior.
+
+Source of truth: reference
+
+Canonical project-wide rules:
+- `../docs/docs/architecture/backend.md`
+- `../docs/docs/workflow/verification.md`
+
 # Backend Architecture Standard
 
 This document defines the domain pattern for all new backend work and for
