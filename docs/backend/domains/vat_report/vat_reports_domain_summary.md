@@ -11,6 +11,10 @@ Source of truth: historical
 
 # דומיין דוחות מע"מ — סיכום קצר
 
+Current implementation note, verified 2026-05-29:
+- Current `VatWorkItemStatus` values are `pending_materials`, `material_received`, `data_entry_in_progress`, `ready_for_review`, `filed`, and `canceled`.
+- The status list below is historical and not the current backend enum.
+
 ## 1. ישות הדיווח החוקית
 - יחידת הדיווח היא **החייב במס**.
 - זה יכול להיות: **עוסק**, **מלכ"ר** או **מוסד כספי**.

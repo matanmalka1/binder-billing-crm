@@ -12,6 +12,16 @@ Source of truth: reference
 
 # החלטה מוצרית: נתונים פיננסיים בהיסטוריית דוחות שנתיים
 
+Status: reference decision discussion. Last backend endpoint check: 2026-05-29.
+
+Current implementation:
+- `GET /api/v1/clients/{client_record_id}/annual-reports` exists and returns `AnnualReportListResponse`.
+- No dedicated financial history endpoint exists for `GET /api/v1/clients/{client_record_id}/annual-reports/history`.
+- No endpoint exists for `GET /api/v1/annual-reports/{report_id}/client-history`.
+
+Future / planned:
+- The dedicated financial history endpoint discussed below is a recommendation only. It is not current behavior.
+
 ## רקע
 
 במסך פירוט דוח שנתי קיימת טבלת "היסטוריית דוחות" (`ReportHistoryTable`) שמציגה דוחות שנתיים קודמים של אותו לקוח. הטבלה נטענת דרך קריאת list:
@@ -149,6 +159,8 @@ GET /api/v1/clients/{client_record_id}/annual-reports
 
 ### חלופה 3: להוסיף endpoint ייעודי להיסטוריה פיננסית
 
+Future / planned. This endpoint does not exist in current backend/OpenAPI.
+
 להוסיף endpoint חדש:
 
 ```text
@@ -216,6 +228,8 @@ GET /api/v1/annual-reports/{report_id}/client-history
 
 ## המלצה
 
+Future / planned.
+
 ההמלצה היא לבחור בחלופה 3: endpoint ייעודי להיסטוריה פיננסית של דוחות שנתיים ללקוח.
 
 נימוקים:
@@ -238,6 +252,8 @@ GET /api/v1/annual-reports/{report_id}/client-history
 
 ## אם מאשרים את ההמלצה
 
+Future / planned.
+
 משימות backend:
 
 - להוסיף schema ייעודי ל־history item.
@@ -259,4 +275,3 @@ GET /api/v1/annual-reports/{report_id}/client-history
   - רווח
   - יתרה/החזר
 - להשאיר `AnnualReportSummary` עבור list endpoints רגילים.
-

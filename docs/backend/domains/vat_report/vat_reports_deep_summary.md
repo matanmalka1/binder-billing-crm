@@ -11,6 +11,10 @@ Source of truth: historical
 
 # דומיין דוחות מע"מ — סיכום ממוקד
 
+Current implementation note, verified 2026-05-29:
+- Current VAT work-item behavior is owned by `backend/app/vat_reports`.
+- This file is historical domain context, not the current backend status/API contract.
+
 ## 1. ישות הדיווח
 - ברירת המחדל: כמה פעילויות יכולות להיות תחת **עוסק אחד**.
 - ניתן לבקש **פיצול רישום** לפי יחידת עסק, בכפוף לאישור.

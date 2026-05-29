@@ -16,24 +16,19 @@ This directory contains the current domain-model review and the derived decision
 ## Files
 
 - `DOMAIN_MODEL_REVIEW_SUMMARY.md`
-  - current-state findings plus agreed target state for Layers 1-3
-- `domain_decision_doc.docx`
-  - Word-format decision document derived from the review
-- `generate_ddd.js`
-  - generator script for the Word decision document
+  - current-state findings and known gaps verified against code at the date stated in that file
 
 ## Source of Truth
 
-Until implementation starts, the markdown review file is the working source of truth:
+The markdown review file is the only active file in this directory:
 
 - `DOMAIN_MODEL_REVIEW_SUMMARY.md`
 
-The Word document is a presentation/export artifact and should be regenerated or updated from the markdown decisions, not edited as the primary source.
+No Word decision document or generator script is present in this directory as of 2026-05-29.
 
 ## Working Rule
 
-When domain decisions change:
+When domain-model review findings change:
 
 1. update `DOMAIN_MODEL_REVIEW_SUMMARY.md`
-2. update `generate_ddd.js` if the decision-doc structure changed
-3. regenerate or refresh `domain_decision_doc.docx`
+2. update this README if files are added or removed

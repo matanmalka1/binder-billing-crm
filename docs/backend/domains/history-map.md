@@ -13,11 +13,13 @@ Source of truth: reference
 
 Purpose: map current frontend usages before expanding generic audit UI. This is documentation only; no shared component work is included here.
 
+Last backend endpoint check: 2026-05-29, against `backend/openapi.json` and routers under `backend/app/**/api`.
+
 ## Client Timeline
 
 - Feature/domain: `timeline`, rendered from client details.
 - Components: `ClientTimelineTab`, `TimelineCommandBar`, `TimelineCard`, `TimelineEventItem`.
-- API endpoint: `GET /clients/{clientId}/timeline`.
+- API endpoint: `GET /api/v1/clients/{clientId}/timeline`.
 - Query key: `timelineQK.clientEvents(clientId, params)` -> `['timeline', 'client', clientId, 'events', params]`.
 - Represents: business timeline / operational timeline across client-related events.
 - Future sharing: keep separate. It has filtering, grouping, event actions, and timeline-specific metadata that differ from audit tables.
@@ -27,7 +29,7 @@ Purpose: map current frontend usages before expanding generic audit UI. This is 
 
 - Feature/domain: `clients`.
 - Components: `ClientAuditTrailSection`, rendered from `ClientDetailsOverviewTab` when the active tab is `history`.
-- API endpoint: `GET /audit/client/{clientId}?limit=50&offset=0`.
+- API endpoint: `GET /api/v1/audit/client/{clientId}?limit=50&offset=0`, implemented by the generic route `GET /api/v1/audit/{entity_type}/{entity_id}`.
 - Query key: `clientsQK.auditTrail(clientId, params)` -> `['clients', 'audit', clientId, params ?? null]`.
 - Represents: audit trail for generic entity changes on a client record.
 - Future sharing: can later share a generic audit table/formatter with other generic audit entities such as business, charge, and annual report after those UIs exist.
@@ -37,7 +39,7 @@ Purpose: map current frontend usages before expanding generic audit UI. This is 
 
 - Feature/domain: `vatReports`.
 - Components: `VatHistoryTab`, `history.utils.ts`, `history.constants.ts`.
-- API endpoint: `GET /vat/work-items/{id}/audit?limit=50&offset=0`.
+- API endpoint: `GET /api/v1/vat/work-items/{id}/audit?limit=50&offset=0`.
 - Query key: `vatReportsQK.audit(id, params)` -> `['tax', 'vat-work-items', 'audit', id, params ?? null]`.
 - Represents: VAT work-item audit trail, including status and invoice/data-entry events.
 - Future sharing: can share table chrome and pagination patterns later, but should not merge data model or formatter with generic entity audit. VAT has its own audit endpoint and domain-specific payload formatter.
@@ -47,7 +49,7 @@ Purpose: map current frontend usages before expanding generic audit UI. This is 
 
 - Feature/domain: `annualReports`.
 - Components: `StatusHistoryTimeline`, used in `AnnualReportOverviewSection`.
-- API endpoint: `GET /annual-reports/{id}/history`.
+- API endpoint: `GET /api/v1/annual-reports/{id}/history`.
 - Query key: `annualReportsQK.statusHistory(id)` -> `['tax', 'annual-reports', 'status-history', id]`.
 - Represents: status history only, not full audit.
 - Future sharing: keep separate from generic audit. It is a status-transition timeline with badges and notes, not a field-level audit table.
@@ -67,7 +69,7 @@ Purpose: map current frontend usages before expanding generic audit UI. This is 
 
 - Feature/domain: `annualReports`.
 - Components: `ReportHistoryTable`, used in `AnnualReportOverviewSection`.
-- API endpoint: `GET /clients/{clientId}/annual-reports`.
+- API endpoint: `GET /api/v1/clients/{clientId}/annual-reports`.
 - Query key: `annualReportsQK.forClient(clientId)` -> `['tax', 'annual-reports', 'client', clientId]`.
 - Represents: previous/current annual report records for a client, not audit.
 - Future sharing: keep separate from audit and status history.
@@ -77,7 +79,7 @@ Purpose: map current frontend usages before expanding generic audit UI. This is 
 
 - Feature/domain: `binders`.
 - Components: `BinderHistorySection`, rendered in `BinderDetailDrawer`; `BinderIntakesSection` also uses a generic visual `Timeline` for intake entries but is not an audit/history endpoint.
-- API endpoint: `GET /binders/{binderId}/history`.
+- API endpoint: `GET /api/v1/binders/{binderId}/history`.
 - Query key: `bindersQK.history(binderId)` -> `['binders', 'history', binderId]`.
 - Represents: binder lifecycle/status history.
 - Future sharing: can share a visual status-transition timeline component later with annual report status history, but should not merge with legal/generic audit trails.
@@ -87,7 +89,7 @@ Purpose: map current frontend usages before expanding generic audit UI. This is 
 
 - Feature/domain: `users`.
 - Components: `AuditLogsDrawer`, opened from `UsersPage`.
-- API endpoint: `GET /users/audit-logs`.
+- API endpoint: `GET /api/v1/users/audit-logs`.
 - Query key: `usersQK.auditLogs(params)` -> `['users', 'audit-logs', params]`.
 - Represents: user admin/auth audit, including login/logout/user management actions.
 - Future sharing: do not merge with entity audit. It is security/admin audit with different filtering, actor, status, and risk semantics.
@@ -97,13 +99,13 @@ Purpose: map current frontend usages before expanding generic audit UI. This is 
 
 - Feature/domain: `signatureRequests`.
 - Components: `SignatureRequestAuditDrawer`, opened from `SignatureRequestsCard` and `SignatureRequestsDashboardPanel`.
-- API endpoint used by drawer: `GET /signature-requests/{id}` with embedded `audit_trail`.
-- Additional API endpoint defined: `GET /signature-requests/{id}/audit-trail` via `signatureRequestsApi.getAuditTrail(id)`.
+- API endpoint used by drawer: `GET /api/v1/signature-requests/{id}` with embedded `audit_trail`.
+- No standalone signature-request audit endpoint exists in current backend/OpenAPI.
 - Query key used by drawer: `signatureRequestsQK.detail(id)` -> `['signature-requests', 'detail', id]`.
-- Query key for standalone audit endpoint: none found.
+- Query key for standalone audit endpoint: none; no standalone backend endpoint exists.
 - Represents: legal signature audit trail for signing lifecycle events.
 - Future sharing: do not merge with generic audit. Signature audit is legal evidence and has signer/system actor semantics.
-- Bad naming found: `signatureRequestsApi.getAuditTrail` appears unused, and there is no dedicated query key for it. The drawer name is accurate, but it reads detail rather than the standalone audit endpoint.
+- Bad naming found: a standalone `getAuditTrail` frontend helper would be stale unless paired with a backend endpoint. The current backend contract exposes signature audit through detail.
 
 ## Recommendations
 

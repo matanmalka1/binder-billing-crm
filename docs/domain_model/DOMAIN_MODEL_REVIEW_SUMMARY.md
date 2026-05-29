@@ -11,7 +11,7 @@ Source of truth: reference
 
 # Domain Model Review Summary
 
-Last verified from code and migrations: 2026-05-17.
+Last verified from code, migrations, routers, and OpenAPI for scoped claims: 2026-05-29.
 
 Scope: current-state verification of backend domain gaps for an Israeli accounting office workflow system.
 
@@ -21,7 +21,7 @@ This file intentionally does not rely on module README files. It is based on ORM
 
 - `Person`, `LegalEntity`, `ClientRecord`, and `PersonLegalEntityLink` exist as separate first-class models.
   - Code: `app/clients/models/person.py`, `app/clients/models/legal_entity.py`, `app/clients/models/client_record.py`, `app/clients/models/person_legal_entity_link.py`
-  - Migration: `alembic/versions/0001_initial.py`
+  - Migration: `alembic/versions/bfaed5b29bd3_initial.py`
 - `ClientRecord` is the office workflow anchor and points to `LegalEntity`.
 - `Business` belongs to `LegalEntity`; it is operational activity, not a second legal identity.
 - VAT, annual reports, and advance payments have a hard `tax_calendar_entry_id` FK.
@@ -143,9 +143,10 @@ This was verified by the absence of corresponding domain packages and routes und
 
 ### 8. Client-sidebar alert counts are not exposed as a batched navigation surface
 
-The backend exposes per-client notification and work-queue summaries:
+The backend exposes per-client notification summary:
 
 - `GET /api/v1/notifications/summary?client_record_id=...`
-- `GET /api/v1/work-queue/summary?client_record_id=...`
+
+The backend does not expose `GET /api/v1/work-queue/summary`. The current work-queue endpoint is `GET /api/v1/work-queue`; its response includes `summary` for the filtered result set.
 
 There is no batched endpoint for alert counts across the sidebar client list. A per-row request pattern would not be appropriate for the sidebar.

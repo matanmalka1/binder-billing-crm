@@ -11,7 +11,14 @@ Source of truth: historical
 
 # מקדמות מס הכנסה — אפיון מלא
 
-> החלטות שהתקבלו בשיחת אפיון. מקור אמת לפני פיתוח.
+> Historical notes from a previous specification. This is not the current API/model contract.
+
+Current implementation note, verified 2026-05-29:
+- Current backend uses `status: pending | paid | partial`, not `payment_status`.
+- Current model fields include `turnover_amount`, `advance_rate`, `calculated_amount`, and `override_amount`.
+- `timing_status`, `paid_late`, `live_turnover`, and `missing_turnover` are response/computed fields.
+- `reported_turnover` and `turnover_source_vat_report_id` are obsolete names in this spec and are not current model fields.
+- Current endpoints are under `/api/v1/clients/{client_record_id}/advance-payments`, plus overview/generate routes in `app/advance_payments/api`.
 
 ---
 

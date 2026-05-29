@@ -1,15 +1,32 @@
 ## Scope
 This file owns only:
 - Historical context for a completed binder lifecycle refactor/task spec.
+- Reference notes for the implemented binder lifecycle shape.
 
 This file must not contain:
-- Current implemented behavior.
 - New product requirements.
 - Canonical architecture rules.
 
 Source of truth: historical
 
 # Binder Lifecycle Refactor — Task Spec
+
+Status: completed refactor notes, not an active task list.
+
+Current implementation verified 2026-05-29:
+- `Binder` has `location_status` and `capacity_status`; no `Binder.status` field exists.
+- `BinderLocationStatus`: `in_office`, `ready_for_handover`, `handed_over`.
+- `BinderCapacityStatus`: `open`, `full`.
+- `BinderLifecycleLog` stores `field_name`, `old_value`, `new_value`, `changed_by_user_id`, `changed_at`, and `notes`.
+- Current lifecycle endpoints exist:
+  - `POST /api/v1/binders/{binder_id}/receive-material`
+  - `POST /api/v1/binders/{binder_id}/mark-full`
+  - `POST /api/v1/binders/{binder_id}/reopen-capacity`
+  - `POST /api/v1/binders/{binder_id}/mark-ready-for-handover`
+  - `POST /api/v1/binders/{binder_id}/revert-ready-for-handover`
+  - `POST /api/v1/binders/{binder_id}/handover-to-client`
+- Additional current bulk/intake endpoints also exist: `POST /api/v1/binders/receive`, `POST /api/v1/binders/mark-ready-for-handover-bulk`, and `POST /api/v1/binders/handover-to-client-bulk`.
+- This document still contains historical implementation prompts and acceptance criteria below. They are retained as historical notes only.
 
 ## Goal
 
@@ -974,6 +991,8 @@ The goal is to remove the old lifecycle language and enforce one explicit state 
 ---
 
 ## Prompt For A New Codex Conversation
+
+Historical notes. Do not use this as a current implementation prompt unless first re-audited against code and OpenAPI.
 
 Use this prompt in a fresh conversation to implement the refactor:
 

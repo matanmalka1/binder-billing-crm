@@ -2,9 +2,21 @@
 
 מערכת CRM — משרד רו״ח / יועץ מס
 
-גרסה 3.0 — מאי 2026
+גרסה 3.1 — מאי 2026
 
 Domain Architecture Decision Record
+
+Last verified against current backend models/services/OpenAPI: 2026-05-29.
+
+Current implementation status:
+- `TaxCalendarEntry` and `DeadlineRule` exist.
+- `TaxDeadline` is no longer an application model/route surface.
+- `AdvancePayment`, `VatWorkItem`, and `AnnualReport` have non-null `tax_calendar_entry_id` FKs in current models.
+- `AdvancePayment` and `VatWorkItem` have `due_date_original` and `due_date_effective` fields.
+- `AdvancePayment` still also stores `due_date` as a compatibility/current field.
+- `AnnualReport` uses `filing_deadline`, `deadline_type`, and `custom_deadline_note` rather than `due_date_original/effective`.
+
+Future / planned notes in this file are explicitly marked. Unmarked sections describe current decisions or current implementation constraints.
 
 **0. סיכום החלטות — Quick Reference**
 
@@ -15,14 +27,14 @@ Domain Architecture Decision Record
 | **\#** | **החלטה**                                                             | **סטטוס** |
 | 1      | TaxCalendarEntry — כן. מועד רגולטורי כללי, לא per-client.             | ✅ נעול   |
 | 2      | ClientTaxObligation — לא. Generation יוצר ישירות business objects.    | ✅ נעול   |
-| 3      | TaxDeadline — Deprecated/Transitional. לא לפיצ׳רים חדשים.             | ✅ נעול   |
+| 3      | TaxDeadline — הוסר מהאפליקציה. לא לפיצ׳רים חדשים.                    | ✅ נעול   |
 | 4      | Anchor של workflow objects = client_record_id. לא legal_entity_id.    | ✅ נעול   |
 | 5      | סטטוס — נשאר רק על האובייקט העסקי.                                    | ✅ נעול   |
 | 6      | due_date_original — immutable snapshot ביצירה.                        | ✅ נעול   |
 | 7      | due_date_effective — source of truth לכל overdue/reminders/dashboard. | ✅ נעול   |
 | 8      | AnnualReport.period_months_count = nullable. לא 12 בכוח.              | ✅ נעול   |
 | 9      | DeadlineRule — חייב effective_from/effective_to לתמיכה בשינויי חוק.   | ✅ נעול   |
-| 10     | Migration הדרגתית. שלב ראשון additive בלבד: TaxCalendarEntry + tests. | ✅ נעול   |
+| 10     | Migration הדרגתית הושלמה עד wiring שדות/FK. הסרה עתידית של `AdvancePayment.due_date` עדיין מתוכננת. | ✅ נעול   |
 
 **1. ארכיטקטורת הישויות — מה מחובר למה**
 
@@ -47,7 +59,6 @@ Domain Architecture Decision Record
 > AdvancePayment ← client_record_id (לא legal_entity_id)  
 > VatWorkItem ← client_record_id (לא legal_entity_id)  
 > AnnualReport ← client_record_id (לא legal_entity_id)  
-> TaxDeadline ← client_record_id (transitional)  
 >   
 > Business ← legal_entity_id (ענף נפרד, לא בשרשרת התפעולית)
 
@@ -112,50 +123,37 @@ join ל-LegalEntity תמיד עובר דרך ClientRecord.
 > CONSTRAINT: period IS NOT NULL OR obligation_type = 'ANNUAL_REPORT'  
 > CONSTRAINT: period_months_count IS NOT NULL OR obligation_type = 'ANNUAL_REPORT'
 
-**3.3 AdvancePayment — Current State vs Target State**
-
-⚠️ Current state: due_date שדה יחיד. due_date_original/effective לא קיימים עדיין.  
-Target state: due_date_original (immutable) + due_date_effective + override_reason.  
-המעבר דורש migration מפורש — לא שינוי קוד בלבד.
-
-**Current State (קיים במיגרציה):**
+**3.3 AdvancePayment — Current State**
 
 > AdvancePayment  
 > id  
 > client_record_id → ClientRecord (לא legal_entity_id)  
 > period YYYY-MM -- snapshot ביצירה  
 > period_months_count 1 \| 2 -- snapshot ביצירה, frozen  
-> due_date date -- שדה יחיד  
+> due_date date -- עדיין קיים  
+> due_date_original date \| null  
+> due_date_effective date \| null  
+> due_date_override_reason str \| null  
 > expected_amount  
 > paid_amount  
 > status pending \| paid \| partial  
 > paid_at  
 > payment_method  
-> reported_turnover  
-> turnover_source_vat_work_item_id → VatWorkItem  
+> turnover_amount  
+> advance_rate  
+> calculated_amount  
+> override_amount  
 > annual_report_id → AnnualReport (nullable)  
+> tax_calendar_entry_id → TaxCalendarEntry (NOT NULL)  
 >   
 > UNIQUE(client_record_id, period) WHERE deleted_at IS NULL
 
-**Target State (אחרי migration):**
+Future / planned:
 
-> AdvancePayment  
-> -- כל השדות הנוכחיים +  
-> tax_calendar_entry_id → TaxCalendarEntry (nullable בשלב א, NOT NULL אחרי backfill)  
-> due_date_original date ← immutable snapshot מה-entry בזמן יצירה  
-> due_date_effective date ← המועד בפועל. ברירת מחדל = original  
-> due_date_override_reason str ← nullable; חובה אם effective ≠ original  
-> rate_used decimal ← snapshot של advance_rate ביצירה  
->   
-> -- due_date הישן יוסר לאחר backfill מלא
+- הסרת `due_date` הישן אחרי שכל הקוד מסתמך על `due_date_effective`.
+- אם נדרש שם סמנטי יותר ל-`advance_rate`, אפשר לשקול `rate_used`, אבל current code משתמש ב-`advance_rate`.
 
-**3.4 VatWorkItem — Current State vs Target State**
-
-⚠️ Current state: VatWorkItem לא מחזיק due_date כלל.  
-TaxDeadline הוא כרגע הכתובת היחידה ל-due_date של VatWorkItem.  
-Target state: due_date_original + due_date_effective ישירות על VatWorkItem.
-
-**Current State:**
+**3.4 VatWorkItem — Current State**
 
 > VatWorkItem  
 > id  
@@ -163,19 +161,16 @@ Target state: due_date_original + due_date_effective ישירות על VatWorkIt
 > period YYYY-MM  
 > period_type monthly \| bimonthly \| exempt  
 > status  
-> -- אין due_date. due_date נמצא ב-TaxDeadline המקושר.  
+> tax_calendar_entry_id → TaxCalendarEntry (NOT NULL)  
+> due_date_original date \| null  
+> due_date_effective date \| null  
+> due_date_override_reason str \| null  
 >   
 > UNIQUE(client_record_id, period) WHERE deleted_at IS NULL
 
-**Target State:**
+Future / planned:
 
-> VatWorkItem  
-> -- כל השדות הנוכחיים +  
-> tax_calendar_entry_id → TaxCalendarEntry (nullable בשלב א)  
-> period_months_count 1 \| 2 ← frozen ביצירה (כרגע period_type משמש לזה)  
-> due_date_original date ← immutable  
-> due_date_effective date ← source of truth לכל overdue queries  
-> due_date_override_reason str ← nullable
+- מעבר אפשרי מ-`period_type` ל-`period_months_count` אם נדרש יישור מלא מול `TaxCalendarEntry`.
 
 **3.5 AnnualReport**
 
@@ -195,16 +190,15 @@ Target state: due_date_original + due_date_effective ישירות על VatWorkIt
 > filing_deadline datetime ← המקבילה של due_date_effective  
 > custom_deadline_note ← המקבילה של override_reason  
 > status not_started \| collecting_docs \| ... \| closed  
+> tax_calendar_entry_id → TaxCalendarEntry (NOT NULL)  
 >   
 > UNIQUE(client_record_id, tax_year) WHERE deleted_at IS NULL  
->   
-> -- target: tax_calendar_entry_id → TaxCalendarEntry (nullable)
 
 **3.6 TaxDeadline — Transitional Model (Deprecated)**
 
-⛔ TaxDeadline הוא המודל הנוכחי. מיועד להסרה.  
-אסור להשתמש בו לפיצ׳רים חדשים.  
-כל query חדש על מועדים יפנה ל-TaxCalendarEntry.
+⛔ TaxDeadline הוסר מהאפליקציה הנוכחית.  
+אסור להשתמש בשם או בקונספט הזה לפיצ׳רים חדשים.  
+כל query חדש על מועדים יפנה ל-TaxCalendarEntry או לשדות ה-snapshot על האובייקט העסקי.
 
 TaxDeadline מערבב שני מושגים שנפרדו:
 
@@ -212,28 +206,28 @@ TaxDeadline מערבב שני מושגים שנפרדו:
 
 - מצב תפעולי per-client → עבר לשדות על AdvancePayment / VatWorkItem / AnnualReport
 
-**Migration path — ארבעה שלבים:**
+Historical migration path:
 
-1.  **שלב א׳ — Additive:** יוצרים TaxCalendarEntry + DeadlineRule. מאכלסים נתונים. TaxDeadline ממשיך לעבוד במקביל. מוסיפים tests.
+1.  **שלב א׳ — Additive:** יוצרים TaxCalendarEntry + DeadlineRule. מאכלסים נתונים. מוסיפים tests.
 
 2.  **שלב ב׳ — FK + Snapshots:** מוסיפים tax_calendar_entry_id + due_date_original/effective לאובייקטים (nullable). מריצים backfill. מאמתים coverage מלא.
 
-3.  **שלב ג׳ — Screen Migration:** מסכים ו-queries מפסיקים לקרוא מ-TaxDeadline. מריצים grep/audit לפני המעבר.
+3.  **שלב ג׳ — Screen Migration:** מסכים ו-queries קוראים מ-TaxCalendarEntry או משדות ה-snapshot. מריצים grep/audit לפני המעבר.
 
 4.  **שלב ד׳ — Removal:** לאחר שכל הקוד עבר ו-audit אישר — TaxDeadline נמחק.
 
-⚠️ שלב ד׳ לא נפתח לפני grep/audit מלא שמאשר שאף query לא קורא מ-TaxDeadline.
+Current status: שלב ד׳ הושלם עבור מודל/ראוטים בשם `TaxDeadline`. עדיין נשארת משימת Future / planned להסרת `AdvancePayment.due_date` הישן.
 
 **4. מודל due_date**
 
 |                                                    |                                                                    |                                                              |                                                           |
 |----------------------------------------------------|--------------------------------------------------------------------|--------------------------------------------------------------|-----------------------------------------------------------|
 | **שדה**                     | **נמצא על**                                 | **משמעות**                            | **ניתן לשינוי?**                   |
-| due_date (current)          | AdvancePayment                              | שדה יחיד — יוחלף ב-original+effective | כן — בינתיים                       |
+| due_date (current)          | AdvancePayment                              | שדה ישן שנשאר לצד original+effective | כן — בינתיים                       |
 | filing_deadline (current)   | AnnualReport                                | המקבילה של due_date_effective         | כן, עם deadline_type               |
 | due_date                    | TaxCalendarEntry                            | המועד הרגולטורי הכללי                 | כן — לא משפיע אוטומטית על קיים     |
-| due_date_original (target)  | AdvancePayment / VatWorkItem                | Snapshot מ-entry בזמן יצירה           | לא — immutable לחלוטין             |
-| due_date_effective (target) | AdvancePayment / VatWorkItem / AnnualReport | המועד בפועל                           | כן — עם reason + status constraint |
+| due_date_original (current) | AdvancePayment / VatWorkItem                | Snapshot מ-entry בזמן יצירה           | לא — immutable לחלוטין             |
+| due_date_effective (current) | AdvancePayment / VatWorkItem               | המועד בפועל                           | כן — עם reason + status constraint |
 
 ⛔ כלל ברזל: כל חישוב overdue, reminder, urgency, badge, alert —  
 חייב להשתמש ב-due_date_effective (או filing_deadline ל-AnnualReport).  
@@ -243,7 +237,7 @@ TaxDeadline מערבב שני מושגים שנפרדו:
 
 - due_date_override_reason חייב להיות מסופק
 
-- status ∈ {pending, in_progress} — לא על רשומות סגורות
+- status לא טרמינלי. בפועל אין endpoint ייעודי שמעדכן `due_date_effective`; שינוי עתידי חייב לאכוף reason והרשאות.
 
 - המשתמש בעל הרשאת override מפורשת
 
@@ -273,9 +267,9 @@ due_date_original נכתב רק בעת יצירה. לא קיים update endpoint
 
 כל query שמחשב overdue, כל badge אדום, כל reminder — חייב לרוץ על due_date_effective. שימוש ב-due_date_original או ב-TaxCalendarEntry.due_date בהקשר זה הוא באג.
 
-**INV-06 — rate_used frozen**
+**INV-06 — advance_rate snapshot frozen**
 
-AdvancePayment.rate_used == LegalEntity.advance_rate בזמן היצירה. לא נטען מחדש. שינוי ב-advance_rate לא משפיע על רשומות קיימות.
+AdvancePayment.advance_rate הוא snapshot בזמן היצירה. לא נטען מחדש. שינוי ב-LegalEntity.advance_rate לא משפיע על רשומות קיימות.
 
 **INV-07 — הפרדת תדירויות**
 
@@ -289,11 +283,11 @@ AdvancePayment.rate_used == LegalEntity.advance_rate בזמן היצירה. לא
 
 - VatWorkItem לא עובר ל-filed ללא assigned_to
 
-- AdvancePayment לא עובר ל-paid ללא paid_at
+- AdvancePayment יכול להחזיק `paid_at`, אך current update schema אינו מחייב `paid_at` במעבר ל-`paid`.
 
 - due_date_effective לא מתעדכן ללא due_date_override_reason
 
-- due_date_effective לא מתעדכן על רשומה עם status ∈ {paid, filed, waived}
+- Future / planned: אם נוסף endpoint לשינוי `due_date_effective`, אסור לעדכן רשומות טרמינליות.
 
 **INV-10 — UNIQUE constraints**
 
@@ -385,25 +379,21 @@ AdvancePayment.rate_used == LegalEntity.advance_rate בזמן היצירה. לא
 | כרטיס לקוח  | כל האובייקטים של הלקוח         | join ישיר ל-LegalEntity מ-business object |
 | דוח חודשי   | כל האובייקטים                  | לקבץ לפי due_date בלבד                    |
 
-**9. שלב ראשון — מה עושים עכשיו**
+**9. Current Implementation Notes**
 
-**Additive בלבד. לא נוגעים בקיים.**
+Current backend already includes:
 
-- מוסיפים TaxCalendarEntry model + migration
+- `TaxCalendarEntry` model, repository, generation/materialization services, and grouped routes.
+- `DeadlineRule` model, repository, bootstrap defaults, and settings routes.
+- `tax_calendar_entry_id` on VAT, advance payments, and annual reports.
+- `due_date_original/effective` snapshots on VAT and advance payments.
+- due-date queries in work queue, VAT compliance, and notification policy using `due_date_effective` where relevant.
 
-- מוסיפים DeadlineRule model + migration
+Future / planned:
 
-- לא נוגעים ב-TaxDeadline
-
-- לא משנים frontend
-
-- לא משנים generation
-
-- כותבים tests ל-TaxCalendarEntry constraints (UNIQUE, nullable rules, DeadlineRule overlap)
-
-⚠️ לא לעבור לשלב ב׳ לפני ש-TaxCalendarEntry מאוכלס ומאומת.  
-לא לגעת ב-due_date_original/effective עד שיש migration מוכן.
+- Remove legacy `AdvancePayment.due_date` after consumers are audited.
+- Add an explicit due-date override endpoint only if product needs it, with reason, permissions, and terminal-state guards.
 
 מסמך זה הוא decision log. כל שינוי מבני חייב לעבור עדכון כאן לפני כתיבת קוד.
 
-גרסה 3.0 — מאי 2026
+גרסה 3.1 — מאי 2026

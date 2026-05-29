@@ -174,5 +174,5 @@ There is no `work_queue` table. Items have no database ID. The `id` field (`"vat
 
 This means:
 - Filtering by computed fields (urgency, warnings) is done in Python after loading all source items
-- There is a hard limit on the total items (`limit` max 200) to keep response times acceptable
+- Pagination limits each response page (`limit` max 200); the service still builds and filters the full candidate set before slicing
 - Very large offices with thousands of items may see slower responses on unscoped requests

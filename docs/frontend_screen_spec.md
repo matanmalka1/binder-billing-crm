@@ -7,15 +7,19 @@ This file must not contain:
 - Canonical domain behavior.
 - Backend architecture rules.
 
-Source of truth: unclear
+Source of truth: reference
 
 # איפיון מסכים — Frontend CRM
 
+Status: reference/historical screen inventory. This file is kept under `backend/docs` but does not own frontend behavior or backend API contracts.
+
+Last backend endpoint spot-check: 2026-05-29. Claims about current frontend implementation were not fully re-verified in this backend-doc audit. Treat route/API statements here as screen-context notes only; canonical endpoint contracts are the backend routers/OpenAPI and frontend contracts in the frontend codebase.
+
 ## מטרה
 
-מסמך זה מגדיר איפיון אחיד למסכים הקיימים בפועל ב־`../frontend`,
-בהתאם לראוטים ולקומפוננטות הפעילים כיום.
-המטרה היא לייצר מקור אמת ברור ל־UX, להרשאות, לנתונים, לפעולות, ולפערים המבניים שגורמים לשבירות.
+מסמך זה הוא inventory/reference לאיפיון מסכים ב־`../frontend`.
+הוא אינו מקור אמת מחייב ל־UX, הרשאות, נתונים או פעולות.
+המטרה היא לשמר נקודות בדיקה ופערים ידועים עד שיועברו למסמך frontend קנוני.
 
 ## תבנית איפיון אחידה לכל מסך
 
