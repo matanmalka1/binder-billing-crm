@@ -540,6 +540,25 @@ class BinderRepository(BaseRepository[Binder]):
         )
         return self.db.scalars(stmt).all()
 
+    def close_in_office_by_client_record(self, client_record_id: int) -> int:
+        """Mark all IN_OFFICE binders for a client as FULL when the client is frozen or closed.
+
+        Bulk operation — no per-binder history or audit written (matches VAT/annual-report
+        cancel_open_by_client_record pattern). Returns the number of binders updated.
+        """
+        rows = self.db.scalars(
+            select(Binder).where(
+                Binder.client_record_id == client_record_id,
+                Binder.location_status == BinderLocationStatus.IN_OFFICE,
+                Binder.deleted_at.is_(None),
+            )
+        ).all()
+        for row in rows:
+            row.capacity_status = BinderCapacityStatus.FULL
+        if rows:
+            self.db.flush()
+        return len(rows)
+
     def soft_delete(self, binder_id: int, deleted_by: int | None = None) -> bool:
         """Soft-delete a binder."""
         binder = self.db.scalars(select(Binder).where(Binder.id == binder_id)).first()
