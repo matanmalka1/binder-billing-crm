@@ -12,6 +12,7 @@ from app.tax_calendar.repositories.grouped_repository import (
 from app.tax_calendar.schemas.grouped import (
     TaxCalendarGroupListResponse,
     TaxCalendarGroupResponse,
+    TaxCalendarGroupsSummary,
 )
 from app.vat_reports.models.vat_enums import VatWorkItemStatus
 
@@ -63,12 +64,20 @@ def list_groups_paginated(
     )
     groups = _filter_groups_by_status(groups, status)
     total = len(groups)
+    summary = TaxCalendarGroupsSummary(
+        groups=total,
+        linked=sum(g.linked_count for g in groups),
+        open=sum(g.open_count for g in groups),
+        overdue=sum(g.overdue_count for g in groups),
+        done=sum(g.done_count for g in groups),
+    )
     start = (page - 1) * page_size
     return TaxCalendarGroupListResponse(
         items=groups[start : start + page_size],
         page=page,
         page_size=page_size,
         total=total,
+        summary=summary,
     )
 
 

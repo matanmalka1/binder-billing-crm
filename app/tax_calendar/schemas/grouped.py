@@ -2,8 +2,6 @@ from datetime import date
 
 from pydantic import BaseModel
 
-from app.core.api_types import PaginatedResponse
-
 
 class TaxCalendarGroupResponse(BaseModel):
     tax_calendar_entry_id: int
@@ -46,4 +44,17 @@ class TaxCalendarGroupItemsResponse(BaseModel):
     total: int = 0
 
 
-TaxCalendarGroupListResponse = PaginatedResponse[TaxCalendarGroupResponse]
+class TaxCalendarGroupsSummary(BaseModel):
+    groups: int
+    linked: int
+    open: int
+    overdue: int
+    done: int
+
+
+class TaxCalendarGroupListResponse(BaseModel):
+    items: list[TaxCalendarGroupResponse]
+    page: int
+    page_size: int
+    total: int
+    summary: TaxCalendarGroupsSummary
