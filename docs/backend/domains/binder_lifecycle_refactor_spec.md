@@ -1,13 +1,10 @@
 ## Scope
 This file owns only:
-- Historical context for a completed binder lifecycle refactor/task spec.
-- Reference notes for the implemented binder lifecycle shape.
-
-This file must not contain:
-- New product requirements.
-- Canonical architecture rules.
+- A pointer to the canonical binder domain doc and archive.
 
 Source of truth: historical
+
+Historical. Canonical domain doc: `docs/docs/domains/binders.md`. Archived original: `docs/docs/archive/binders-legacy.md`.
 
 # Binder Lifecycle Refactor — Task Spec
 
