@@ -229,7 +229,7 @@ If an action does not naturally return a resource, use a consistent result DTO:
 
 ## Error Contract
 
-Errors use the project envelope documented in `docs/backend/05-error-contract.md`:
+Errors use the project envelope documented in `docs/architecture/api-contracts.md`:
 
 ```json
 {

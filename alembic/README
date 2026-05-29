@@ -101,6 +101,8 @@ Then run:
 APP_ENV=development ENV_FILE=.env.development JWT_SECRET=test-secret python3 -m alembic upgrade head
 ```
 
+After applying, add a `### <revision>` entry under "Current migration" above with its command, what it does, what it covers, and `down_revision`.
+
 ## Daily commands
 
 ```bash
