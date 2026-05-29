@@ -1,10 +1,10 @@
 ## Scope
 This file owns only:
-- Backend-local architecture implementation details.
-- Concrete repository, service, and read-side patterns subordinate to canonical YM_Docs backend architecture rules.
+- Backend-local service/repository implementation patterns not covered by canonical rules.
 
 This file must not contain:
 - Project-wide architecture rules that override YM_Docs.
+- Layer responsibilities, repository inventories, or rules already owned by the canonical docs.
 - Frontend rules.
 - Product/domain behavior.
 
@@ -14,73 +14,20 @@ Canonical project-wide rules:
 - `../docs/docs/architecture/backend.md`
 - `../docs/docs/workflow/verification.md`
 
+Related reference:
+- `BaseRepository` CRUD primitives are inventoried in `../docs/docs/project/backend-module-map.md`.
+
 # Backend Architecture Reference
 
-This document records backend-local implementation patterns for new backend work
-and incremental refactors. It is subordinate to the canonical backend architecture
-rules in `../docs/docs/architecture/backend.md`.
+Backend-local implementation patterns for new backend work and incremental
+refactors. Layer responsibilities, repository/service rules, the raw-SQL ban, and
+the domain vertical slice are canonical in `../docs/docs/architecture/backend.md`;
+this file only records concrete patterns that the canonical rules do not specify.
 
-## Layer Contract
+## BaseService and transactions
 
-Flow is strict:
-
-```text
-API router -> Service -> Repository -> SQLAlchemy ORM
-```
-
-Return shapes are also strict:
-
-```text
-Repository -> SQLAlchemy model or typed read projection
-Service -> Pydantic schema / DTO
-API router -> Pydantic schema only
-```
-
-Canonical layer responsibilities (router / service / repository) live in
-`../docs/docs/architecture/backend.md`. The return-shape conventions above are
-backend-local detail.
-
-## BaseRepository
-
-All write-model repositories should inherit from:
-
-```python
-from app.common.repositories.base_repository import BaseRepository
-
-
-class SomeRepository(BaseRepository[SomeModel]):
-    model = SomeModel
-```
-
-`BaseRepository` provides SQLAlchemy 2.0 CRUD primitives:
-
-- `get(entity_id, include_deleted=False)`
-- `get_by_id(entity_id)`
-- `get_by_id_for_update(entity_id)`
-- `get_multi(page=1, page_size=20, sort_by=None, sort_order="asc", sortable_fields=None)`
-- `paginate(...) -> Page[Model]`
-- `count(include_deleted=False)`
-- `create(**fields)`
-- `add(entity)`
-- `update(entity_id, **fields)`
-- `update_entity(entity, **fields)`
-- `delete(entity_id, deleted_by=None, hard=False)`
-- `soft_delete(entity_id, deleted_by=None)`
-- `hard_delete(entity_id)`
-
-The base implementation uses `select()`, `scalars()`, and `execute()` style. New
-code must not introduce `session.query()`.
-
-Soft delete is automatic for models with `deleted_at`. If `deleted_by` exists it
-is populated. Models without `deleted_at` fall back to hard delete.
-
-Repositories may expose domain-specific methods, but those methods must still
-return ORM models, scalar values, or typed read projections. Business decisions
-belong in services.
-
-## BaseService
-
-Domain services should inherit from:
+Domain services should inherit from `BaseService` (`app/common/services/base_service.py`),
+which exposes `transaction()`, `commit()`, and `rollback()`.
 
 ```python
 from app.common.services.base_service import BaseService
@@ -90,13 +37,9 @@ class SomeService(BaseService):
     ...
 ```
 
-Services are the only layer that should call:
-
-- `commit()`
-- `rollback()`
-- `transaction()`
-- external side effects after persistence validation
-- cross-repository orchestration
+Services are the only layer that should call `commit()`, `rollback()`, or
+`transaction()`, run external side effects after persistence validation, and
+orchestrate across repositories.
 
 Recommended write pattern:
 
@@ -113,59 +56,20 @@ They do not commit.
 
 ## Read-Side Pattern
 
-Use three repository categories:
+Two repository categories are in use:
 
 - `Repository`: write-model repository for one aggregate root.
 - `ReadRepository`: optimized read methods that still return ORM models or typed
-  projection dataclasses.
-- `QueryBuilder`: reusable select builders for complex joins used by multiple
-  read repositories.
+  projection dataclasses (for example `app/clients/repositories/client_record_read_repository.py`).
 
-For complex views such as `ClientRecord + LegalEntity + Person`, prefer a shared
-query builder plus a typed projection dataclass:
-
-```text
-app/clients/repositories/client_record_query.py
-app/clients/repositories/client_record_read_repository.py
-```
+For complex views such as `ClientRecord + LegalEntity + Person`, prefer a
+specialized read repository plus a typed projection dataclass. Use a specialized
+read repository when the query is domain-specific or needs runtime filters,
+permissions, pagination, or computed columns.
 
 Use a database view only when the shape is stable, heavily reused outside one
 domain, and worth migrating through Alembic. Do not use a DB view for business
 logic or derived UX state such as `signals` or `urgency`.
 
-Use a specialized read repository when the query is domain-specific or needs
-runtime filters, permissions, pagination, or computed columns.
-
-## Migration Rules
-
-When touching a repository:
-
-1. Replace `db.query()` with `select()` / `scalars()` / `execute()`.
-2. Move workflow branching and validations to the service layer.
-3. Make repository methods return ORM models, scalar values, or typed projections.
-4. Convert dict projections to dataclasses unless the dict is only an internal
-   adapter immediately converted by the service.
-5. Use `BaseRepository` CRUD instead of reimplementing common get/create/update/delete.
-6. Keep API schemas out of repositories.
-
-When touching a service:
-
-1. Own the transaction.
-2. Convert models/projections to Pydantic response schemas.
-3. Keep all user-facing errors in Hebrew.
-4. Keep cross-domain orchestration in services, not repositories.
-
-## Target Domain Layout
-
-```text
-app/<domain>/
-├── api/
-├── services/
-├── repositories/
-│   ├── <aggregate>_repository.py
-│   ├── <aggregate>_read_repository.py
-│   └── <aggregate>_query.py
-├── schemas/
-└── models/
-```
-
+> Target state (not yet in code): a shared `QueryBuilder` (`<aggregate>_query.py`)
+> for select builders reused across multiple read repositories.
