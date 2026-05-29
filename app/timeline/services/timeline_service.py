@@ -56,6 +56,9 @@ class TimelineService:
         client_record_id: int,
         page: int = 1,
         page_size: int = 20,
+        search: str | None = None,
+        event_types: list[str] | None = None,
+        important_only: bool = False,
     ) -> tuple[list[dict], int]:
         client_record = self.client_record_repo.get_by_id(client_record_id)
         if not client_record:
@@ -104,6 +107,33 @@ class TimelineService:
         events.extend(self._build_notification_events(client_record_id))
 
         events.sort(key=lambda e: e["timestamp"], reverse=True)
+
+        if search:
+            q = search.strip().lower()
+            events = [
+                e
+                for e in events
+                if q in (e.get("description") or "").lower()
+                or q in str(e.get("binder_id") or "")
+                or q in str(e.get("charge_id") or "")
+                or any(q in str(v).lower() for v in (e.get("metadata") or {}).values())
+            ]
+        if event_types:
+            events = [e for e in events if e.get("event_type") in event_types]
+        if important_only:
+            _STRONG = {
+                "charge_created",
+                "charge_issued",
+                "charge_paid",
+                "annual_report_status_changed",
+                "binder_lifecycle_change",
+                "document_uploaded",
+                "signature_request_sent",
+                "signature_request_signed",
+                "signature_request_declined",
+            }
+            events = [e for e in events if e.get("event_type") in _STRONG]
+
         total = len(events)
         offset = (page - 1) * page_size
         return events[offset : offset + page_size], total

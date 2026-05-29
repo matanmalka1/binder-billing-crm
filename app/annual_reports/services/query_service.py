@@ -46,15 +46,30 @@ class AnnualReportQueryService(AnnualReportBaseService):
         page_size: int = 20,
         sort_by: str = "tax_year",
         order: str = "desc",
+        client_record_id: int | None = None,
+        status: str | None = None,
     ) -> tuple[list[AnnualReportResponse], int]:
         if tax_year is not None:
             items = self.repo.list_by_tax_year(
-                tax_year, page=page, page_size=page_size, sort_by=sort_by, order=order
+                tax_year,
+                page=page,
+                page_size=page_size,
+                sort_by=sort_by,
+                order=order,
+                client_record_id=client_record_id,
+                status=status,
             )
-            total = self.repo.count_by_tax_year(tax_year)
+            total = self.repo.count_by_tax_year(tax_year, client_record_id=client_record_id, status=status)
         else:
-            items = self.repo.list_all(page=page, page_size=page_size, sort_by=sort_by, order=order)
-            total = self.repo.count_all()
+            items = self.repo.list_all(
+                page=page,
+                page_size=page_size,
+                sort_by=sort_by,
+                order=order,
+                client_record_id=client_record_id,
+                status=status,
+            )
+            total = self.repo.count_all(client_record_id=client_record_id, status=status)
         return self._to_responses(items), total
 
     def get_season_summary(self, tax_year: int) -> dict:

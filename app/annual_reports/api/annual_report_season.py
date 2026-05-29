@@ -21,12 +21,20 @@ season_router = APIRouter(
 def list_active_season_reports(
     db: DBSession,
     user: CurrentUser,
+    client_record_id: int | None = Query(None),
+    status: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
 ):
     tax_year = get_active_annual_report_tax_year()
     service = AnnualReportService(db)
-    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
+    items, total = service.list_reports(
+        tax_year=tax_year,
+        page=page,
+        page_size=page_size,
+        client_record_id=client_record_id,
+        status=status,
+    )
     return AnnualReportListResponse(
         items=items,
         page=page,
@@ -51,12 +59,20 @@ def list_season_reports(
     tax_year: int,
     db: DBSession,
     user: CurrentUser,
+    client_record_id: int | None = Query(None),
+    status: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
 ):
     """All reports for a given tax year — the advisor's season dashboard."""
     service = AnnualReportService(db)
-    items, total = service.list_reports(tax_year=tax_year, page=page, page_size=page_size)
+    items, total = service.list_reports(
+        tax_year=tax_year,
+        page=page,
+        page_size=page_size,
+        client_record_id=client_record_id,
+        status=status,
+    )
     return AnnualReportListResponse(
         items=items,
         page=page,

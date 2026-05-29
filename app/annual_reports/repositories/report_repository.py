@@ -112,6 +112,8 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
         page_size: int = 20,
         sort_by: str = "status",
         order: str = "asc",
+        client_record_id: int | None = None,
+        status: str | None = None,
     ) -> list[AnnualReport]:
         stmt = (
             self._active_client_stmt()
@@ -121,16 +123,29 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
             )
             .order_by(_sort_col(sort_by, order))
         )
+        if client_record_id is not None:
+            stmt = stmt.where(AnnualReport.client_record_id == client_record_id)
+        if status is not None:
+            stmt = stmt.where(AnnualReport.status == status)
         stmt = self.apply_pagination(stmt, page, page_size)
         return list(self.db.scalars(stmt).all())
 
-    def count_by_tax_year(self, tax_year: int) -> int:
+    def count_by_tax_year(
+        self,
+        tax_year: int,
+        client_record_id: int | None = None,
+        status: str | None = None,
+    ) -> int:
         stmt = scope_to_active_clients_stmt(
             select(func.count(AnnualReport.id)), AnnualReport
         ).where(
             AnnualReport.tax_year == tax_year,
             AnnualReport.deleted_at.is_(None),
         )
+        if client_record_id is not None:
+            stmt = stmt.where(AnnualReport.client_record_id == client_record_id)
+        if status is not None:
+            stmt = stmt.where(AnnualReport.status == status)
         return self.db.scalar(stmt)
 
     def list_all(
@@ -139,6 +154,8 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
         page_size: int = 20,
         sort_by: str = "tax_year",
         order: str = "desc",
+        client_record_id: int | None = None,
+        status: str | None = None,
     ) -> list[AnnualReport]:
         stmt = (
             self._active_client_stmt()
@@ -147,13 +164,25 @@ class AnnualReportReportRepository(BaseRepository[AnnualReport]):
             )
             .order_by(_sort_col(sort_by, order))
         )
+        if client_record_id is not None:
+            stmt = stmt.where(AnnualReport.client_record_id == client_record_id)
+        if status is not None:
+            stmt = stmt.where(AnnualReport.status == status)
         stmt = self.apply_pagination(stmt, page, page_size)
         return list(self.db.scalars(stmt).all())
 
-    def count_all(self) -> int:
+    def count_all(
+        self,
+        client_record_id: int | None = None,
+        status: str | None = None,
+    ) -> int:
         stmt = scope_to_active_clients_stmt(
             select(func.count(AnnualReport.id)), AnnualReport
         ).where(AnnualReport.deleted_at.is_(None))
+        if client_record_id is not None:
+            stmt = stmt.where(AnnualReport.client_record_id == client_record_id)
+        if status is not None:
+            stmt = stmt.where(AnnualReport.status == status)
         return self.db.scalar(stmt)
 
     def list_by_tax_year_with_client(self, tax_year: int) -> list:

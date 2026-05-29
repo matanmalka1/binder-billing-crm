@@ -49,6 +49,8 @@ def list_annual_reports(
     db: DBSession,
     user: CurrentUser,
     tax_year: int | None = Query(None),
+    client_record_id: int | None = Query(None),
+    status: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
     sort_by: str = Query(
@@ -57,7 +59,7 @@ def list_annual_reports(
     ),
     order: str = Query("desc", pattern="^(asc|desc)$"),
 ):
-    """List annual reports (optionally filter by tax_year)."""
+    """List annual reports (optionally filter by tax_year, client_record_id, status)."""
     service = AnnualReportService(db)
     items, total = service.list_reports(
         tax_year=tax_year,
@@ -65,6 +67,8 @@ def list_annual_reports(
         page_size=page_size,
         sort_by=sort_by,
         order=order,
+        client_record_id=client_record_id,
+        status=status,
     )
     return AnnualReportListResponse(
         items=items,

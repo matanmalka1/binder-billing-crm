@@ -18,6 +18,9 @@ def get_client_timeline(
     db: DBSession,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=200),
+    search: str | None = Query(None),
+    event_type: list[str] | None = Query(None),
+    important_only: bool = Query(False),
 ):
     """Get unified client timeline."""
     service = TimelineService(db)
@@ -25,6 +28,9 @@ def get_client_timeline(
         client_record_id=client_record_id,
         page=page,
         page_size=page_size,
+        search=search,
+        event_types=event_type,
+        important_only=important_only,
     )
 
     return ClientTimelineResponse(
