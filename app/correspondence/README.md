@@ -1,14 +1,10 @@
 ## Scope
 This file owns only:
-- Implemented backend behavior for the correspondence domain.
-- Current service, repository, model, and API ownership boundaries for this domain.
+- A pointer to the canonical domain doc.
 
-This file must not contain:
-- Historical implementation plans.
-- Future product behavior that is not implemented.
-- Cross-domain architecture rules.
+Source of truth: historical
 
-Source of truth: mandatory
+Historical. Canonical domain doc: `docs/docs/domains/correspondence.md`. No archive copy (no legacy material worth preserving separately).
 
 # Correspondence Module
 
