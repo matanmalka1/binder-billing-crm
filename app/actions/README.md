@@ -10,6 +10,8 @@ This file must not contain:
 
 Source of truth: mandatory
 
+> **Note:** No canonical doc exists yet for the actions domain in `docs/docs/domains/`.
+
 # Actions Module
 
 > Last audited: 2026-04-23
